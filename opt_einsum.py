@@ -6,29 +6,31 @@ from path_opportunistic import path_opportunistic
 
 def extract_elements(inds, lst):
     result, extract = [], []
+    
+    for x in inds:
+        extract.append(lst[x])
     for num, x in enumerate(lst):
-        if num in inds:
-            extract.append(x)
-        else:
+        if num not in inds:
             result.append(x)
+
     return (result, extract)
 
 
-# cost_dict = {}
-# def compute_cost(inp, out, ind_sizes):
-# 
-#     key = ','.join(inp) + '->' + out
-#     if key not in cost_dict.keys():
-#         # Get scaling
-#         overall = set(inp.replace(',',''))
-#         cost = np.prod([ind_sizes[x] for x in overall])
-# 
-#         # Compute prefactor
-#         prefactor = 1
-#         prefactor += len(overall - set(out))
-#         cost_dict[key] = cost*prefactor
-# 
-#     return cost_dict[key]
+cost_dict = {}
+def compute_cost(inp, out, ind_sizes):
+
+    key = ','.join(inp) + '->' + out
+    if key not in cost_dict.keys():
+        # Get scaling
+        overall = set(inp.replace(',',''))
+        cost = np.prod([ind_sizes[x] for x in overall])
+
+        # Compute prefactor
+        prefactor = 1
+        prefactor += len(overall - set(out))
+        cost_dict[key] = cost*prefactor
+
+    return cost_dict[key]
 
 def run_path(path, views):
 
@@ -69,7 +71,9 @@ def opt_einsum(string, *views, **kwargs):
         inds_left -= tmp
         
     path = path_opportunistic(inp, out, dim_dict)
-
+    # for p in path:
+    #    print p
+    # print '-' * 80
 
     result = run_path(path, views)
     return result
@@ -77,17 +81,26 @@ def opt_einsum(string, *views, **kwargs):
 
 # Current test case
 
-# N = 10
-# C = np.random.rand(N, N)
-# I = np.random.rand(N, N, N, N)
-# 
-# string = 'pi,qj,ijkl,rk,sl->pqrs'
-# views = [C, C, I, C, C]
-# 
-# opt = opt_einsum(string, *views)
-# conv = np.einsum(string, *views)
-# 
-# assert np.allclose(opt, conv)
+N = 10
+C1 = np.random.rand(6, N)
+C2 = np.random.rand(20, N*2)
+C3 = np.random.rand(8, N)
+C4 = np.random.rand(3, N)
+I = np.random.rand(N, N*2, N, N)
 
+string = 'pi,qj,ijkl,rk,sl->pqrs'
+views = [C1, C2, I, C3, C4]
+# 
+# d2 = np.random.rand(5, 5)
+# d3 = np.random.rand(5, 5, 5)
+# string = 'gdb,cg,gdc,bfa->af'
+# views = [d3, d2, d3, d3] 
+# 
+# 
+opt = opt_einsum(string, *views)
+conv = np.einsum(string, *views)
+# 
+print string
+assert np.allclose(opt, conv)
 
 

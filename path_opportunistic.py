@@ -16,8 +16,6 @@ def find_best_pair(inp, out, ind_dict):
     Returns (do, current_string, contract)
     """
 
-    do = True
-   
     # Set the sets 
     ts_sets = map(set, inp)
     out_set = set(out)
@@ -30,36 +28,57 @@ def find_best_pair(inp, out, ind_dict):
         for spos in range(fpos+1, len(inp)):
             second = ts_sets[spos]
 
+            # Indices of the contraction
+            index_contract = first | second
+
+            # See if we can do any other contractions for free 
+            positions = [fpos, spos]
+            for num, tmp_set in enumerate(ts_sets):
+                if num in positions:
+                    continue
+                if index_contract >= tmp_set:
+                    positions.append(num)
+
             # Indices to contract over
             index_inter = first & second
 
             # Indices that cannot be removed
             full = inp[:]
-            full.remove(inp[fpos])
-            full.remove(inp[spos])
+            for pos in positions:
+                full.remove(inp[pos])
+
+            # Build index sets
             index_remain = set(''.join(full)) | out_set
-
-            # Indices of the result
-            index_result = ((first | second) - (index_inter - index_remain)) 
-        
-            # Indices removed
+            index_result = index_contract - (index_inter - index_remain)
             index_removed = index_inter - index_result
-        
-            # Contraction tuple
-            contract = ((fpos, spos), index_result)
 
+            # Can we do tensordot?
+            # if len(index_removed) > 0:
+            #     tdot = True
+            #     # Can only do two terms
+            #     positions = [fpos, spos]
+            #     # Will get same ordering back out
+            #     index_result = inp[fpos] + inp[spos]
+            #     for s in index_removed:
+            #         index_result = index_result.replace(s, '')
+            # else:
+            #     index_result = ','.join(index_result)
+            #     tdot = False 
+            
+            # Build contraction syntax
+            contract = (tuple(positions), index_result)
+            #contract = (tuple(positions), tdot, index_result)
+
+            ### Build sort timings
+        
             # Build sort tuple
             rank_reduction = len(index_result) - max(len(first), len(second)) - len(index_removed)
-
-            # # See if we can do any other contractions for free 
-            # for num, tmp_set in enumerate(ts_sets):
-            #     if num in positions:
-            #         continue
-            #     if (tmp_set == first) or (tmp_set == second):
-            #         positions.append(num)
+            reduction_size = np.prod([ind_dict[x] for x in index_removed])
+            sum_size = np.prod([ind_dict[x] for x in index_contract])
 
             # Sort tuple
-            sort = (rank_reduction)
+            sort = (rank_reduction, -reduction_size, -sum_size)
+            #sort = (rank_reduction, -tdot, -reduction_size, -sum_size)
 
             # Best contraction, indices, result index
             results.append([sort, contract])
@@ -67,7 +86,8 @@ def find_best_pair(inp, out, ind_dict):
     # Sort based on indices of tuple
     results.sort()
     do = results[0][1]
-
+    # print do
+    # exit()
     cont_out = ''.join(do[1])
     string = ','.join(inp[x] for x in do[0])
     string += '->' + cont_out
@@ -90,6 +110,7 @@ def path_opportunistic(inp, out, ind_dict):
         path.append([contraction,  remaining])
         if len(inp)<=2:
             break
+
     path.append([(remaining, tuple(range(len(inp)))), ''])    
     return path
 
