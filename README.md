@@ -28,7 +28,7 @@ def optimized(I, C):
     return K
 ```
 
-The einsum function does not consider building intermediate arrays, therefore helping out can result in considerable cost savings even for a small N (N=10):
+The einsum function does not consider building intermediate arrays, therefore helping einsum out by building intermediate arrays can result in a considerable cost savings even for small N (N=10):
 
 ```
 %timeit naive(I, C)
@@ -44,14 +44,15 @@ Logic can be built that optimizes the ordering; however, this is a lot of time a
 Now lets consider the following expression found in perturbation theory (one of ~5,000 such expressions):
 `bdik,acaj,ikab,ajac,ikbd`
 
-At first, it would appear that this scales like N^7 as there are 7 unique indices; however, we can define a intermeidate to greatly reduce this scaling.
+At first, it would appear that this scales like N^7 as there are 7 unique indices; however, we can define a intermediate to greatly reduce this scaling.
 
-'a = bdik,ikab,ikbd' (N^6 scaling)
-'result = acaj,ajac,a` (N^4 scaling)
+`a = bdik,ikab,ikbd` (N^6 scaling)
+
+`result = acaj,ajac,a` (N^4 scaling)
 
 this is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. 
 Finding the best path for an arbitrary number of terms is not a easy problem.
-At this point it is worth noting that we are aiming at only optimizing a single conctraction here.
+At this point it is worth noting that we are only optimizing a single contraction here.
 
 ** IN PROGRESS **
 
@@ -97,7 +98,7 @@ done
 ```
 
 Assumptions:
- - 'ijk,ijk,ijk' or 'ijk,ijk,jk' is an optimized expression.
+ - `ijk,ijk,ijk` or `ijk,ijk,jk` is an optimizal expression.
  - Memory = max(output.shape, memory_set)
 
 
