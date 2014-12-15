@@ -31,13 +31,7 @@ def find_best_pair(inp, out, ind_dict):
             # Indices of the contraction
             index_contract = first | second
 
-            # See if we can do any other contractions for free 
             positions = [fpos, spos]
-            for num, tmp_set in enumerate(ts_sets):
-                if num in positions:
-                    continue
-                if index_contract >= tmp_set:
-                    positions.append(num)
 
             # Indices to contract over
             index_inter = first & second
@@ -50,25 +44,41 @@ def find_best_pair(inp, out, ind_dict):
             # Build index sets
             index_remain = set(''.join(full)) | out_set
             index_result = index_contract - (index_inter - index_remain)
-            index_removed = index_inter - index_result
+            index_removed = (index_inter - index_result)
+
+            # Build einsum string
 
             # Can we do tensordot?
-            # if len(index_removed) > 0:
-            #     tdot = True
-            #     # Can only do two terms
-            #     positions = [fpos, spos]
-            #     # Will get same ordering back out
-            #     index_result = inp[fpos] + inp[spos]
-            #     for s in index_removed:
-            #         index_result = index_result.replace(s, '')
-            # else:
-            #     index_result = ','.join(index_result)
-            #     tdot = False 
-            
-            # Build contraction syntax
-            contract = (tuple(positions), index_result)
-            #contract = (tuple(positions), tdot, index_result)
+            rank_reduction = len(index_removed) > 0
+            no_dups = (len(first) >= len(inp[fpos])) and (len(second) >= len(inp[spos]))
 
+#            if False:
+            if (rank_reduction and no_dups):
+                fs, ss = inp[fpos], inp[spos]
+                ftpos, stpos = [], []
+
+                # Get index result
+                index_result = fs + ss
+                for s in index_removed:
+                    index_result = index_result.replace(s, '')
+                    ftpos.append(fs.find(s))
+                    stpos.append(ss.find(s))
+
+                ein_string = ','.join(inp[x] for x in positions) + '->' + index_result
+                contract = ('tensordot', ein_string, tuple(positions), (ftpos, stpos))
+
+            else:
+                # # See if we can do any other contractions for free 
+                # for num, tmp_set in enumerate(ts_sets):
+                #     if num in positions:
+                #         continue
+                #     if index_contract >= tmp_set:
+                #         positions.append(num)
+                
+                index_result = ''.join(index_result)
+                ein_string = ','.join(inp[x] for x in positions) + '->' + index_result
+                contract = ('einsum', ein_string, tuple(positions))
+            
             ### Build sort timings
         
             # Build sort tuple
@@ -78,26 +88,18 @@ def find_best_pair(inp, out, ind_dict):
 
             # Sort tuple
             sort = (rank_reduction, -reduction_size, -sum_size)
-            #sort = (rank_reduction, -tdot, -reduction_size, -sum_size)
 
             # Best contraction, indices, result index
             results.append([sort, contract])
 
     # Sort based on indices of tuple
     results.sort()
-    do = results[0][1]
-    # print do
-    # exit()
-    cont_out = ''.join(do[1])
-    string = ','.join(inp[x] for x in do[0])
-    string += '->' + cont_out
+    best = results[0][1]
 
-    new_inp = [inp[x] for x in range(len(inp)) if x not in do[0]]
-    new_inp += [cont_out]
+    new_inp = [inp[x] for x in range(len(inp)) if x not in best[2]]
+    new_inp += [best[1].split('->')[-1]]
 
-    contraction = (string, do[0])
-
-    return new_inp, contraction
+    return new_inp, best
 
 def path_opportunistic(inp, out, ind_dict):
     path = [[(), inp + '->' + out]]
@@ -108,10 +110,11 @@ def path_opportunistic(inp, out, ind_dict):
         inp, contraction = find_best_pair(inp, out, ind_dict)
         remaining = ','.join(inp) + '->' + out
         path.append([contraction,  remaining])
-        if len(inp)<=2:
+        if len(inp)==1:
             break
+    
+    path.append([('einsum', remaining, tuple(range(len(inp)))), ''])    
 
-    path.append([(remaining, tuple(range(len(inp)))), ''])    
     return path
 
 

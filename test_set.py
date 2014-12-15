@@ -55,9 +55,9 @@ keys = 'Random2'
 
 
 for key in tests.keys():
-    if key != keys: continue
+#    if key != keys: continue
     sum_string, index_size = tests[key]
-    print sum_string
+
     for scale in scale_list:
         loop_index_size = (np.array(index_size) * scale).astype(np.int)
         loop_index_size[loop_index_size<1] = 1
@@ -78,6 +78,7 @@ for key in tests.keys():
         ident = np.allclose(ein, opt)
         if not ident:
             out.append([key, 'Comparison failed', sum_string, scale, 0, 0])
+            continue
 
         setup = "import numpy as np; from opt_einsum import opt_einsum; \
                  from __main__ import sum_string, views"

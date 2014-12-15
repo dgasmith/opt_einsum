@@ -82,6 +82,7 @@ for x in range(20):
     ident = np.allclose(ein, opt)
     if not ident:
         out.append(['Comparison failed', sum_string, index_size, 0, 0])
+        continue
 
     setup = "import numpy as np; from opt_einsum import opt_einsum; \
              from __main__ import sum_string, views"
