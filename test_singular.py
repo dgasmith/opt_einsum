@@ -31,6 +31,11 @@ tests['Actual4'] = ['bdk,cji,ajdb,ikca,kbd,ijkcd,ikac', [10, 11, 9, 10, 12, 15, 
 tests['Actual5'] = ['cij,bdk,ajbc,ikad,ijc,ijk,ikad', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
 #tests['Actual2'] = [, [10, 5, 9, 10, 5, 25, 6, 14, 11]]
 
+# A few tricky cases
+tests['Collapse1'] = ['ab,ab,c->c', [200, 200, 200]]
+tests['Collapse2'] = ['ab,ab,cd,cd->', [60, 60, 60, 60]]
+tests['Collapse3'] = ['ab,ab,cd,cd,ef,ef->', [15, 15, 15, 15, 15, 15]]
+
 
 def build_views(string, sizes):
     terms = string.split('->')[0].split(',')
@@ -52,13 +57,14 @@ alpha_dict = {num:x for num, x in enumerate(alpha)}
 out = []
 
 
-key = 'Random1'
+key = 'Index1'
+#key = 'Random1'
 
 
 sum_string, index_size = tests[key]
 views = build_views(sum_string, index_size)
 ein_result = np.einsum(sum_string, *views)
-opt_ein_result = opt_einsum(sum_string, *views)
+opt_ein_result = opt_einsum(sum_string, *views, debug=1)
 
 print 'Einsum shape:        %s' % (str(ein_result.shape))
 print 'Opt einsum shape:    %s' % (str(opt_ein_result.shape))

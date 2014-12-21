@@ -1,119 +1,79 @@
 import itertools as it
 import numpy as np
 
-def extract_elements(inds, lst):
-    result, extract = [], []
-    for num, x in enumerate(lst):
-        if num in inds:
-            extract.append(x)
-        else:
-            result.append(x)
-    return (result, extract)
-            
+def compute_size(inds, ind_dict):
+    ret = 1
+    for i in inds:
+        ret *= ind_dict[i]
+    return ret
+
 
 def find_best_pair(inp, out, ind_dict):
     """
     Returns (do, current_string, contract)
     """
 
-    # Set the sets 
-    ts_sets = map(set, inp)
-    out_set = set(out)
-
-    # Find maximum overlap
+    set_inp = map(set, inp)
+    out_size = compute_size(out, ind_dict)
+    # Fin  maximum overlap
     # Reminder: everything is set arithmetic
     results = []
-    for fpos in range(len(inp)):
-        first = ts_sets[fpos]
-        for spos in range(fpos+1, len(inp)):
-            second = ts_sets[spos]
-
-            # Indices of the contraction
-            index_contract = first | second
-
-            positions = [fpos, spos]
-
-            # Indices to contract over
-            index_inter = first & second
-
-            # Indices that cannot be removed
-            full = inp[:]
-            for pos in positions:
-                full.remove(inp[pos])
-
+    for positions in it.combinations(range(len(inp)), 2):
+            index_contract = set()
+            index_remain = set(out).copy()
+            new_inp = []
+            for ind, value in enumerate(set_inp):
+                if ind in positions:
+                    index_contract |= value
+                else:
+                    new_inp.append(inp[ind])
+                    index_remain |= value
+        
             # Build index sets
-            index_remain = set(''.join(full)) | out_set
-            index_result = index_contract - (index_inter - index_remain)
-            index_removed = (index_inter - index_result)
+            index_result = index_remain & index_contract
+            index_removed = (index_contract - index_result)
 
-            # Build einsum string
+            # Check for other contracts that we can do for free
+            # if len(index_removed)==0:
+            #     for ind, value in enumerate(set_inp):
+            #         if (ind not in positions) and (index_contract >= ind):
+            #             positions += (ind,)
 
-            # Can we do tensordot?
-            rank_reduction = len(index_removed) > 0
-            no_dups = (len(first) >= len(inp[fpos])) and (len(second) >= len(inp[spos]))
-
-#            if False:
-            if (rank_reduction and no_dups):
-                fs, ss = inp[fpos], inp[spos]
-                ftpos, stpos = [], []
-
-                # Get index result
-                index_result = fs + ss
-                for s in index_removed:
-                    index_result = index_result.replace(s, '')
-                    ftpos.append(fs.find(s))
-                    stpos.append(ss.find(s))
-
-                ein_string = ','.join(inp[x] for x in positions) + '->' + index_result
-                contract = ('tensordot', ein_string, tuple(positions), (ftpos, stpos))
-
-            else:
-                # # See if we can do any other contractions for free 
-                # for num, tmp_set in enumerate(ts_sets):
-                #     if num in positions:
-                #         continue
-                #     if index_contract >= tmp_set:
-                #         positions.append(num)
-                
-                index_result = ''.join(index_result)
-                ein_string = ','.join(inp[x] for x in positions) + '->' + index_result
-                contract = ('einsum', ein_string, tuple(positions))
-            
-            ### Build sort timings
+            new_inp.append(''.join(index_result))
+            contract = ((positions, index_result), new_inp)
         
             # Build sort tuple
-            rank_reduction = len(index_result) - max(len(first), len(second)) - len(index_removed)
-            reduction_size = np.prod([ind_dict[x] for x in index_removed])
-            sum_size = np.prod([ind_dict[x] for x in index_contract])
+            result_size = compute_size(index_result, ind_dict)
+            total_intermediate_size = sum([compute_size(inp[x], ind_dict) for x in positions])
+            removed_size = compute_size(index_removed, ind_dict)
+
+            size_reduction = result_size - total_intermediate_size
+
+            sum_size = compute_size(index_contract, ind_dict)
 
             # Sort tuple
-            sort = (rank_reduction, -reduction_size, -sum_size)
+            sort = size_reduction - removed_size
+#            sort = (size_reduction, -removed_size, -sum_size)
+#            sort = (-removed_size, sum_size, size_reduction)
+#            print inp[positions[0]], inp[positions[1]], sort
 
             # Best contraction, indices, result index
             results.append([sort, contract])
 
-    # Sort based on indices of tuple
+    # Sort based on first index
     results.sort()
-    best = results[0][1]
-
-    new_inp = [inp[x] for x in range(len(inp)) if x not in best[2]]
-    new_inp += [best[1].split('->')[-1]]
-
-    return new_inp, best
+    # Return best contraction
+    return results[0][1]
 
 def path_opportunistic(inp, out, ind_dict):
-    path = [[(), inp + '->' + out]]
-    inp = inp.split(',')
 
+    path = []
     while True:
-        # Find best to contract
-        inp, contraction = find_best_pair(inp, out, ind_dict)
-        remaining = ','.join(inp) + '->' + out
-        path.append([contraction,  remaining])
-        if len(inp)==1:
+        pos, inp = find_best_pair(inp, out, ind_dict)
+        # print '-'*50
+        path.append(pos)
+        if len(inp)<=1:
             break
-    
-    path.append([('einsum', remaining, tuple(range(len(inp)))), ''])    
 
     return path
 
