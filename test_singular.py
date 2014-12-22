@@ -58,13 +58,16 @@ out = []
 
 
 key = 'Index1'
+key = 'Actual1'
 #key = 'Random1'
 
 
 sum_string, index_size = tests[key]
 views = build_views(sum_string, index_size)
 ein_result = np.einsum(sum_string, *views)
-opt_ein_result = opt_einsum(sum_string, *views, debug=1)
+# opt_ein_result = opt_einsum(sum_string, *views, debug=1, path='opportunistic')
+opt_ein_result = opt_einsum(sum_string, *views, debug=1, path='optimal')
+
 
 print 'Einsum shape:        %s' % (str(ein_result.shape))
 print 'Opt einsum shape:    %s' % (str(opt_ein_result.shape))

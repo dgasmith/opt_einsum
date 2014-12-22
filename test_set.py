@@ -30,7 +30,7 @@ tests['Hadamard4'] = ['a,ab,abc->abc', [200, 200, 200]]
 
 # Real world test cases
 tests['Actual1'] = ['acjl,pbpk,jkib,ilac,jlac,jklabc,ilac', [10, 5, 9, 10, 5, 25, 6, 14, 11]]
-tests['Actual2'] = ['cj,bdik,akdb,ijca,jc,ijkbcd,ijac', [10, 14, 9, 10, 13, 12, 13, 14, 11]]
+tests['Actual2'] = ['cj,bdik,akdb,ijca,jc,ijkbcd,ijac', [10, 14, 9, 10, 18, 12, 13, 14, 11]]
 tests['Actual3'] = ['abik,ikjp,pjba,ikab,jab', [10, 22, 15, 10, 17, 25]]
 tests['Actual4'] = ['bdk,cji,ajdb,ikca,kbd,ijkcd,ikac', [10, 11, 9, 10, 12, 15, 13, 14, 11]]
 tests['Actual5'] = ['cij,bdk,ajbc,ikad,ijc,ijk,ikad', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
@@ -53,7 +53,7 @@ def build_views(string, sizes):
         views.append(np.random.rand(*term_index))
     return views
 
-#scale_list = [0.5, 0.7, 0.9, 1.1, 1.3]
+#scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
 scale_list = [1]
 
 alpha = list('abcdefghijklmnopqrstuvwyxz')
@@ -62,6 +62,8 @@ out = []
 
 keys = 'Random2'
 
+opt_path = 'optimal'
+#opt_path = 'opportunistic'
 
 for key in tests.keys():
 #    if key != keys: continue
@@ -78,7 +80,7 @@ for key in tests.keys():
             continue
 
         try:
-            opt = opt_einsum(sum_string, *views)
+            opt = opt_einsum(sum_string, *views, path=opt_path)
         except Exception as error:
             out.append([key, 'Opt_einsum failed', sum_string, scale, 0, 0])
             continue
@@ -89,9 +91,9 @@ for key in tests.keys():
             continue
 
         setup = "import numpy as np; from opt_einsum import opt_einsum; \
-                 from __main__ import sum_string, views"
+                 from __main__ import sum_string, views, opt_path"
         einsum_string = "np.einsum(sum_string, *views)"
-        opt_einsum_string = "opt_einsum(sum_string, *views)"
+        opt_einsum_string = "opt_einsum(sum_string, *views, path=opt_path)"
 
 
         e_n = 1

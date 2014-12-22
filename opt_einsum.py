@@ -3,11 +3,28 @@ import numpy as np
 import itertools as it
 
 from path_opportunistic import path_opportunistic
-from path_general import path_general
-
+from path_optimal import path_optimal
 
 # Rewrite einsum to handle different cases
 def opt_einsum(string, *views, **kwargs):
+    """
+    Attempts to contract tensors in an optimal order using both
+    np.einsum and np.tensordot. Primarily aims at reducing the
+    overall rank of the contration by building intermediates."
+
+    Parameters
+    __________
+    string : str
+        Einsum string of contractions
+    *view  : list of views utilized
+    debug  : int (default: 0)
+        Level of printing.
+
+    Returns
+    -------
+    output : ndarray
+        The result based on the Einstein summation convention.
+    """
 
     # Split into output and input string
     if '->' in string:
@@ -45,18 +62,33 @@ def opt_einsum(string, *views, **kwargs):
             else:
                 dimension_dict[char] = dim
 
+    # Compute size of each input array plus the output array
+    size_list = []
+    for term in input_list + [output_string]:
+        size = 1
+        for s in term:
+            size *= dimension_dict[s]
+        size_list.append(size)
+
+    out_size = max(size_list)
+
     # Grab a few kwargs
     debug_arg = kwargs.get("debug", False)
     tdot_arg = kwargs.get("tensordot", True)
     path_arg = kwargs.get("path", "opportunistic") 
+    memory_arg = kwargs.get("memory", out_size)
 
     if debug_arg>0:
         print('Complete contraction:  %s' % (input_string + '->' + output_string)) 
         print('       Naive scaling:%4d' % len(indices))
 
     # Compute best path        
-    path = path_opportunistic(input_list, output_set, dimension_dict)
-    # path = path_general(inp, out, dim_dict)
+    if path_arg == "opportunistic":
+        path = path_opportunistic(input_list, output_set, dimension_dict)
+    elif path_arg == "optimal":
+        path = path_optimal(input_list, output_set, dimension_dict, memory_arg)
+    else:
+        raise KeyError("Path name %s not found", path_arg)
 
     if debug_arg>0:
         print('-' * 80)
@@ -89,23 +121,21 @@ def opt_einsum(string, *views, **kwargs):
         index_removed = tmp_indices - out_inds            
 
         ### Consider doing tensordot
-        can_dot = tdot_arg
-        can_dot &= (len(tmp_views)==2) 
-        can_dot &= (len(index_removed)>0)
-        can_dot &= no_duplicates        
+        can_dot = tdot_arg & no_duplicates
+        can_dot &= (len(tmp_views)==2) & (len(index_removed)>0)
 
         # Get index result
         index_result = tmp_input[0] + tmp_input[1]
         for s in index_removed:
             index_result = index_result.replace(s, '')
     
-        can_dot &= (len(set(index_result))==len(index_result))
+        #can_dot &= (len(set(index_result))==len(index_result))
         ### End considering tensortdot
-
 
         ### If cannot do tensordot, do einsum
         if can_dot is False:
-            sort_result = [(-dimension_dict[ind], ind) for ind in out_inds]
+            # We can choose order of output indices, shortest first
+            sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
             sort_result.sort()
             index_result = ''.join([x[1] for x in sort_result])
 
