@@ -54,7 +54,7 @@ def build_views(string, sizes):
     return views
 
 #scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-scale_list = [1.2]
+scale_list = [1]
 
 alpha = list('abcdefghijklmnopqrstuvwyxz')
 alpha_dict = {num:x for num, x in enumerate(alpha)}

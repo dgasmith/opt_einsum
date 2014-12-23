@@ -64,7 +64,7 @@ def random_contraction():
     return (sum_string, views, index_size)
 
 out = []
-for x in range(20):
+for x in range(200):
     sum_string, views, index_size = random_contraction()
 
     try:

@@ -1,7 +1,5 @@
-import itertools as it
 import numpy as np
 import time
-
 
 
 def path_optimal(inp, out, ind_dict, memory):
@@ -16,12 +14,13 @@ def path_optimal(inp, out, ind_dict, memory):
     current = [(0, [], [], inp_set)]
     for iteration in range(len(inp)-1):
         new = []
-        comb_iter = list(it.combinations(range(len(inp)-iteration), 2))
+        # Grab all unique pairs
+        comb_iter = zip(*np.triu_indices(len(inp)-iteration, 1))
         for curr in current:
             cost, positions, result, remaining = curr
             for con in comb_iter:
-           
-                # Find contraction indices 
+
+                # Find contraction indices
                 index_contract = set()
                 index_remain = out_set.copy()
                 new_inp = []
@@ -43,7 +42,7 @@ def path_optimal(inp, out, ind_dict, memory):
                     continue
 
                 # Build result
-                index_removed = (index_contract - new_result) 
+                index_removed = (index_contract - new_result)
                 new_inp.append(new_result)
 
                 # Find cost
@@ -58,14 +57,14 @@ def path_optimal(inp, out, ind_dict, memory):
                 new_pos = positions + [con]
                 new.append((new_cost, new_pos, new_result, new_inp))
 
-        current = new 
+        current = new
 
     new.sort()
     best = new[0]
     path = zip(best[1], best[2])
     einsum_string = ','.join(inp) + '->' + ''.join(out)
     print 'Path Optimal time: %6d %2d %3.5f %40s' % (len(new), len(inp), (time.time()-t), einsum_string)
-    
+
     return path
 
 
