@@ -29,6 +29,7 @@ tests['Actual2'] = ['cj,bdik,akdb,ijca,jc,ijkbcd,ijac', [10, 14, 9, 10, 13, 12, 
 tests['Actual3'] = ['abik,ikjp,pjba,ikab,jab', [10, 22, 15, 10, 17, 25]]
 tests['Actual4'] = ['bdk,cji,ajdb,ikca,kbd,ijkcd,ikac', [10, 11, 9, 10, 12, 15, 13, 14, 11]]
 tests['Actual5'] = ['cij,bdk,ajbc,ikad,ijc,ijk,ikad', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
+tests['Actual6'] = ['acjl,pbpk,jkib,ilac,jlac,jklabc,ilac', [10, 5, 9, 10, 5, 25, 6, 14, 11]]
 #tests['Actual2'] = [, [10, 5, 9, 10, 5, 25, 6, 14, 11]]
 
 # A few tricky cases
@@ -58,15 +59,15 @@ out = []
 
 
 key = 'Index1'
-key = 'Actual1'
+key = 'Actual6'
 #key = 'Random1'
 
 
 sum_string, index_size = tests[key]
 views = build_views(sum_string, index_size)
 ein_result = np.einsum(sum_string, *views)
-opt_ein_result = opt_einsum(sum_string, *views, debug=1, path='opportunistic')
-#opt_ein_result = opt_einsum(sum_string, *views, debug=1, path='optimal')
+#opt_ein_result = opt_einsum(sum_string, *views, debug=1, path='opportunistic')
+opt_ein_result = opt_einsum(sum_string, *views, debug=1, path='optimal')
 
 
 print 'Einsum shape:        %s' % (str(ein_result.shape))

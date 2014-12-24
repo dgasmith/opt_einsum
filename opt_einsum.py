@@ -1,6 +1,30 @@
 import time
 import numpy as np
-import itertools as it
+
+
+def _compute_size(inds, ind_dict):
+    ret = 1
+    for i in inds:
+        ret *= ind_dict[i]
+    return ret
+
+
+def _find_contraction(positions, input_sets, output_set):
+    # Find contraction indices
+    index_contract = set()
+    index_remain = output_set.copy()
+    remaining = []
+    for ind, value in enumerate(input_sets):
+        if ind in positions:
+            index_contract |= value
+        else:
+            remaining.append(value)
+            index_remain |= value
+
+    new_result = index_remain & index_contract
+    index_removed = (index_contract - new_result)
+    remaining.append(new_result)
+    return (new_result, remaining, index_removed, index_contract)
 
 
 def _path_optimal(inp, out, ind_dict, memory):
@@ -13,38 +37,22 @@ def _path_optimal(inp, out, ind_dict, memory):
 
     t = time.time()
     current = [(0, [], [], inp_set)]
-    for iteration in range(len(inp)-1):
+    for iteration in range(len(inp) - 1):
         new = []
         # Grab all unique pairs
-        comb_iter = zip(*np.triu_indices(len(inp)-iteration, 1))
+        comb_iter = zip(*np.triu_indices(len(inp) - iteration, 1))
         for curr in current:
             cost, positions, result, remaining = curr
             for con in comb_iter:
 
-                # Find contraction indices
-                index_contract = set()
-                index_remain = out_set.copy()
-                new_inp = []
-                for ind, value in enumerate(remaining):
-                    if ind in con:
-                        index_contract |= value
-                    else:
-                        new_inp.append(value)
-                        index_remain |= value
-
-                new_result = index_remain & index_contract
+                contract = _find_contraction(con, remaining, out_set)
+                new_result, new_inp, index_removed, index_contract = contract
 
                 # Sieve the results based on memory, prevents unnecessarly large tensors
-                out_size = 1
-                for ind in new_result:
-                    out_size *= ind_dict[ind]
+                out_size = _compute_size(new_result, ind_dict)
 
-                if out_size > memory:
-                    continue
-
-                # Build result
-                index_removed = (index_contract - new_result)
-                new_inp.append(new_result)
+                # if out_size > memory:
+                #     continue
 
                 # Find cost
                 new_cost = 1
@@ -68,37 +76,21 @@ def _path_optimal(inp, out, ind_dict, memory):
 
     return path
 
-def _compute_size(inds, ind_dict):
-    ret = 1
-    for i in inds:
-        ret *= ind_dict[i]
-    return ret
-
 
 def _path_opportunistic(inp, out, ind_dict, memory):
     inp_set = map(set, inp)
     out_set = set(out)
 
     path = []
-    for iteration in range(len(inp)-1):
-        if len(inp_set)<=1:
+    for iteration in range(len(inp) - 1):
+        if len(inp_set) <= 1:
             break
         iteration_results = []
         comb_iter = zip(*np.triu_indices(len(inp_set), 1))
         for positions in comb_iter:
-            index_contract = set()
-            index_remain = out_set.copy()
-            new_inp = []
-            for ind, value in enumerate(inp_set):
-                if ind in positions:
-                    index_contract |= value
-                else:
-                    new_inp.append(value)
-                    index_remain |= value
 
-            # Build index sets
-            index_result = index_remain & index_contract
-            index_removed = (index_contract - index_result)
+            contract = _find_contraction(positions, inp_set, out_set)
+            index_result, new_inp, index_removed, index_contract = contract
 
             # Sieve the results based on memory, prevents unnecessarly large tensors
             out_size = 1
@@ -107,8 +99,6 @@ def _path_opportunistic(inp, out, ind_dict, memory):
 
             if out_size > memory:
                 continue
-
-            new_inp.append(set(''.join(index_result)))
 
             # Build sort tuple
             sum_size = _compute_size(index_contract, ind_dict)
@@ -128,6 +118,7 @@ def _path_opportunistic(inp, out, ind_dict, memory):
         inp_set = best[2]
 
     return path
+
 
 # Rewrite einsum to handle different cases
 def opt_einsum(string, *views, **kwargs):
@@ -171,7 +162,7 @@ def opt_einsum(string, *views, **kwargs):
     if len(input_list) != len(views):
         raise ValueError("Number of einsum terms must equal to the number of views.")
 
-    # Get length of each unique index
+    # Get length of each unique index and ensure all dimension are correct
     inds_left = indices.copy()
     dimension_dict = {}
     for tnum, term in enumerate(input_list):
@@ -206,7 +197,7 @@ def opt_einsum(string, *views, **kwargs):
         print('Complete contraction:  %s' % (input_string + '->' + output_string))
         print('       Naive scaling:%4d' % len(indices))
 
-    # Compute best path
+    # Compute path
     if not isinstance(path_arg, str):
         path = path_arg
     elif path_arg == "opportunistic":
