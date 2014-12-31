@@ -1,7 +1,6 @@
 import time
 import numpy as np
 
-
 def _compute_size(inds, ind_dict):
     ret = 1
     for i in inds:
@@ -51,8 +50,8 @@ def _path_optimal(inp, out, ind_dict, memory):
                 # Sieve the results based on memory, prevents unnecessarly large tensors
                 out_size = _compute_size(new_result, ind_dict)
 
-                # if out_size > memory:
-                #     continue
+                if out_size > memory:
+                    continue
 
                 # Find cost
                 new_cost = 1
@@ -69,8 +68,7 @@ def _path_optimal(inp, out, ind_dict, memory):
         current = new
 
     new.sort()
-    best = new[0]
-    path = zip(best[1], best[2])
+    path = new[0][1]
     einsum_string = ','.join(inp) + '->' + ''.join(out)
     print 'Path Optimal time: %6d %2d %3.5f %40s' % (len(new), len(inp), (time.time()-t), einsum_string)
 
@@ -101,20 +99,17 @@ def _path_opportunistic(inp, out, ind_dict, memory):
                 continue
 
             # Build sort tuple
-            sum_size = _compute_size(index_contract, ind_dict)
-
-            # Sort tuple
             removed_size = _compute_size(index_removed, ind_dict)
+            sum_size = _compute_size(index_contract, ind_dict)
             sort = (-removed_size, sum_size)
-            contract = (positions, index_result)
 
-            iteration_results.append([sort, contract, new_inp])
+            # Add contraction to possible choices
+            iteration_results.append([sort, positions, new_inp])
 
         # Sort based on first index
         iteration_results.sort()
         best = iteration_results[0]
         path.append(best[1])
-
         inp_set = best[2]
 
     return path
@@ -213,28 +208,24 @@ def opt_einsum(string, *views, **kwargs):
         print('-' * 80)
 
     ### Start contraction loop
+
     views = list(views)
-    for contract_inds, out_inds in path:
+    for contract_inds in path:
         # Make sure we remove inds from right to left
         contract_inds = sorted(list(contract_inds), reverse=True)
 
+        contract = _find_contraction(contract_inds, input_set, output_set)
+        out_inds, input_set, index_removed, index_contract = contract
+
         # Build required structures and explicitly delete views
         no_duplicates = True
-        tmp_indices = set()
         tmp_views, tmp_input = [], []
         for x in contract_inds:
-            new_inp = views[x]
-            new_string = input_list[x]
+            tmp_views.append(views.pop(x))
 
-            tmp_views.append(new_inp)
-            del views[x]
-            tmp_input.append(new_string)
-            del input_list[x]
-
-            tmp_indices |= set(new_string)
+            new_string = input_list.pop(x)
             no_duplicates &= (len(set(new_string)) == len(new_string))
-
-        index_removed = tmp_indices - out_inds
+            tmp_input.append(new_string)
 
         ### Consider doing tensordot
         can_dot = tdot_arg & no_duplicates
@@ -259,17 +250,15 @@ def opt_einsum(string, *views, **kwargs):
         einsum_string = ','.join(tmp_input) + '->' + index_result
         if debug_arg > 0:
             remaining = ','.join(input_list) + ',' + index_result + '->' + output_string
-            print('%4d    %6s %25s %40s' % (len(tmp_indices), can_dot, einsum_string, remaining))
+            print('%4d    %6s %25s %40s' % (len(index_contract), can_dot, einsum_string, remaining))
 
         # Tensordot
         if can_dot:
-            ftpos, stpos = [], []
-            fs, ss = tmp_input[0], tmp_input[1]
-
             # Get index result
+            ftpos, stpos = [], []
             for s in index_removed:
-                ftpos.append(fs.find(s))
-                stpos.append(ss.find(s))
+                ftpos.append(tmp_input[0].find(s))
+                stpos.append(tmp_input[1].find(s))
             new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(ftpos, stpos))
 
         # Conventional einsum
@@ -279,6 +268,7 @@ def opt_einsum(string, *views, **kwargs):
         # Append new items
         views += [new_view]
         input_list += [index_result]
+        del tmp_views
     ### Finish contraction loop
 
     # We may need to do a final transpose

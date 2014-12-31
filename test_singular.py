@@ -59,7 +59,7 @@ out = []
 
 
 key = 'Index1'
-key = 'Actual6'
+key = 'Actual3'
 #key = 'Random1'
 
 
@@ -69,6 +69,7 @@ ein_result = np.einsum(sum_string, *views)
 #opt_ein_result = opt_einsum(sum_string, *views, debug=1, path='opportunistic')
 opt_ein_result = opt_einsum(sum_string, *views, debug=1, path='optimal')
 
+print ein_result, opt_ein_result
 
 print 'Einsum shape:        %s' % (str(ein_result.shape))
 print 'Opt einsum shape:    %s' % (str(opt_ein_result.shape))
