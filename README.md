@@ -44,71 +44,39 @@ Logic can be built that optimizes the ordering; however, this is a lot of time a
 Now lets consider the following expression found in perturbation theory (one of ~5,000 such expressions):
 `bdik,acaj,ikab,ajac,ikbd`
 
-At first, it would appear that this scales like N^7 as there are 7 unique indices; however, we can define a intermediate to greatly reduce this scaling.
+At first, it would appear that this scales like N^7 as there are 7 unique indices; however, we can define a intermediate to reduce this scaling.
 
 `a = bdik,ikab,ikbd` (N^6 scaling)
 
 `result = acaj,ajac,a` (N^4 scaling)
 
-this is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. 
-Finding the best path for an arbitrary number of terms is not a easy problem.
-At this point it is worth noting that we are only optimizing a single contraction here.
-
-** IN PROGRESS **
-
-Run through an example:
+this is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now lets let opt_einsum compute the optimal path.
 
 ```python
-opt_einsum('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
+import test_helper as th
+from opt_einsum import opt_einsum
 
-# First
-string = 'pi,qj,ijkl,rk,sl->pqrs'
-views = [C1, C2, I, C3, C4]
-c1 = ['pi,ijkl->pjkl', [2, 0]]
+sum_string = 'bdik,acaj,ikab,ajac,ikbd'
+index_size = [10, 17, 9, 10, 13, 16, 15, 14, 11]]
+views = th.build_views(sum_string, index_size) # Function that builds random arrays of the correct shape
+ein_result = np.einsum(sum_string, *views)
+opt_ein_result = opt_einsum(sum_string, *views, debug=1, path=path)
 
-I1 = perform_contract(c1)
-views = view.pop(2,0)
-views += [I1]
-string = string.pop(2,0)
-string += [c1_result]
+Complete contraction:  bdik,acaj,ikab,ajac,ikbd->
+       Naive scaling:   7
+--------------------------------------------------------------------------------
+scaling   GEMM                   current                                remaining
+--------------------------------------------------------------------------------
+   3     False              ajac,acaj->a                       bdik,ikab,ikbd,a->
+   4     False            ikbd,bdik->bik                             ikab,a,bik->
+   4      True               bik,ikab->a                                    a,a->
+   1      True                     a,a->                                      ,->
+   
+np.allclose(ein_result, opt_ein_result)
+>>> True
+   ```
+By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and the small dimensions opt_einsum is roughly 900 times faster than pure einsum.
 
-string = 'qj,rk,sl,pjkl->pqrs'
-views = [C2, C3, C4, I1]
-c2 = ['qj,pjkl->pqkl', [0, 3]]
-
-I2 = perform_contract(c2)
-...
-string = 'rk,sl,pqkl->pqrs'
-views = [C3, C4, I2]
-c3 = ['rk,pqkl->pqrl', [0, 2]]
-
-I3 = perform_contrce(c3)
-...
-string = 'sl,pqkl->pqrs'
-views = [C4, I3]
-c4 = ['sl,pqkl->pqrs', [0, 1]]
-
-
-find_path(string, views):
-    ...
-    return [c1, c2, c3, c4]
-
-
-done
-```
-
-Assumptions:
- - `ijk,ijk,ijk` or `ijk,ijk,jk` is an optimizal expression.
- - Memory = max(output.shape, memory_set)
-
-
-Opportunistic algorithm (order of importance):
- - Explore all possible 2 combinations
- - Run through assumptions
- - Importance:
-   - Rank reduction, ordered by size
-   - Term reduction
-   - Memory reduction
 
 
 
