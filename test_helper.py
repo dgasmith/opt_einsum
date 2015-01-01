@@ -24,6 +24,7 @@ tests['EP_Theory3'] = ['abik,ikjp,pjba,ikab,jab', [10, 22, 15, 26, 17, 25]]
 tests['EP_Theory4'] = ['bdk,cji,ajdb,ikca,kbd,ijkcd,ikac', [10, 11, 9, 10, 12, 15, 13, 14, 11]]
 tests['EP_Theory5'] = ['cij,bdk,ajbc,ikad,ijc,ijk,ikad', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
 tests['EP_Theory6'] = ['cij,bdk,ajbc,ikad,bdk,cji,ajdb', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
+tests['EP_Theory7'] = ['bdik,acaj,ikab,ajac,ikbd', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
 #tests['Actual2'] = [, [10, 5, 9, 10, 5, 25, 6, 14, 11]]
 
 # A few tricky cases

@@ -8,7 +8,7 @@ pd.set_option('display.width', 1000)
 
 #key = 'Index1'
 #key = 'Actual3'
-key = 'Slow1'
+key = 'EP_Theory7'
 #key = 'Hadamard3'
 
 #path = 'optimal'

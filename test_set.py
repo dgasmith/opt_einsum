@@ -13,16 +13,18 @@ resource.setrlimit(rsrc, (limit, limit))
 
 
 #scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-scale_list = [1, 2, 3, 4, 5]
+#scale_list = [1, 2, 3, 4, 5]
+scale_list = [1]
 
-out = []
 
-key_filter = 'Slow'
+key_filter = ''
+#key_filter = 'EP'
 
 
 #opt_path = 'optimal'
 opt_path = 'opportunistic'
 
+out = []
 for key in th.tests.keys():
     if key_filter not in key: continue
     sum_string, index_size = th.tests[key]
@@ -55,7 +57,7 @@ for key in th.tests.keys():
 
 
         e_n = 1
-        o_n = 1
+        o_n = 2
         einsum_time = timeit.timeit(einsum_string, setup=setup, number=e_n) / e_n
         opt_einsum_time = timeit.timeit(opt_einsum_string, setup=setup, number=o_n) / o_n
 

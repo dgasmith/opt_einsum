@@ -42,7 +42,7 @@ def _path_optimal(inp, out, ind_dict, memory):
     # inp - list of sets for input indices
     # out - set of output indices
     # ind_dict - dictionary for the size of each index
-    # memory - largest allowed number of elements in a new array 
+    # memory - largest allowed number of elements in a new array
     # returns path
 
     inp_set = map(set, inp)
@@ -62,9 +62,7 @@ def _path_optimal(inp, out, ind_dict, memory):
                 new_result, new_inp, index_removed, index_contract = contract
 
                 # Sieve the results based on memory, prevents unnecessarly large tensors
-                out_size = _compute_size(new_result, ind_dict)
-
-                if out_size > memory:
+                if _compute_size(index_result, ind_dict) > memory:
                     continue
 
                 # Find cost
@@ -118,8 +116,8 @@ def _path_opportunistic(inp, out, ind_dict, memory):
 
             # Build sort tuple
             removed_size = _compute_size(index_removed, ind_dict)
-            sum_size = _compute_size(index_contract, ind_dict)
-            sort = (-removed_size, sum_size)
+            cost = _compute_size(index_contract, ind_dict)
+            sort = (-removed_size, cost)
 
             # Add contraction to possible choices
             iteration_results.append([sort, positions, new_inp])
@@ -173,7 +171,6 @@ def opt_einsum(string, *views, **kwargs):
         The result based on the Einstein summation convention.
     """
 
-
     # Split into output and input string
     if '->' in string:
         input_string, output_string = string.split('->')
@@ -224,9 +221,13 @@ def opt_einsum(string, *views, **kwargs):
     memory_arg = kwargs.get("memory", out_size)
     return_path_arg = kwargs.get("return_path", False)
 
+    # Maximum memory is an important variable, should be at most this value
+    if memory_arg > out_size:
+        memory_arg = out_size
+
     # If total flops is very small just avoid the overhead altogether
     total_flops = _compute_size(indices, dimension_dict)
-    if (total_flops<1e5) and not return_path_arg:
+    if (total_flops < 1e5) and not return_path_arg:
         return np.einsum(string, *views)
 
     # If no rank reduction leave it to einsum
@@ -243,7 +244,7 @@ def opt_einsum(string, *views, **kwargs):
     # Compute path
     if not isinstance(path_arg, str):
         path = path_arg
-    elif len(input_list)==2:
+    elif len(input_list) == 2:
         path = [(0, 1)]
     elif path_arg == "opportunistic":
         path = _path_opportunistic(input_list, output_set, dimension_dict, memory_arg)
@@ -258,7 +259,7 @@ def opt_einsum(string, *views, **kwargs):
 
     if debug_arg > 0:
         print('-' * 80)
-        print('%6s %6s %25s %40s' % ('scaling', 'GEMM', 'current', 'remaining'))
+        print('%6s %6s %24s %40s' % ('scaling', 'GEMM', 'current', 'remaining'))
         print('-' * 80)
 
     ### Start contraction loop
@@ -284,13 +285,13 @@ def opt_einsum(string, *views, **kwargs):
         can_dot = tdot_arg & no_duplicates
         can_dot &= (len(tmp_views) == 2) & (len(index_removed) > 0)
         can_dot &= len(set(tmp_input[0]) & set(tmp_input[1])) > 0
-        can_dot &= (len(tmp_input[0])!=0) & (len(tmp_input[1])!=0)
+        can_dot &= (len(tmp_input[0]) != 0) & (len(tmp_input[1]) != 0)
 
         # Get index result
         index_result = tmp_input[0] + tmp_input[1]
         for s in index_removed:
             index_result = index_result.replace(s, '')
- 
+
         can_dot &= (len(set(index_result)) == len(index_result))
         ### End considering tensortdot
 
@@ -305,7 +306,7 @@ def opt_einsum(string, *views, **kwargs):
         einsum_string = ','.join(tmp_input) + '->' + index_result
         if debug_arg > 0:
             remaining = ','.join(input_list) + ',' + index_result + '->' + output_string
-            print('%4d    %6s %25s %40s' % (len(index_contract), can_dot, einsum_string, remaining))
+            print('%4d    %6s %24s %40s' % (len(index_contract), can_dot, einsum_string, remaining))
 
         # Tensordot
         if can_dot:
@@ -313,7 +314,7 @@ def opt_einsum(string, *views, **kwargs):
             for s in index_removed:
                 ftpos.append(tmp_input[0].find(s))
                 stpos.append(tmp_input[1].find(s))
-            # Tensordot does not sort the indices intelligently, we help it out
+            # Tensordot does not sort the indices intelligently, we can help it out
             if tmp_views[0].shape[min(ftpos)] > tmp_views[1].shape[min(stpos)]:
                 ftpos, stpos = zip(*sorted(zip(ftpos, stpos)))
             else:
@@ -327,7 +328,7 @@ def opt_einsum(string, *views, **kwargs):
         # Append new items
         views += [new_view]
         input_list += [index_result]
-        del tmp_views
+        del tmp_views, new_view  # Dereference what we can
     ### Finish contraction loop
 
     # We may need to do a final transpose
