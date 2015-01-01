@@ -105,5 +105,7 @@ if sum(diff_flags)>0:
 
 print '\nDescription of speedup:'
 print df['Ratio'].describe()
-print 'Number of opt_einsum slower than einsum:   %d.' % np.sum(df['Ratio']<1)
+
+print 'Number of opt_einsum slower than einsum:   %d.' % np.sum(df['Ratio']<0.90)
+print df[df['Ratio']<0.90]
 

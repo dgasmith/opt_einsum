@@ -13,17 +13,18 @@ resource.setrlimit(rsrc, (limit, limit))
 
 
 #scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-scale_list = [1]
+scale_list = [1, 2, 3, 4, 5]
 
 out = []
 
-keys = 'Random2'
+key_filter = 'Slow'
+
 
 #opt_path = 'optimal'
 opt_path = 'opportunistic'
 
 for key in th.tests.keys():
-#    if key != keys: continue
+    if key_filter not in key: continue
     sum_string, index_size = th.tests[key]
     for scale in scale_list:
         loop_index_size = (np.array(index_size) * scale).astype(np.int)
@@ -64,12 +65,12 @@ df = pd.DataFrame(out)
 df.columns = ['Key', 'Flag', 'String', 'Scale', 'Einsum time', 'Opt_einsum time']
 df['Ratio'] = df['Einsum time']/df['Opt_einsum time']
 
-df = df.set_index(['Key', 'Scale'])
+df = df.set_index(['Key', 'String', 'Scale'])
 df = df.sort_index()
 print df
 
 
 print '\nDescription of speedup:'
 print df['Ratio'].describe()
-print '\nNumber of opt_einsum operations slower than einsum: %d.' % np.sum(df['Ratio']<0.95)
+print '\nNumber of opt_einsum operations slower than einsum: %d.' % np.sum(df['Ratio']<0.90)
 

@@ -20,6 +20,7 @@ def _find_contraction(positions, input_sets, output_set):
     #   remaining - list of sets that have not been contracted
     #   index_removed - indices removed from the entire contraction
     #   index_contract - the indices that are used in the contraction
+
     index_contract = set()
     index_remain = output_set.copy()
     remaining = []
@@ -96,7 +97,7 @@ def _path_opportunistic(inp, out, ind_dict, memory):
     # inp - list of sets for input indices
     # out - set of output indices
     # ind_dict - dictionary for the size of each index
-    # memory - largest allowed number of elements in a new array 
+    # memory - largest allowed number of elements in a new array
     # returns path
 
     inp_set = map(set, inp)
@@ -164,13 +165,14 @@ def opt_einsum(string, *views, **kwargs):
 
     memory : int, optional
         Maximum number of elements in an array. Defaults to the size of the
-            largest ndarry view our output.        
+            largest ndarry view our output.
 
     Returns
     -------
     output : ndarray
         The result based on the Einstein summation convention.
     """
+
 
     # Split into output and input string
     if '->' in string:
@@ -192,7 +194,7 @@ def opt_einsum(string, *views, **kwargs):
 
     # Make sure number views is equivalent to the number of terms
     if len(input_list) != len(views):
-        raise ValueError("Number of einsum terms must equal to the number of views.")
+        raise ValueError("Number of einsum terms must be equal to the number of views.")
 
     # Get length of each unique index and ensure all dimension are correct
     inds_left = indices.copy()
@@ -212,11 +214,7 @@ def opt_einsum(string, *views, **kwargs):
     # Compute size of each input array plus the output array
     size_list = []
     for term in input_list + [output_string]:
-        size = 1
-        for s in term:
-            size *= dimension_dict[s]
-        size_list.append(size)
-
+        size_list.append(_compute_size(term, dimension_dict))
     out_size = max(size_list)
 
     # Grab a few kwargs
@@ -225,6 +223,11 @@ def opt_einsum(string, *views, **kwargs):
     path_arg = kwargs.get("path", "opportunistic")
     memory_arg = kwargs.get("memory", out_size)
     return_path_arg = kwargs.get("return_path", False)
+
+    # If total flops is very small just avoid the overhead altogether
+    total_flops = _compute_size(indices, dimension_dict)
+    if (total_flops<1e5) and not return_path_arg:
+        return np.einsum(string, *views)
 
     # If no rank reduction leave it to einsum
     if (indices == output_set):
@@ -240,6 +243,8 @@ def opt_einsum(string, *views, **kwargs):
     # Compute path
     if not isinstance(path_arg, str):
         path = path_arg
+    elif len(input_list)==2:
+        path = [(0, 1)]
     elif path_arg == "opportunistic":
         path = _path_opportunistic(input_list, output_set, dimension_dict, memory_arg)
     elif path_arg == "optimal":
@@ -257,7 +262,6 @@ def opt_einsum(string, *views, **kwargs):
         print('-' * 80)
 
     ### Start contraction loop
-
     views = list(views)
     for contract_inds in path:
         # Make sure we remove inds from right to left
@@ -279,12 +283,14 @@ def opt_einsum(string, *views, **kwargs):
         ### Consider doing tensordot
         can_dot = tdot_arg & no_duplicates
         can_dot &= (len(tmp_views) == 2) & (len(index_removed) > 0)
+        can_dot &= len(set(tmp_input[0]) & set(tmp_input[1])) > 0
+        can_dot &= (len(tmp_input[0])!=0) & (len(tmp_input[1])!=0)
 
         # Get index result
         index_result = tmp_input[0] + tmp_input[1]
         for s in index_removed:
             index_result = index_result.replace(s, '')
-
+ 
         can_dot &= (len(set(index_result)) == len(index_result))
         ### End considering tensortdot
 
@@ -302,13 +308,16 @@ def opt_einsum(string, *views, **kwargs):
             print('%4d    %6s %25s %40s' % (len(index_contract), can_dot, einsum_string, remaining))
 
         # Tensordot
-        can_dot=False
         if can_dot:
-            # Get index result
             ftpos, stpos = [], []
             for s in index_removed:
                 ftpos.append(tmp_input[0].find(s))
                 stpos.append(tmp_input[1].find(s))
+            # Tensordot does not sort the indices intelligently, we help it out
+            if tmp_views[0].shape[min(ftpos)] > tmp_views[1].shape[min(stpos)]:
+                ftpos, stpos = zip(*sorted(zip(ftpos, stpos)))
+            else:
+                stpos, ftpos = zip(*sorted(zip(stpos, ftpos)))
             new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(ftpos, stpos))
 
         # Conventional einsum

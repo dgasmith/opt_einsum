@@ -46,6 +46,21 @@ tests['Failed1'] = ['eb,cb,fb->cef', [60, 59, 48, 57]]
 tests['Failed2'] = ['dd,fb,be,cdb->cef', [27, 28, 13, 18, 19, 20]]
 tests['Failed3'] = ['bca,cdb,dbf,afc->', [15, 27, 22, 17, 18, 29]]
 
+# GEMM test
+tests['Dot1'] = ['ab,bc', [400, 401, 402]]
+tests['Dot2'] = ['abc,bc', [400, 401, 402]]
+tests['Dot3'] = ['abc,acb->a', [200, 201, 202]]
+tests['Dot4'] = ['abcd,cdef', [30, 29, 28, 27, 26, 25]]
+tests['Dot5'] = ['abcd,efdc', [19, 18, 17, 16, 15, 14]]
+tests['Dot6'] = ['abcd,defc', [19, 18, 17, 16, 15, 14]]
+
+# Previous test showed that opt_einsum is 2-10x slower than einsum
+tests['Slow1'] = ['bcf,bbb,fbf,fc->', [15, 25, 10, 10, 12, 13]]
+tests['Slow2'] = ['bb,ff,be->e', [27, 24, 27, 25, 17, 22]]
+tests['Slow3'] = ['ad,dd,dc->ac', [29, 20, 26, 20, 24, 13]]
+tests['Slow4'] = ['bcb,bb,fc,fff->', [12, 22, 18, 22, 19, 29]] 
+tests['Slow5'] = ['fc,dcf,fad->a', [13, 15, 18, 14, 27, 22]]
+tests['Slow6'] = ['cec,ed,cd,ec->', [18, 22, 15, 17, 22, 19]]
 
 def build_views(string, sizes):
     '''

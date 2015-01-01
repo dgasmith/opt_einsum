@@ -8,8 +8,8 @@ pd.set_option('display.width', 1000)
 
 #key = 'Index1'
 #key = 'Actual3'
-#key = 'Random1'
-key = 'Hadamard3'
+key = 'Slow1'
+#key = 'Hadamard3'
 
 #path = 'optimal'
 path = 'opportunistic'
