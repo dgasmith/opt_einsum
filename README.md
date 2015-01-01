@@ -28,7 +28,7 @@ def optimized(I, C):
     return K
 ```
 
-The einsum function does not consider building intermediate arrays, therefore helping einsum out by building intermediate arrays can result in a considerable cost savings even for small N (N=10):
+The einsum function does not consider building intermediate arrays; therefore, helping einsum out by building intermediate arrays can result in a considerable cost savings even for small N (N=10):
 
 ```
 %timeit naive(I, C)
@@ -39,7 +39,7 @@ The einsum function does not consider building intermediate arrays, therefore he
 ```
 
 The index transformation is a fairly simple contraction that leads to straightforward intermediates.
-This can be further complicated by considering the shape of the C matrices need not be the same and then the ordering in which the intermediate contraction matters greatly.
+This can be further complicated by considering that the shape of the C matrices need not be the same, in this case the ordering in which the indices are transformed matters greatly.
 Logic can be built that optimizes the ordering; however, this is a lot of time and effort for a single expression. 
 Now lets consider the following expression found in perturbation theory (one of ~5,000 such expressions):
 `bdik,acaj,ikab,ajac,ikbd`
@@ -50,7 +50,7 @@ At first, it would appear that this scales like N^7 as there are 7 unique indice
 
 `result = acaj,ajac,a` (N^4 scaling)
 
-this is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now lets let opt_einsum compute the optimal path.
+this is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now lets let opt_einsum compute the optimal path:
 
 ```python
 import test_helper as th
@@ -60,13 +60,13 @@ sum_string = 'bdik,acaj,ikab,ajac,ikbd'
 index_size = [10, 17, 9, 10, 13, 16, 15, 14, 11]]
 views = th.build_views(sum_string, index_size) # Function that builds random arrays of the correct shape
 ein_result = np.einsum(sum_string, *views)
-opt_ein_result = opt_einsum(sum_string, *views, debug=1, path=path)
+opt_ein_result = opt_einsum(sum_string, *views, debug=1)
 
 Complete contraction:  bdik,acaj,ikab,ajac,ikbd->
        Naive scaling:   7
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
 scaling   GEMM                   current                                remaining
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
    3     False              ajac,acaj->a                       bdik,ikab,ikbd,a->
    4     False            ikbd,bdik->bik                             ikab,a,bik->
    4      True               bik,ikab->a                                    a,a->
@@ -75,9 +75,34 @@ scaling   GEMM                   current                                remainin
 np.allclose(ein_result, opt_ein_result)
 >>> True
    ```
-By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and the small dimensions opt_einsum is roughly 900 times faster than pure einsum.
+By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and small dimensions, opt_einsum is roughly 900 times faster than pure einsum for this expression.
+
+Finding the optimal order of contraction is not an easy problem and formally scales factorial with respect to the number of terms in the expression. First, lets discuss what a path looks like in opt_einsum:
+```python
+einsum_path = [(0, 1, 2, 3, 4)]
+opt_path = [(1, 3), (0, 2), (0, 2), (0, 1)]
+```
+In opt_einsum each element of the list represents a single contraction.
+For example the einsum_path would effectively compute the result in a way identical to that of einsum itself, while the
+opt_path would perform four contractions that form an identical result.
+This opt_path represents the path taken in our above example.
+The first contraction (1,3) contracts the first and third terms together to produce a new term which is then appened to the list of terms, this is continued until all terms are contracted.
+An example should illuminate this:
+
+```python
+---------------------------------------------------------------------------------
+scaling   GEMM                   current                                remaining
+---------------------------------------------------------------------------------
+terms = ['bdik', 'acaj', 'ikab', 'ajac', 'ikbd'] contraction = (1, 3)
+  3     False              ajac,acaj->a                       bdik,ikab,ikbd,a->
+terms = ['bdik', 'ikab', 'ikbd', 'a'] contraction = (0, 2)
+  4     False            ikbd,bdik->bik                             ikab,a,bik->
+terms = ['ikab', 'a', 'bik'] contraction = (0, 2)
+  4      True               bik,ikab->a                                    a,a->
+terms = ['a', 'a'] contraction = (0, 1)
+  1      True                     a,a->                                      ,->
+   ```
 
 
-
-
+   
 
