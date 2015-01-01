@@ -1,7 +1,9 @@
 import time
 import numpy as np
 
+
 def _compute_size(inds, ind_dict):
+    # Computes the product of indices based on a dictionary
     ret = 1
     for i in inds:
         ret *= ind_dict[i]
@@ -9,7 +11,15 @@ def _compute_size(inds, ind_dict):
 
 
 def _find_contraction(positions, input_sets, output_set):
-    # Find contraction indices
+    # Finds the contraction for a given set of input and output sets
+    # positions - positions of the input_sets that are contracted
+    # input_sets - list of sets in the input
+    # output_set - output index set
+    # returns:
+    #   new_result - the indices of the resulting contraction
+    #   remaining - list of sets that have not been contracted
+    #   index_removed - indices removed from the entire contraction
+    #   index_contract - the indices that are used in the contraction
     index_contract = set()
     index_remain = output_set.copy()
     remaining = []
@@ -27,12 +37,15 @@ def _find_contraction(positions, input_sets, output_set):
 
 
 def _path_optimal(inp, out, ind_dict, memory):
+    # Computes all possible ways to contract the tensors
+    # inp - list of sets for input indices
+    # out - set of output indices
+    # ind_dict - dictionary for the size of each index
+    # memory - largest allowed number of elements in a new array 
+    # returns path
+
     inp_set = map(set, inp)
     out_set = set(out)
-    # Build (total_cost, positions, results, indices_remaining)
-    # positions = [(0,1), (0,2),... etc
-    # results = ['ijkl', 'ckd',... etc
-    # indices_remaining = [set('ijkl'), set('abcd'),... etc
 
     t = time.time()
     current = [(0, [], [], inp_set)]
@@ -54,18 +67,21 @@ def _path_optimal(inp, out, ind_dict, memory):
                     continue
 
                 # Find cost
-                new_cost = 1
-                for x in index_contract:
-                    new_cost *= ind_dict[x]
-                new_cost *= 1 + len(index_contract - index_removed)
+                new_cost = _compute_size(index_contract, ind_dict)
+                if len(index_removed) > 0:
+                    new_cost *= 2
 
-                # Build new contraction
+                # Build (total_cost, positions, results, indices_remaining)
                 new_cost += cost
                 new_result = result + [new_result]
                 new_pos = positions + [con]
                 new.append((new_cost, new_pos, new_result, new_inp))
 
         current = new
+
+    # If we have not found anything return single einsum contraction
+    if len(new) == 0:
+        return [tuple(range(len(inp)))]
 
     new.sort()
     path = new[0][1]
@@ -76,13 +92,18 @@ def _path_optimal(inp, out, ind_dict, memory):
 
 
 def _path_opportunistic(inp, out, ind_dict, memory):
+    # Finds best path by choosing the best pair contraction
+    # inp - list of sets for input indices
+    # out - set of output indices
+    # ind_dict - dictionary for the size of each index
+    # memory - largest allowed number of elements in a new array 
+    # returns path
+
     inp_set = map(set, inp)
     out_set = set(out)
 
     path = []
     for iteration in range(len(inp) - 1):
-        if len(inp_set) <= 1:
-            break
         iteration_results = []
         comb_iter = zip(*np.triu_indices(len(inp_set), 1))
         for positions in comb_iter:
@@ -91,11 +112,7 @@ def _path_opportunistic(inp, out, ind_dict, memory):
             index_result, new_inp, index_removed, index_contract = contract
 
             # Sieve the results based on memory, prevents unnecessarly large tensors
-            out_size = 1
-            for ind in index_result:
-                out_size *= ind_dict[ind]
-
-            if out_size > memory:
+            if _compute_size(index_result, ind_dict) > memory:
                 continue
 
             # Build sort tuple
@@ -105,6 +122,11 @@ def _path_opportunistic(inp, out, ind_dict, memory):
 
             # Add contraction to possible choices
             iteration_results.append([sort, positions, new_inp])
+
+        # If we didnt find a new contraction contract the rest at the same time
+        if len(iteration_results) == 0:
+            path.append(tuple(range(len(inp) - iteration)))
+            break
 
         # Sort based on first index
         iteration_results.sort()
@@ -126,9 +148,23 @@ def opt_einsum(string, *views, **kwargs):
     __________
     string : str
         Einsum string of contractions
-    *view  : list of views utilized
-    debug  : int (default: 0)
+    *view : list of views utilized
+    debug : int (default: 0)
         Level of printing.
+    tensordot : bool, optional
+        If true use tensordot where possible.
+    path : bool or list, optional
+        Choose the type of path.
+
+        - if a list is given uses this as the path.
+        - 'opportunistic' means a N^2 algorithm that opportunistically
+            chooses the best algorithm.
+        - 'optimal' means a N! algorithm that tries all possible ways of
+            contracting the listed tensors.
+
+    memory : int, optional
+        Maximum number of elements in an array. Defaults to the size of the
+            largest ndarry view our output.        
 
     Returns
     -------
@@ -141,17 +177,18 @@ def opt_einsum(string, *views, **kwargs):
         input_string, output_string = string.split('->')
     else:
         input_string = string
+        # Build output string
+        tmp_string = string.replace(',', '')
         output_string = ''
+        for s in set(tmp_string):
+            if tmp_string.count(s) == 1:
+                output_string += s
 
     # Build a few useful list and sets
     input_list = input_string.split(',')
     input_set = map(set, input_list)
     output_set = set(output_string)
     indices = set(input_string.replace(',', ''))
-
-    # If no rank reduction leave it to einsum
-    if indices == output_set:
-        return np.einsum(string, *views)
 
     # Make sure number views is equivalent to the number of terms
     if len(input_list) != len(views):
@@ -187,6 +224,14 @@ def opt_einsum(string, *views, **kwargs):
     tdot_arg = kwargs.get("tensordot", True)
     path_arg = kwargs.get("path", "opportunistic")
     memory_arg = kwargs.get("memory", out_size)
+    return_path_arg = kwargs.get("return_path", False)
+
+    # If no rank reduction leave it to einsum
+    if (indices == output_set):
+        if return_path_arg:
+            return [tuple(range(len(input_list)))]
+        else:
+            return np.einsum(string, *views)
 
     if debug_arg > 0:
         print('Complete contraction:  %s' % (input_string + '->' + output_string))
@@ -201,6 +246,10 @@ def opt_einsum(string, *views, **kwargs):
         path = _path_optimal(input_list, output_set, dimension_dict, memory_arg)
     else:
         raise KeyError("Path name %s not found", path_arg)
+
+    # Return path if requested
+    if return_path_arg:
+        return path
 
     if debug_arg > 0:
         print('-' * 80)
@@ -253,6 +302,7 @@ def opt_einsum(string, *views, **kwargs):
             print('%4d    %6s %25s %40s' % (len(index_contract), can_dot, einsum_string, remaining))
 
         # Tensordot
+        can_dot=False
         if can_dot:
             # Get index result
             ftpos, stpos = [], []

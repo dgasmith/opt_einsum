@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import sys, traceback
-import time
 import timeit
 
 from opt_einsum import opt_einsum
@@ -37,7 +35,6 @@ def make_term():
     num_dims = np.random.randint(min_dims, max_dims+1)
     term = np.random.randint(0, max_indices, num_dims)
     return term
-
 
 def get_string(term):
     return ''.join([alpha_dict[x] for x in term])
@@ -89,7 +86,6 @@ for x in range(200):
     einsum_string = "np.einsum(sum_string, *views)"
     opt_einsum_string = "opt_einsum(sum_string, *views)"
 
-
     e_n = 1
     o_n = 5
     einsum_time = timeit.timeit(einsum_string, setup=setup, number=e_n) / e_n
@@ -101,9 +97,13 @@ df = pd.DataFrame(out)
 df.columns = ['Flag', 'String', 'Shapes', 'Einsum time', 'Opt_einsum time']
 df['Ratio'] = df['Einsum time']/df['Opt_einsum time']
 
-print df
+diff_flags = df['Flag']!=True
+print '\nNumber of opt_einsum different than einsum: %d.' % np.sum(diff_flags)
+if sum(diff_flags)>0:
+    print 'Terms different than einsum'
+    print df[df['Flag']!=True]
 
 print '\nDescription of speedup:'
 print df['Ratio'].describe()
-print 'Number of opt_einsum slower than einsum: %d.' % np.sum(df['Ratio']<1)
+print 'Number of opt_einsum slower than einsum:   %d.' % np.sum(df['Ratio']<1)
 
