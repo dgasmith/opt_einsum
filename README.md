@@ -97,7 +97,7 @@ In opt_einsum each element of the list represents a single contraction.
 For example the einsum_path would effectively compute the result in a way identical to that of einsum itself, while the
 opt_path would perform four contractions that form an identical result.
 This opt_path represents the path taken in our above example.
-The first contraction (1,3) contracts the first and third terms together to produce a new term which is then appened to the list of terms, this is continued until all terms are contracted.
+The first contraction (1,3) contracts the first and third terms together to produce a new term which is then appended to the list of terms, this is continued until all terms are contracted.
 An example should illuminate this:
 
 ```python
@@ -121,13 +121,13 @@ terms = ['a', 'a'] contraction = (0, 1)
 The most optimal path can be found by searching through every possible way to contract the tensors together, this includes all combinations with the new intermediate tensors as well.
 While this algorithm scales like N! and can often become more costly to compute than the unoptimized contraction itself it provides an excellent benchmark.
 The function that computes this path in opt_einsum is called _path_optimal and works by iteratively finding every possible combination of pairs to contract in the current list of tensors.
-This is iterated until all tensors are contracted together, the resulting paths are then sorted by total flop cost and the lowest one is choosen.
+This is iterated until all tensors are contracted together, the resulting paths are then sorted by total flop cost and the lowest one is chosen.
 This algorithm runs in about 1 second for 7 terms, 15 seconds for 8 terms, and 480 seconds for 9 terms limiting its overall usefulness for a large number of terms.
 By considering limited memory this can be sieved and can reduces the cost of the optimal function by an order of magnitude or more.
 
 Lets look at an example:
 ```python
-Conctraction:  abc,dc,ac->bd
+Contraction:  abc,dc,ac->bd
 
 iteration 0:
 Build a list with tuples that look the following:
@@ -158,7 +158,7 @@ The final contraction cost is computed and we choose the second path from the li
 ## Finding the opportunistic path
 
 Another way to find a path is to choose the best pair to contract at every iteration so that the formula scales like N^3. 
-The "best" contraction pair is currently detetermined by the smallest of the tuple (-removed_size, cost) where removed size represents the product of the size of indices removed from the overall contraction and cost is the cost of the contraction.
+The "best" contraction pair is currently determined by the smallest of the tuple (-removed_size, cost) where removed size represents the product of the size of indices removed from the overall contraction and cost is the cost of the contraction.
 Basically we want to remove the largest dimensions at the least cost.
 To prevent large outer products the results are sieved by the amount of memory available.
 Overall, this turns about to work extremely well and is only slower than the optimal path in several cases and even then only by a factor of 2-4 while only taking 1 millisecond for terms of length 10.
@@ -167,22 +167,23 @@ It is fast enough that at worst case the overhead penalty is approximately 20 mi
 
 ## Testing
 
-Testing this function thouroughly is absolutely crucial, the testing scripts do required python pandas in addition to numpy. Testing is broken down into several tasks:
+Testing this function thoroughly is absolutely crucial, the testing scripts do required python pandas in addition to numpy. Testing is broken down into several tasks:
 
- - test_random: builds expressions of random term length where each term is of a random number of indices and contracts them togther and finally compares to the einsum result.
+ - test_random: builds expressions of random term length where each term is of a random number of indices and contracts them together and finally compares to the einsum result.
  - test_set: runs through the current set of tests in test_helper.py.
  - test_singular: runs a single test from the test_helper set with debug and path printing. 
  - test_path: compares the optimal and opportunistic paths.
     
 ## Outstanding issues
 
- - path_opportunistic probably can be improved
- - path_optimal may benefit from dynamic programming, although the current "bottom up" approach is roughly equivalent I think?
+ - path_opportunistic probably can be improved.
+ - path_optimal is terribly programmed and very slow. A dynamic programming approach would help greatly.
  - Both paths should consider if tensordot can be used. Downside is figuring out if tensordot can be used is quite expensive.
- - Currently only considering pairs of contractions, einsum can manage any hadamard product of 3 or more tensors better (e.g ``` np.einsum('ij,ij,ij->ij', ...) or np.einsum('jk,ijk,ij->ijk', ...) ```. Testing shows we must consider the usage of tensordot as well or everything slows down considerbly.
- - I make a lot of assumptions about tensordot as I am testing against vendor BLAS (intel MKL on haswell or opteron).
- - More memory options should be available. For example should we consider cummulative memory? 
- - Are we handeling view dereferencing correctly? Views really should be garbage collected as soon as possible.
+ - Currently only considering pairs of contractions, einsum can manage any Hadamard product of 3 or more tensors better (e.g ``` np.einsum('ij,ij,ij->ij', ...) or np.einsum('jk,ijk,ij->ijk', ...) ```. Testing shows we must consider the usage of tensordot as well or everything slows down considerably.
+ - I make a lot of assumptions about tensordot as I am testing against vendor BLAS (intel MKL on haswell or opteron architecture).
+ - Often we can choose the order of output indices, making this smarter can have speeds ups of 2x or more.
+ - More memory options should be available. For example should we consider cumulative memory? 
+ - Are we handling view dereferencing correctly? Views really should be garbage collected as soon as possible.
 
 
 
