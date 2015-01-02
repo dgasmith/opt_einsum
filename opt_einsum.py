@@ -62,7 +62,7 @@ def _path_optimal(inp, out, ind_dict, memory):
                 new_result, new_inp, index_removed, index_contract = contract
 
                 # Sieve the results based on memory, prevents unnecessarly large tensors
-                if _compute_size(index_result, ind_dict) > memory:
+                if _compute_size(new_result, ind_dict) > memory:
                     continue
 
                 # Find cost
@@ -292,6 +292,7 @@ def opt_einsum(string, *views, **kwargs):
         for s in index_removed:
             index_result = index_result.replace(s, '')
 
+        can_dot &= (set(tmp_input[0]) & set(tmp_input[1])) == set(index_result)
         can_dot &= (len(set(index_result)) == len(index_result))
         ### End considering tensortdot
 

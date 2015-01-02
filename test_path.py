@@ -15,11 +15,11 @@ test_einsum = False
 test_paths = False
 
 #scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-scale_list = [1.5]
+scale_list = [2]
 
 out = []
 
-key_list = ['Actual1', 'Actual2']
+#key_list = ['Actual1', 'Actual2']
 key_list = th.tests.keys()
 
 for key in key_list:
@@ -63,5 +63,5 @@ print df
 
 print '\nDescription of speedup:'
 print df['Ratio'].describe()
-print '\nNumber of opt_einsum operations slower than einsum: %d.' % np.sum(df['Ratio']<0.95)
+print '\nNumber of opt_einsum operations slower than einsum: %d.' % np.sum(df['Ratio']<0.8)
 

@@ -56,8 +56,8 @@ for key in th.tests.keys():
         opt_einsum_string = "opt_einsum(sum_string, *views, path=opt_path)"
 
 
-        e_n = 1
-        o_n = 2
+        e_n = 2
+        o_n = 3
         einsum_time = timeit.timeit(einsum_string, setup=setup, number=e_n) / e_n
         opt_einsum_time = timeit.timeit(opt_einsum_string, setup=setup, number=o_n) / o_n
 
@@ -65,7 +65,7 @@ for key in th.tests.keys():
 
 df = pd.DataFrame(out)
 df.columns = ['Key', 'Flag', 'String', 'Scale', 'Einsum time', 'Opt_einsum time']
-df['Ratio'] = df['Einsum time']/df['Opt_einsum time']
+df['Ratio'] = np.around(df['Einsum time']/df['Opt_einsum time'], 2)
 
 df = df.set_index(['Key', 'String', 'Scale'])
 df = df.sort_index()
@@ -74,5 +74,5 @@ print df
 
 print '\nDescription of speedup:'
 print df['Ratio'].describe()
-print '\nNumber of opt_einsum operations slower than einsum: %d.' % np.sum(df['Ratio']<0.90)
+print '\nNumber of opt_einsum slower than optimal: %d.' % np.sum(df['Ratio']<0.90)
 

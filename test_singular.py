@@ -8,17 +8,17 @@ pd.set_option('display.width', 1000)
 
 #key = 'Index1'
 #key = 'Actual3'
-key = 'EP_Theory7'
+key = 'Expand4'
 #key = 'Hadamard3'
 
-#path = 'optimal'
-path = 'opportunistic'
+path_arg = 'optimal'
+#path_arg = 'opportunistic'
 
 sum_string, index_size = th.tests[key]
 views = th.build_views(sum_string, index_size)
 ein_result = np.einsum(sum_string, *views)
-print  opt_einsum(sum_string, *views, debug=1, path=path, return_path=True)
-opt_ein_result = opt_einsum(sum_string, *views, debug=1, path=path)
+print  opt_einsum(sum_string, *views, debug=1, path=path_arg, return_path=True)
+opt_ein_result = opt_einsum(sum_string, *views, debug=1, path=path_arg)
 
 
 print 'Einsum shape:        %s' % (str(ein_result.shape))
