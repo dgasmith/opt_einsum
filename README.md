@@ -41,7 +41,7 @@ The einsum function does not consider building intermediate arrays; therefore, h
 The index transformation is a fairly simple contraction that leads to straightforward intermediates.
 This can be further complicated by considering that the shape of the C matrices need not be the same, in this case the ordering in which the indices are transformed matters greatly.
 Logic can be built that optimizes the ordering; however, this is a lot of time and effort for a single expression. 
-Now lets consider the following expression found in perturbation theory (one of ~5,000 such expressions):
+Now lets consider the following expression found in a perturbation theory (one of ~5,000 such expressions):
 `bdik,acaj,ikab,ajac,ikbd`
 
 At first, it would appear that this scales like N^7 as there are 7 unique indices; however, we can define a intermediate to reduce this scaling.
@@ -76,6 +76,7 @@ np.allclose(ein_result, opt_ein_result)
 >>> True
    ```
 By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and small dimensions, opt_einsum is roughly 900 times faster than pure einsum for this expression.
+
 
 Finding the optimal order of contraction is not an easy problem and formally scales factorial with respect to the number of terms in the expression. First, lets discuss what a path looks like in opt_einsum:
 ```python
