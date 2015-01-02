@@ -1,8 +1,13 @@
 opt_einsum
 ==========
 
-Optimizing numpy's einsum function.
 
+# TOC
+[Optimizing numpy's einsum function] (#Optimizing numpy's einsum function)
+[Finding the optimal path] (#Finding the optimal path)
+[Finding the opportunistic path] (#Finding the opportunistic path)
+
+## Optimizing numpy's einsum function
 Einsum is a very powerful function for contracting tensors of arbitrary dimension and index.
 However, it is only optimized to contract two terms at a time resulting in non-optimal scaling.
 
@@ -77,6 +82,7 @@ np.allclose(ein_result, opt_ein_result)
    ```
 By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and small dimensions, opt_einsum is roughly 900 times faster than pure einsum for this expression.
 
+## More details on paths
 
 Finding the optimal order of contraction is not an easy problem and formally scales factorial with respect to the number of terms in the expression. First, lets discuss what a path looks like in opt_einsum:
 ```python
@@ -105,5 +111,54 @@ terms = ['a', 'a'] contraction = (0, 1)
    ```
 
 
-   
+
+## Finding the optimal path
+
+The most optimal path can be found by searching through every possible way to contract the tensors together, this includes all combinations with the new intermediate tensors as well.
+While this algorithm scales like N! and can often become more costly to compute than the unoptimized contraction itself it provides an excellent benchmark.
+The function that computes this path in opt_einsum is called _path_optimal and works by iteratively finding every possible combination of pairs to contract in the current list of tensors.
+This is iterated until all tensors are contracted together, the resulting paths are then sorted by total flop cost and the lowest one is choosen.
+This algorithm runs in about 1 second for 7 terms, 15 seconds for 8 terms, and 480 seconds for 9 terms limiting its overall usefulness for a large number of terms.
+By limiting memory this can be sieved and can reduces the cost of the optimal function by an order of magnitude or more.
+
+Lets look at an example:
+```python
+Conctraction:  abc,dc,ac->bd
+
+iteration 0:
+Build a list with tuples that look the following:
+   cost  path   list of input sets remaining
+[ (0,    [],    [set(['a', 'c', 'b']), set(['d', 'c']), set(['a', 'c'])] ]
+
+```
+Since this is effectively iteration zero, we have the entire list of input sets.
+We can consider three possible combinations where we contract list positions (0, 1), (0, 2), or (1, 2) together.
+```python
+iteration 1:
+[ (9504, [(0, 1)], [set(['a', 'c']), set(['a', 'c', 'b', 'd'])  ]),
+  (1584, [(0, 2)], [set(['c', 'd']), set(['c', 'b'])            ]),
+  (864,  [(1, 2)], [set(['a', 'c', 'b']), set(['a', 'c', 'd'])  ])]
+```
+We have now run through the three possible combinations, computed the cost of the contraction up to this point, and appended the resulting indices from the contraction to the list.
+As all contractions only have two remaning input sets the only possible contraction is (0, 1).
+```python
+iteration 2:
+[ (28512, [(0, 1), (0, 1)], [set(['b', 'd'])  ]),
+  (3168,  [(0, 2), (0, 1)], [set(['b', 'd'])  ]),
+  (19872, [(1, 2), (0, 1)], [set(['b', 'd'])  ])]
+```
+The final contraction cost is computed and we choose the second path from the list as the overall cost is the lowest.
+
+
+
+## Finding the opportunistic path
+
+Another way to find a path is to choose the best pair to contract at every iteration so that the formula scales like N^3. 
+The "best" contraction pair is currently detetermined by the smallest of the tuple (-removed_size, cost) where removed size represents the product of the size of indices removed from the overall contraction and cost is the cost of the contraction.
+Basically we want to remove the largest dimensions at the least cost.
+To prevent large outerproducts the results are sieved by the amount of memory available.
+Overall, this turns about to work extremely well and is only slower than the optimal path in several cases and even then only by a factor of 2-4 while only taking 1 millisecond for terms of length 10.
+To me, while still not perfect, it represents a good enough case for general production.
+It is fast enough that at worst case the overhead penalty is approximately 20 microseconds and is much faster for every other einsum test case I can build or generate randomly.
+
 
