@@ -1,11 +1,15 @@
 opt_einsum
 ==========
 
+If this grows any further it might be a good idea to migrate to the wiki.
 
 # TOC
-[Optimizing numpy's einsum function] (#Optimizing numpy's einsum function)
-[Finding the optimal path] (#Finding the optimal path)
-[Finding the opportunistic path] (#Finding the opportunistic path)
+ - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/master/README.md#optimizing-numpys-einsum-function)
+ - [More details on paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#more-details-on-paths)
+ - [Finding the optimal path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-optimal-path)
+ - [Finding the opportunistic path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-opportunistic-path)
+ - [Testing](https://github.com/dgasmith/opt_einsum/blob/master/README.md#testing)
+ - [Outstanding issues](https://github.com/dgasmith/opt_einsum/blob/master/README.md#Outstanding-issues)
 
 ## Optimizing numpy's einsum function
 Einsum is a very powerful function for contracting tensors of arbitrary dimension and index.
@@ -140,6 +144,7 @@ iteration 1:
   (864,  [(1, 2)], [set(['a', 'c', 'b']), set(['a', 'c', 'd'])  ])]
 ```
 We have now run through the three possible combinations, computed the cost of the contraction up to this point, and appended the resulting indices from the contraction to the list.
+The cost requires the size of each index, but sizes are not shown here.
 As all contractions only have two remaning input sets the only possible contraction is (0, 1).
 ```python
 iteration 2:
@@ -160,5 +165,26 @@ To prevent large outerproducts the results are sieved by the amount of memory av
 Overall, this turns about to work extremely well and is only slower than the optimal path in several cases and even then only by a factor of 2-4 while only taking 1 millisecond for terms of length 10.
 To me, while still not perfect, it represents a good enough case for general production.
 It is fast enough that at worst case the overhead penalty is approximately 20 microseconds and is much faster for every other einsum test case I can build or generate randomly.
+
+## Testing
+
+Testing this function thouroughly is absolutely crucial, the testing scripts do required python pandas in addition to numpy. Testing is broken down into several tasks:
+
+ - test_random: builds expressions of random term length where each term is of a random number of indices and contracts them togther and finally compares to the einsum result.
+ - test_set: runs through the current set of tests in test_helper.py.
+ - test_singular: runs a single test from the test_helper set with debug and path printing. 
+ - test_path: compares the optimal and opportunistic paths.
+    
+## Outstanding issues
+
+ - path_opportunistic probably can be improved
+ - path_optimal may benefit from dynamic programming, although this "bottom up" approach is roughly equivalent I think?
+ - Both paths should consider if tensordot can be used. Downside is figuring out if tensordot can be used is quite expensive.
+ - Currently only considering pairs of contractions, einsum can manage any hadamard product of 3 or more tensors better (e.g ``` np.einsum('ij,ij,ij->ij', ...) or np.einsum('jk,ijk,ij->ijk', ...) ```. Testing shows we must consider the usage of tensordot as well or everything slows down considerbly.
+ - I make a lot of assumptions about tensordot as I am testing against vendor BLAS (intel MKL on haswell or opteron).
+ - More memory options should be available. For example should we consider cummulative memory? 
+ - Are we handeling view reference correctly? Views really should be garbage collected as soon as possible.
+ - 
+
 
 
