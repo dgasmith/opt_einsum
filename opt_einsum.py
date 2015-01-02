@@ -61,7 +61,7 @@ def _path_optimal(inp, out, ind_dict, memory):
                 contract = _find_contraction(con, remaining, out_set)
                 new_result, new_inp, index_removed, index_contract = contract
 
-                # Sieve the results based on memory, prevents unnecessarly large tensors
+                # Sieve the results based on memory, prevents unnecessarily large tensors
                 if _compute_size(new_result, ind_dict) > memory:
                     continue
 
@@ -110,7 +110,7 @@ def _path_opportunistic(inp, out, ind_dict, memory):
             contract = _find_contraction(positions, inp_set, out_set)
             index_result, new_inp, index_removed, index_contract = contract
 
-            # Sieve the results based on memory, prevents unnecessarly large tensors
+            # Sieve the results based on memory, prevents unnecessarily large tensors
             if _compute_size(index_result, ind_dict) > memory:
                 continue
 
@@ -122,7 +122,7 @@ def _path_opportunistic(inp, out, ind_dict, memory):
             # Add contraction to possible choices
             iteration_results.append([sort, positions, new_inp])
 
-        # If we didnt find a new contraction contract the rest at the same time
+        # If we did not find a new contraction contract remaining
         if len(iteration_results) == 0:
             path.append(tuple(range(len(inp) - iteration)))
             break
@@ -221,9 +221,8 @@ def opt_einsum(string, *views, **kwargs):
     memory_arg = kwargs.get("memory", out_size)
     return_path_arg = kwargs.get("return_path", False)
 
-    # Maximum memory is an important variable, should be at most this value
-    if memory_arg > out_size:
-        memory_arg = out_size
+    # Maximum memory is an important variable, should be at most out_size
+    memory_arg = min(memory_arg, out_size)
 
     # If total flops is very small just avoid the overhead altogether
     total_flops = _compute_size(indices, dimension_dict)
@@ -231,11 +230,8 @@ def opt_einsum(string, *views, **kwargs):
         return np.einsum(string, *views)
 
     # If no rank reduction leave it to einsum
-    if (indices == output_set):
-        if return_path_arg:
-            return [tuple(range(len(input_list)))]
-        else:
-            return np.einsum(string, *views)
+    if (indices == output_set) and not return_path_arg:
+        return np.einsum(string, *views)
 
     if debug_arg > 0:
         print('Complete contraction:  %s' % (input_string + '->' + output_string))
@@ -292,7 +288,7 @@ def opt_einsum(string, *views, **kwargs):
         for s in index_removed:
             index_result = index_result.replace(s, '')
 
-        can_dot &= (set(tmp_input[0]) & set(tmp_input[1])) == set(index_result)
+        can_dot &= (set(tmp_input[0]) ^ set(tmp_input[1])) == set(index_result)
         can_dot &= (len(set(index_result)) == len(index_result))
         ### End considering tensortdot
 
@@ -306,7 +302,7 @@ def opt_einsum(string, *views, **kwargs):
         # Print current contraction
         einsum_string = ','.join(tmp_input) + '->' + index_result
         if debug_arg > 0:
-            remaining = ','.join(input_list) + ',' + index_result + '->' + output_string
+            remaining = ','.join(input_list + [index_result]) + '->' + output_string
             print('%4d    %6s %24s %40s' % (len(index_contract), can_dot, einsum_string, remaining))
 
         # Tensordot

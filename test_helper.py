@@ -51,7 +51,7 @@ tests['Failed3'] = ['bca,cdb,dbf,afc->', [15, 27, 22, 17, 18, 29]]
 tests['Dot1'] = ['ab,bc', [400, 401, 402]]
 tests['Dot2'] = ['abc,bc', [400, 401, 402]]
 tests['Dot3'] = ['abc,acb->a', [200, 201, 202]]
-tests['Dot4'] = ['abcd,cdef', [30, 29, 28, 27, 26, 25]]
+tests['Dot4'] = ['abcd,cdef->feba', [30, 29, 28, 27, 26, 25]]
 tests['Dot5'] = ['abcd,efdc', [19, 18, 17, 16, 15, 14]]
 tests['Dot6'] = ['abcd,defc', [19, 18, 17, 16, 15, 14]]
 

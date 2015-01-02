@@ -15,11 +15,11 @@ test_einsum = False
 test_paths = False
 
 #scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-scale_list = [2]
+scale_list = [1.5]
 
 out = []
 
-#key_list = ['Actual1', 'Actual2']
+# key_list = ['Actual1', 'Actual2']
 key_list = th.tests.keys()
 
 for key in key_list:
@@ -32,6 +32,9 @@ for key in key_list:
         # At this point lets assume everything works correctly
         opt_path = opt_einsum(sum_string, *views, path='optimal', return_path=True)
         opp_path = opt_einsum(sum_string, *views, path='opportunistic', return_path=True)
+
+        if all(x==y for x, y in zip(opp_path, opt_path)):
+            break
 
         setup = "import numpy as np; from opt_einsum import opt_einsum; \
                  from __main__ import sum_string, views, opt_path, opp_path"
@@ -54,7 +57,7 @@ for key in key_list:
 
 df = pd.DataFrame(out)
 df.columns = ['Key', 'String', 'Scale', 'Optimal time', 'Opportunistic time']
-df['Ratio'] = df['Opportunistic time']/df['Optimal time']
+df['Ratio'] = np.around(df['Opportunistic time']/df['Optimal time'], 2)
 
 df = df.set_index(['Key', 'Scale'])
 df = df.sort_index()
@@ -63,5 +66,5 @@ print df
 
 print '\nDescription of speedup:'
 print df['Ratio'].describe()
-print '\nNumber of opt_einsum operations slower than einsum: %d.' % np.sum(df['Ratio']<0.8)
+print '\nNumber of optimal paths slower than opportunistic paths: %d.' % np.sum(df['Ratio']<0.8)
 
