@@ -2,6 +2,11 @@ import numpy as np
 import pandas as pd
 import timeit
 
+import resource
+rsrc = resource.RLIMIT_DATA
+limit = int(1e9)
+resource.setrlimit(rsrc, (limit, limit))
+
 from opt_einsum import opt_einsum
 
 pd.set_option('display.width', 1000)

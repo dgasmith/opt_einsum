@@ -11,11 +11,11 @@ rsrc = resource.RLIMIT_DATA
 limit = int(1e10)
 resource.setrlimit(rsrc, (limit, limit))
 
-test_einsum = False
-test_paths = False
+test_einsum = True
+test_paths = True
 
 #scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-scale_list = [1.5]
+scale_list = [1]
 
 out = []
 

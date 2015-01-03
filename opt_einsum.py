@@ -49,13 +49,13 @@ def _path_optimal(inp, out, ind_dict, memory):
     out_set = set(out)
 
     t = time.time()
-    current = [(0, [], [], inp_set)]
+    current = [(0, [], inp_set)]
     for iteration in range(len(inp) - 1):
         new = []
         # Grab all unique pairs
         comb_iter = zip(*np.triu_indices(len(inp) - iteration, 1))
         for curr in current:
-            cost, positions, result, remaining = curr
+            cost, positions, remaining = curr
             for con in comb_iter:
 
                 contract = _find_contraction(con, remaining, out_set)
@@ -70,12 +70,12 @@ def _path_optimal(inp, out, ind_dict, memory):
                 if len(index_removed) > 0:
                     new_cost *= 2
 
-                # Build (total_cost, positions, results, indices_remaining)
+                # Build (total_cost, positions, indices_remaining)
                 new_cost += cost
-                new_result = result + [new_result]
                 new_pos = positions + [con]
-                new.append((new_cost, new_pos, new_result, new_inp))
+                new.append((new_cost, new_pos, new_inp))
 
+        # Update list to iterate over
         current = new
 
     # If we have not found anything return single einsum contraction
@@ -92,6 +92,7 @@ def _path_optimal(inp, out, ind_dict, memory):
 
 def _path_opportunistic(inp, out, ind_dict, memory):
     # Finds best path by choosing the best pair contraction
+    # Best pair is determined by the sorted tuple (-index_removed, cost)
     # inp - list of sets for input indices
     # out - set of output indices
     # ind_dict - dictionary for the size of each index
@@ -226,7 +227,7 @@ def opt_einsum(string, *views, **kwargs):
 
     # If total flops is very small just avoid the overhead altogether
     total_flops = _compute_size(indices, dimension_dict)
-    if (total_flops < 1e5) and not return_path_arg:
+    if (total_flops < 1e6) and not return_path_arg:
         return np.einsum(string, *views)
 
     # If no rank reduction leave it to einsum
@@ -295,6 +296,7 @@ def opt_einsum(string, *views, **kwargs):
         ### If cannot do tensordot, do einsum
         if can_dot is False:
             # We can choose order of output indices, shortest first
+            # This is one place that can still see a lot of improvement
             sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
             sort_result.sort()
             index_result = ''.join([x[1] for x in sort_result])
@@ -312,10 +314,8 @@ def opt_einsum(string, *views, **kwargs):
                 ftpos.append(tmp_input[0].find(s))
                 stpos.append(tmp_input[1].find(s))
             # Tensordot does not sort the indices intelligently, we can help it out
-            if tmp_views[0].shape[min(ftpos)] > tmp_views[1].shape[min(stpos)]:
-                ftpos, stpos = zip(*sorted(zip(ftpos, stpos)))
-            else:
-                stpos, ftpos = zip(*sorted(zip(stpos, ftpos)))
+            # This can be improved
+            ftpos, stpos = zip(*sorted(zip(ftpos, stpos)))
             new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(ftpos, stpos))
 
         # Conventional einsum
