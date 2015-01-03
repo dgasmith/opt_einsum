@@ -66,7 +66,7 @@ import test_helper as th
 from opt_einsum import opt_einsum
 
 sum_string = 'bdik,acaj,ikab,ajac,ikbd'
-index_size = [10, 17, 9, 10, 13, 16, 15, 14, 11]]
+index_size = [10, 17, 9, 10, 13, 16, 15, 14, 11]
 views = th.build_views(sum_string, index_size) # Function that builds random arrays of the correct shape
 ein_result = np.einsum(sum_string, *views)
 opt_ein_result = opt_einsum(sum_string, *views, debug=1)
