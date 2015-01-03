@@ -2,37 +2,33 @@ import numpy as np
 import pandas as pd
 import sys, traceback
 import timeit
+
 import test_helper as th
 from opt_einsum import opt_einsum
-pd.set_option('display.width', 1000)
+pd.set_option('display.width', 200)
 
 import resource
 rsrc = resource.RLIMIT_DATA
 limit = int(1e10)
 resource.setrlimit(rsrc, (limit, limit))
 
-test_einsum = True
-test_paths = True
+test_einsum = False
+test_paths = False
 
 #scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
 scale_list = [1]
 
 out = []
-
-# key_list = ['Actual1', 'Actual2']
-key_list = th.tests.keys()
-
-for key in key_list:
+for key in th.tests.keys():
     sum_string, index_size = th.tests[key]
     for scale in scale_list:
-        loop_index_size = (np.array(index_size) * scale).astype(np.int)
-        loop_index_size[loop_index_size<1] = 1
-        views = th.build_views(sum_string, loop_index_size)
+        views = th.build_views(sum_string, index_size, scale=scale)
 
         # At this point lets assume everything works correctly
         opt_path = opt_einsum(sum_string, *views, path='optimal', return_path=True)
         opp_path = opt_einsum(sum_string, *views, path='opportunistic', return_path=True)
 
+        # If identical paths lets just skip them
         if all(x==y for x, y in zip(opp_path, opt_path)):
             break
 

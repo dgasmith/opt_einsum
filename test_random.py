@@ -8,8 +8,7 @@ limit = int(1e9)
 resource.setrlimit(rsrc, (limit, limit))
 
 from opt_einsum import opt_einsum
-
-pd.set_option('display.width', 1000)
+pd.set_option('display.width', 200)
 
 # Number of dimensions
 max_dims = 3
@@ -31,10 +30,6 @@ alpha = list('abcdefghijklmnopqrstuvwyxz')
 alpha_dict = {num:x for num, x in enumerate(alpha)}
 
 print 'Maximum term size is %d' % (max_size**max_dims)
-
-def view_traceback():
-    ex_type, ex, tb = sys.exc_info()
-    traceback.print_tb(tb)
 
 def make_term():
     num_dims = np.random.randint(min_dims, max_dims+1)
@@ -108,9 +103,17 @@ if sum(diff_flags)>0:
     print 'Terms different than einsum'
     print df[df['Flag']!=True]
 
-print '\nDescription of speedup:'
+print '\nDescription of speedup in relative terms:'
 print df['Ratio'].describe()
 
-print 'Number of opt_einsum slower than einsum:   %d.' % np.sum(df['Ratio']<0.90)
-print df[df['Ratio']<0.90]
+print '\nNumber of opt_einsum slower than einsum:   %d.' % np.sum(df['Ratio']<0.90)
+tmp = df.loc[df['Ratio']<0.90].copy()
+print tmp
+
+diff_us = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
+print '\nDescription of slowdown in absolute terms (microseconds):'
+
+print diff_us.describe()
+
+
 

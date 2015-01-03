@@ -1,6 +1,8 @@
 import numpy as np
 
 ### Build dictionary of tests
+# The pure einsum implementation should take less than a second
+
 tests = {}
 # Randomly produced contractions
 tests['Random1'] = ['aab,fa,df,ecc->bde',  [25, 18, 23, 16, 28, 14]]
@@ -12,10 +14,14 @@ tests['Index2'] = ['ea,fb,abcd,gc,hd->efgh', [10, 10, 10, 10, 3, 6, 8, 15]]
 tests['Index3'] = ['ea,fb,abcd,gc,hd->efgh', [15, 8, 6, 3, 10, 10, 10, 10]]
 
 # Hadamard like
-tests['Hadamard1'] = ['abc,abc->abc', [200, 200, 200]]
-tests['Hadamard2'] = ['abc,abc,abc->abc', [200, 200, 200]]
-tests['Hadamard3'] = ['abc,ab,abc->abc', [200, 200, 200]]
-tests['Hadamard4'] = ['a,ab,abc->abc', [200, 200, 200]]
+tests['Hadamard1'] = ['abc,abc->abc', [200, 199, 198]]
+tests['Hadamard2'] = ['abc,abc,abc->abc', [200, 199, 198]]
+tests['Hadamard3'] = ['abc,ab,abc->abc', [200, 199, 198]]
+tests['Hadamard4'] = ['a,ab,abc->abc', [200, 199, 198]]
+tests['Hadamard5'] = ['bc,ab,abc->abc', [200, 199, 198]]
+tests['Hadamard6'] = ['a,b,c,abc->abc', [200, 199, 198]]
+tests['Hadamard7'] = ['a,b,c,d,abcd->abc', [70, 69, 68, 67]]
+tests['Hadamard8'] = ['ab,bc,cd,ad,abcd->abc', [60, 59, 58, 57]]
 
 # Real world test cases
 tests['EP_Theory1'] = ['acjl,pbpk,jkib,ilac,jlac,jklabc,ilac', [10, 5, 9, 10, 5, 25, 6, 14, 11]]
@@ -25,6 +31,7 @@ tests['EP_Theory4'] = ['bdk,cji,ajdb,ikca,kbd,ijkcd,ikac', [10, 11, 9, 10, 12, 1
 tests['EP_Theory5'] = ['cij,bdk,ajbc,ikad,ijc,ijk,ikad', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
 tests['EP_Theory6'] = ['cij,bdk,ajbc,ikad,bdk,cji,ajdb', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
 tests['EP_Theory7'] = ['bdik,acaj,ikab,ajac,ikbd', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
+tests['EP_Theory8'] = ['acjl,pbpk,jkib,ilac,jlac,jklabc,ilac', [4, 3, 2, 20, 19, 18, 17, 16, 15]]
 #tests['Actual2'] = [, [10, 5, 9, 10, 5, 25, 6, 14, 11]]
 
 # A few tricky cases
@@ -47,13 +54,14 @@ tests['Failed1'] = ['eb,cb,fb->cef', [60, 59, 48, 57]]
 tests['Failed2'] = ['dd,fb,be,cdb->cef', [27, 28, 13, 18, 19, 20]]
 tests['Failed3'] = ['bca,cdb,dbf,afc->', [15, 27, 22, 17, 18, 29]]
 
-# GEMM test
+# GEMM tests
 tests['Dot1'] = ['ab,bc', [400, 401, 402]]
 tests['Dot2'] = ['abc,bc', [400, 401, 402]]
-tests['Dot3'] = ['abc,acb->a', [200, 201, 202]]
+tests['Dot3'] = ['abc,abc', [200, 201, 202]]
 tests['Dot4'] = ['abcd,cdef->feba', [30, 29, 28, 27, 26, 25]]
-tests['Dot5'] = ['abcd,efdc', [19, 18, 17, 16, 15, 14]]
-tests['Dot6'] = ['abcd,defc', [19, 18, 17, 16, 15, 14]]
+tests['Dot5'] = ['abcd,cdef->abef', [30, 29, 28, 27, 26, 25]]
+tests['Dot6'] = ['abcd,efdc', [19, 18, 17, 16, 15, 14]]
+tests['Dot7'] = ['abcd,defc', [19, 18, 17, 16, 15, 14]]
 
 # Previous test showed that opt_einsum is 2-10x slower than einsum
 tests['Slow1'] = ['bcf,bbb,fbf,fc->', [15, 25, 10, 10, 12, 13]]
@@ -63,23 +71,39 @@ tests['Slow4'] = ['bcb,bb,fc,fff->', [12, 22, 18, 22, 19, 29]]
 tests['Slow5'] = ['fc,dcf,fad->a', [13, 15, 18, 14, 27, 22]]
 tests['Slow6'] = ['cec,ed,cd,ec->', [18, 22, 15, 17, 22, 19]]
 
-def build_views(string, sizes):
-    '''
-    string- einsum like string 'abc,cb->ab'
-    sizes- 
-    '''
-    terms = string.split('->')[0].split(',')
+def build_views(string, sizes, scale=1):
+    """
+    Builds random views for testing einsum strings.
 
+    Parameters
+    __________
+    string : str
+        Einsum like string of contractions
+    sizes : list like
+        List of sizes, will match the sorted set of indices
+    scale : int
+        Scales the cost of the computation roughly linearly in time
+
+    Returns
+    _______
+    output : list of ndarrays
+        Random arrays that match the einsum string.
+    """
+
+    terms = string.split('->')[0].split(',')
     alpha = ''.join(set(''.join(terms)))
+
+    scale = scale ** (1.0 / len(alpha))
+    sizes = (np.array(sizes) * scale).astype(np.int)
+    sizes[sizes<1] = 1
+
     sizes_dict = {alpha:size for alpha,size in zip(alpha, sizes)}
 
     views = []
     for term in terms:
-        term_index = [sizes_dict[x] for x in term]
-        views.append(np.random.rand(*term_index))
+        term_dimensions = [sizes_dict[x] for x in term]
+        views.append(np.random.rand(*term_dimensions))
+
     return views
 
-
-alpha = list('abcdefghijklmnopqrstuvwyxz')
-alpha_dict = {num:x for num, x in enumerate(alpha)}
 

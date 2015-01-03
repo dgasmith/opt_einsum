@@ -66,7 +66,7 @@ import test_helper as th
 from opt_einsum import opt_einsum
 
 sum_string = 'bdik,acaj,ikab,ajac,ikbd'
-index_size = [10, 17, 9, 10, 13, 16, 15, 14, 11]]
+index_size = [10, 17, 9, 10, 13, 16, 15, 14]
 views = th.build_views(sum_string, index_size) # Function that builds random arrays of the correct shape
 ein_result = np.einsum(sum_string, *views)
 opt_ein_result = opt_einsum(sum_string, *views, debug=1)
@@ -88,7 +88,7 @@ By contracting terms in the correct order we can see that this expression can be
 
 ## More details on paths
 
-Finding the optimal order of contraction is not an easy problem and formally scales factorial with respect to the number of terms in the expression. First, lets discuss what a path looks like in opt_einsum:
+Finding the optimal order of contraction is not an easy problem and formally scales factorially with respect to the number of terms in the expression. First, lets discuss what a path looks like in opt_einsum:
 ```python
 einsum_path = [(0, 1, 2, 3, 4)]
 opt_path = [(1, 3), (0, 2), (0, 2), (0, 1)]

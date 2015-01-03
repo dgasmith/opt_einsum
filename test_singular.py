@@ -6,32 +6,41 @@ import test_helper as th
 from opt_einsum import opt_einsum
 pd.set_option('display.width', 1000)
 
+### Start variables
 
-#key = 'Index1'
-#key = 'Actual3'
-#key = 'Expand4'
-key = 'EP_Theory1'
+# Choose a path
+#path_arg = 'optimal'
+path_arg = 'opportunistic'
 
-path_arg = 'optimal'
-#path_arg = 'opportunistic'
+# Choose to roughly scale overall time taken
+scale = 2
 
-scale = 1.2
-
-
+# From current test set
+key = 'EP_Theory8'
 sum_string, index_size = th.tests[key]
-#sum_string = 'i,i,j'
 
-index_size = np.ceil(np.array(index_size) * scale).astype(np.int)
-views = th.build_views(sum_string, index_size)
+# Build your own
+# sum_string = 'ab,bc->ac'
+# index_size = [500, 500, 500]
+
+### End variables 
+
+# Grab index and temporary views
+views = th.build_views(sum_string, index_size, scale=scale)
+
 t = time.time()
 ein_result = np.einsum(sum_string, *views)
-print 'Einsum took %3.3f seconds' % (time.time() - t)
+print '\nEinsum took %3.5f seconds.\n' % (time.time() - t)
+
 t = time.time()
-print  opt_einsum(sum_string, *views, debug=1, path=path_arg, return_path=True)
-print 'Path %s took %3.5f seconds' % (path_arg, (time.time() - t))
+print 'Building path...'
+path = opt_einsum(sum_string, *views, path=path_arg, return_path=True)
+print 'Path: ', path
+print '...path %s took %3.5f seconds.\n' % (path_arg, (time.time() - t))
+
 t = time.time()
-opt_ein_result = opt_einsum(sum_string, *views, debug=1, path=path_arg)
-print 'Opt_einsum took %3.3f seconds' % (time.time() - t)
+opt_ein_result = opt_einsum(sum_string, *views, debug=1, path=path)
+print 'Opt_einsum took %3.5f seconds' % (time.time() - t)
 
 
 print 'Einsum shape:        %s' % (str(ein_result.shape))

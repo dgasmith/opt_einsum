@@ -222,9 +222,6 @@ def opt_einsum(string, *views, **kwargs):
     memory_arg = kwargs.get("memory", out_size)
     return_path_arg = kwargs.get("return_path", False)
 
-    # Maximum memory is an important variable, should be at most out_size
-    memory_arg = min(memory_arg, out_size)
-
     # If total flops is very small just avoid the overhead altogether
     total_flops = _compute_size(indices, dimension_dict)
     if (total_flops < 1e6) and not return_path_arg:
@@ -244,6 +241,8 @@ def opt_einsum(string, *views, **kwargs):
     elif len(input_list) == 2:
         path = [(0, 1)]
     elif path_arg == "opportunistic":
+        # Maximum memory is an important variable here, should be at most out_size
+        memory_arg = min(memory_arg, out_size)
         path = _path_opportunistic(input_list, output_set, dimension_dict, memory_arg)
     elif path_arg == "optimal":
         path = _path_optimal(input_list, output_set, dimension_dict, memory_arg)
