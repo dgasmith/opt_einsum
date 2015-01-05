@@ -130,7 +130,7 @@ Lets look at an example:
 Contraction:  abc,dc,ac->bd
 
 iteration 0:
-Build a list with tuples that look the following:
+Build a list with tuples that have the following form:
    cost  path   list of input sets remaining
 [ (0,    [],    [set(['a', 'c', 'b']), set(['d', 'c']), set(['a', 'c'])] ]
 
@@ -181,7 +181,7 @@ Testing this function thoroughly is absolutely crucial; the testing scripts do r
  - Both paths should consider if tensordot can be used. The downside is: figuring out if tensordot can be used is quite expensive.
  - Einsum can compute any Hadamard product of 3 or more tensors faster than building intermediates (e.g ``` np.einsum('ij,ij,ij->ij', ...) or np.einsum('jk,ijk,ij->ijk', ...) ```. Testing shows we must consider the usage of tensordot as well or everything slows down considerably.
  - I make a lot of assumptions about tensordot as I am testing against vendor BLAS (intel MKL on haswell or opteron architecture).
- - Often we can choose the order of output indices, choosing the correct order can have speeds ups of 2x or more.
+ - Often we can choose the order of output indices, choosing the correct order can have speed ups of 2x or more.
  - More memory options should be available. For example should we consider cumulative memory? 
  - Are we handling view dereferencing correctly? Views really should be garbage collected as soon as possible.
 

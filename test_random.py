@@ -108,12 +108,14 @@ print df['Ratio'].describe()
 
 print '\nNumber of opt_einsum slower than einsum:   %d.' % np.sum(df['Ratio']<0.90)
 tmp = df.loc[df['Ratio']<0.90].copy()
+tmp['Diff (us)'] = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
+tmp = tmp.sort('Diff (us)', ascending=False)
 print tmp
 
-diff_us = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
-print '\nDescription of slowdown in absolute terms (microseconds):'
+#diff_us = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
+print '\nDescription of slowdown:'
 
-print diff_us.describe()
+print tmp.describe()
 
 
 

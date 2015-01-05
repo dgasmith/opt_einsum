@@ -189,6 +189,7 @@ def opt_einsum(string, *views, **kwargs):
     input_set = map(set, input_list)
     output_set = set(output_string)
     indices = set(input_string.replace(',', ''))
+    views = list(views)
 
     # Make sure number views is equivalent to the number of terms
     if len(input_list) != len(views):
@@ -231,6 +232,19 @@ def opt_einsum(string, *views, **kwargs):
     if (indices == output_set) and not return_path_arg:
         return np.einsum(string, *views)
 
+    # Need to do all internal contractions, otherwise sets are not valid
+    if return_path_arg is False:
+        for num, s in enumerate(input_list):
+            if (len(set(s)) == len(s)): continue
+            # We can choose order of output indices, shortest first
+            # This is one place that can still see a lot of improvement
+            sort_result = [(dimension_dict[ind], ind) for ind in set(s)]
+            sort_result.sort()
+            index_result = ''.join([x[1] for x in sort_result])
+   
+            views[num] = np.einsum(s + '->' + index_result, views[num])
+            input_list[num] = index_result            
+
     if debug_arg > 0:
         print('Complete contraction:  %s' % (input_string + '->' + output_string))
         print('       Naive scaling:%4d' % len(indices))
@@ -259,7 +273,6 @@ def opt_einsum(string, *views, **kwargs):
         print('-' * 80)
 
     ### Start contraction loop
-    views = list(views)
     for contract_inds in path:
         # Make sure we remove inds from right to left
         contract_inds = sorted(list(contract_inds), reverse=True)
@@ -268,28 +281,20 @@ def opt_einsum(string, *views, **kwargs):
         out_inds, input_set, index_removed, index_contract = contract
 
         # Build required structures and explicitly delete views
-        no_duplicates = True
         tmp_views, tmp_input = [], []
         for x in contract_inds:
             tmp_views.append(views.pop(x))
-
-            new_string = input_list.pop(x)
-            no_duplicates &= (len(set(new_string)) == len(new_string))
-            tmp_input.append(new_string)
+            tmp_input.append(input_list.pop(x))
 
         ### Consider doing tensordot
-        can_dot = tdot_arg & no_duplicates
-        can_dot &= (len(tmp_views) == 2) & (len(index_removed) > 0)
-        can_dot &= len(set(tmp_input[0]) & set(tmp_input[1])) > 0
-        can_dot &= (len(tmp_input[0]) != 0) & (len(tmp_input[1]) != 0)
-
-        # Get index result
         index_result = tmp_input[0] + tmp_input[1]
         for s in index_removed:
             index_result = index_result.replace(s, '')
 
+        can_dot = tdot_arg
+        can_dot &= (len(tmp_views) == 2) & (len(index_removed) > 0)
+        can_dot &= (len(tmp_input[0]) != 0) & (len(tmp_input[1]) != 0)
         can_dot &= (set(tmp_input[0]) ^ set(tmp_input[1])) == set(index_result)
-        can_dot &= (len(set(index_result)) == len(index_result))
         ### End considering tensortdot
 
         ### If cannot do tensordot, do einsum
