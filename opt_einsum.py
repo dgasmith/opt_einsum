@@ -1,4 +1,3 @@
-import time
 import numpy as np
 
 
@@ -48,7 +47,6 @@ def _path_optimal(inp, out, ind_dict, memory):
     inp_set = map(set, inp)
     out_set = set(out)
 
-    t = time.time()
     current = [(0, [], inp_set)]
     for iteration in range(len(inp) - 1):
         new = []
@@ -84,9 +82,6 @@ def _path_optimal(inp, out, ind_dict, memory):
 
     new.sort()
     path = new[0][1]
-    einsum_string = ','.join(inp) + '->' + ''.join(out)
-    print 'Path Optimal time: %6d %2d %3.5f %40s' % (len(new), len(inp), (time.time()-t), einsum_string)
-
     return path
 
 
@@ -259,7 +254,7 @@ def opt_einsum(string, *views, **kwargs):
         print('%6s %6s %24s %40s' % ('scaling', 'GEMM', 'current', 'remaining'))
         print('-' * 80)
 
-    ### Start contraction loop
+    # Start contraction loop
     for contract_inds in path:
         # Make sure we remove inds from right to left
         contract_inds = sorted(list(contract_inds), reverse=True)
@@ -273,7 +268,7 @@ def opt_einsum(string, *views, **kwargs):
             tmp_views.append(views.pop(x))
             tmp_input.append(input_list.pop(x))
 
-        ### Consider doing tensordot
+        # Consider doing tensordot
         index_result = tmp_input[0] + tmp_input[1]
         for s in index_removed:
             index_result = index_result.replace(s, '')
@@ -282,12 +277,11 @@ def opt_einsum(string, *views, **kwargs):
         can_dot &= (len(tmp_views) == 2) & (len(index_removed) > 0)
         can_dot &= (len(tmp_input[0]) != 0) & (len(tmp_input[1]) != 0)
         can_dot &= (set(tmp_input[0]) ^ set(tmp_input[1])) == set(index_result)
-        ### End considering tensortdot
+        # End considering tensortdot
 
-        ### If cannot do tensordot, do einsum
+        # If cannot do tensordot, do einsum
         if can_dot is False:
             # We can choose order of output indices, shortest first
-            # This is one place that can still see a lot of improvement
             sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
             index_result = ''.join([x[1] for x in sorted(sort_result)])
 
@@ -306,7 +300,7 @@ def opt_einsum(string, *views, **kwargs):
                 tmp_result = ''.join([x[1] for x in sorted(sort_result)])
 
                 tmp_views[num] = np.einsum(s + '->' + tmp_result, tmp_views[num])
-                tmp_input[num] = tmp_result            
+                tmp_input[num] = tmp_result
 
                 # Need to rebuild the resulting index
                 index_result = tmp_input[0] + tmp_input[1]
@@ -329,8 +323,6 @@ def opt_einsum(string, *views, **kwargs):
         views += [new_view]
         input_list += [index_result]
         del tmp_views, new_view  # Dereference what we can
-
-    ### Finish contraction loop
 
     # We may need to do a final transpose
     if input_list[0] == output_string:
