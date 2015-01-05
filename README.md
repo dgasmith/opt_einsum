@@ -123,7 +123,7 @@ While this algorithm scales like N! and can often become more costly to compute 
 The function that computes this path in opt_einsum is called _path_optimal and works by iteratively finding every possible combination of pairs to contract in the current list of tensors.
 This is iterated until all tensors are contracted together. The resulting paths are then sorted by total flop cost and the lowest one is chosen.
 This algorithm runs in about 1 second for 7 terms, 15 seconds for 8 terms, and 480 seconds for 9 terms limiting its overall usefulness for a large number of terms.
-By considering limited memory this can be sieved and can reduce the cost of the optimal function by an order of magnitude or more.
+By considering limited memory this can be sieved and can reduce the cost of computing the optimal function by an order of magnitude or more.
 
 Lets look at an example:
 ```python

@@ -16,7 +16,7 @@ path_arg = 'opportunistic'
 scale = 2
 
 # From current test set
-key = 'EP_Theory8'
+key = 'Slow4'
 sum_string, index_size = th.tests[key]
 
 # Build your own

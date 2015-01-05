@@ -149,27 +149,27 @@ def opt_einsum(string, *views, **kwargs):
     string : str
         Einsum string of contractions
     *view : list of views utilized
-    debug : int (default: 0)
+    debug : bool, (default: False)
         Level of printing.
-    tensordot : bool, optional
+    tensordot : bool, optional (default: True)
         If true use tensordot where possible.
-    path : bool or list, optional
+    path : bool or list, optional (default: `opportunistic`)
         Choose the type of path.
 
         - if a list is given uses this as the path.
-        - 'opportunistic' means a N^2 algorithm that opportunistically
+        - 'opportunistic' means a N^3 algorithm that opportunistically
             chooses the best algorithm.
         - 'optimal' means a N! algorithm that tries all possible ways of
             contracting the listed tensors.
 
-    memory : int, optional
+    memory : int, optional (default: largest input or output array size)
         Maximum number of elements in an array. Defaults to the size of the
             largest ndarry view our output.
 
     Returns
     -------
     output : ndarray
-        The result based on the Einstein summation convention.
+        The result based on Einstein summation convention.
     """
 
     # Split into output and input string
@@ -232,20 +232,7 @@ def opt_einsum(string, *views, **kwargs):
     if (indices == output_set) and not return_path_arg:
         return np.einsum(string, *views)
 
-    # Need to do all internal contractions, otherwise sets are not valid
-    if return_path_arg is False:
-        for num, s in enumerate(input_list):
-            if (len(set(s)) == len(s)): continue
-            # We can choose order of output indices, shortest first
-            # This is one place that can still see a lot of improvement
-            sort_result = [(dimension_dict[ind], ind) for ind in set(s)]
-            sort_result.sort()
-            index_result = ''.join([x[1] for x in sort_result])
-   
-            views[num] = np.einsum(s + '->' + index_result, views[num])
-            input_list[num] = index_result            
-
-    if debug_arg > 0:
+    if debug_arg:
         print('Complete contraction:  %s' % (input_string + '->' + output_string))
         print('       Naive scaling:%4d' % len(indices))
 
@@ -267,7 +254,7 @@ def opt_einsum(string, *views, **kwargs):
     if return_path_arg:
         return path
 
-    if debug_arg > 0:
+    if debug_arg:
         print('-' * 80)
         print('%6s %6s %24s %40s' % ('scaling', 'GEMM', 'current', 'remaining'))
         print('-' * 80)
@@ -302,23 +289,35 @@ def opt_einsum(string, *views, **kwargs):
             # We can choose order of output indices, shortest first
             # This is one place that can still see a lot of improvement
             sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
-            sort_result.sort()
-            index_result = ''.join([x[1] for x in sort_result])
+            index_result = ''.join([x[1] for x in sorted(sort_result)])
 
         # Print current contraction
         einsum_string = ','.join(tmp_input) + '->' + index_result
-        if debug_arg > 0:
+        if debug_arg:
             remaining = ','.join(input_list + [index_result]) + '->' + output_string
             print('%4d    %6s %24s %40s' % (len(index_contract), can_dot, einsum_string, remaining))
 
         # Tensordot
         if can_dot:
+            # Need to do all internal contractions, otherwise tensordot is not valid
+            for num, s in enumerate(tmp_input):
+                if (len(set(s)) == len(s)): continue
+                sort_result = [(dimension_dict[ind], ind) for ind in set(s)]
+                tmp_result = ''.join([x[1] for x in sorted(sort_result)])
+
+                tmp_views[num] = np.einsum(s + '->' + tmp_result, tmp_views[num])
+                tmp_input[num] = tmp_result            
+
+                # Need to rebuild the resulting index
+                index_result = tmp_input[0] + tmp_input[1]
+                for s in index_removed:
+                    index_result = index_result.replace(s, '')
+
             ftpos, stpos = [], []
             for s in index_removed:
                 ftpos.append(tmp_input[0].find(s))
                 stpos.append(tmp_input[1].find(s))
             # Tensordot does not sort the indices intelligently, we can help it out
-            # This can be improved
             ftpos, stpos = zip(*sorted(zip(ftpos, stpos)))
             new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(ftpos, stpos))
 
@@ -330,6 +329,7 @@ def opt_einsum(string, *views, **kwargs):
         views += [new_view]
         input_list += [index_result]
         del tmp_views, new_view  # Dereference what we can
+
     ### Finish contraction loop
 
     # We may need to do a final transpose

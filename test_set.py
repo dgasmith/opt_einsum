@@ -20,8 +20,8 @@ scale_list = [1.0]
 key_filter = ''
 
 # Choose a path
-#opt_path = 'optimal'
-opt_path = 'opportunistic'
+opt_path = 'optimal'
+#opt_path = 'opportunistic'
 
 out = []
 for key in th.tests.keys():
