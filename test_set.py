@@ -13,15 +13,15 @@ limit = int(1e10)
 resource.setrlimit(rsrc, (limit, limit))
 
 # Attempts to linearly scale the time, not the dimension size
-scale_list = [.1]
+scale_list = [1]
 
 # Filter based on key
 #key_filter = 'Hada'
 key_filter = ''
 
 # Choose a path
-opt_path = 'optimal'
-#opt_path = 'opportunistic'
+#opt_path = 'optimal'
+opt_path = 'opportunistic'
 
 out = []
 for key in th.tests.keys():

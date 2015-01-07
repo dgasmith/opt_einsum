@@ -55,7 +55,7 @@ Now lets consider the following expression found in a perturbation theory (one o
 
 At first, it would appear that this scales like N^7 as there are 7 unique indices; however, we can define a intermediate to reduce this scaling.
 
-`a = bdik,ikab,ikbd` (N^6 scaling)
+`a = bdik,ikab,ikbd` (N^5 scaling)
 
 `result = acaj,ajac,a` (N^4 scaling)
 

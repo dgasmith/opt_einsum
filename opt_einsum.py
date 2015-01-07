@@ -140,7 +140,7 @@ def opt_einsum(string, *views, **kwargs):
     overall rank of the contration by building intermediates."
 
     Parameters
-    __________
+    ----------
     string : str
         Einsum string of contractions
     *view : list of views utilized
@@ -165,6 +165,11 @@ def opt_einsum(string, *views, **kwargs):
     -------
     output : ndarray
         The result based on Einstein summation convention.
+
+    See Also
+    --------
+    einsum, tensordot, dot
+
     """
 
     # Split into output and input string
@@ -185,6 +190,9 @@ def opt_einsum(string, *views, **kwargs):
     output_set = set(output_string)
     indices = set(input_string.replace(',', ''))
     views = list(views)
+
+    # Must be double precision
+    dtype = np.result_type(*views)
 
     # Make sure number views is equivalent to the number of terms
     if len(input_list) != len(views):
@@ -269,55 +277,64 @@ def opt_einsum(string, *views, **kwargs):
             tmp_input.append(input_list.pop(x))
 
         # Consider doing tensordot
-        index_result = tmp_input[0] + tmp_input[1]
+        tdot_result = tmp_input[0] + tmp_input[1]
         for s in index_removed:
-            index_result = index_result.replace(s, '')
+            tdot_result = tdot_result.replace(s, '')
+        can_tdot = tdot_arg & (len(tmp_views) == 2) & (len(index_removed) > 0)
+        can_tdot &= (set(tmp_input[0]) ^ set(tmp_input[1])) == set(tdot_result)
 
-        can_dot = tdot_arg
-        can_dot &= (len(tmp_views) == 2) & (len(index_removed) > 0)
-        can_dot &= (len(tmp_input[0]) != 0) & (len(tmp_input[1]) != 0)
-        can_dot &= (set(tmp_input[0]) ^ set(tmp_input[1])) == set(index_result)
-        # End considering tensortdot
-
-        # If cannot do tensordot, do einsum
-        if can_dot is False:
-            # We can choose order of output indices, shortest first
-            sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
-            index_result = ''.join([x[1] for x in sorted(sort_result)])
-
-        # Print current contraction
-        einsum_string = ','.join(tmp_input) + '->' + index_result
-        if debug_arg:
-            remaining = ','.join(input_list + [index_result]) + '->' + output_string
-            print('%4d    %6s %24s %40s' % (len(index_contract), can_dot, einsum_string, remaining))
+        # Scalar product
+        if ((len(tmp_input[0]) == 0) or (len(tmp_input[1]) == 0)) and (len(tmp_views) == 2):
+            new_view = np.dot(tmp_views[0], tmp_views[1])
+            index_result = tmp_input[0] + tmp_input[1]
 
         # Tensordot
-        if can_dot:
-            # Need to do all internal contractions, otherwise tensordot is not valid
-            for num, s in enumerate(tmp_input):
-                if (len(set(s)) == len(s)): continue
-                sort_result = [(dimension_dict[ind], ind) for ind in set(s)]
-                tmp_result = ''.join([x[1] for x in sorted(sort_result)])
+        elif can_tdot:
+            # Check for duplicate indices, cannot do einsum('iij,jkk->ik') operations here
+            sort_left = True
+            if (len(set(tmp_input[0])) != len(tmp_input[0])):
+                new_inds = ''.join(set(tmp_input[0]) - index_removed) + ''.join(index_removed)
+                tmp_views[0] = np.einsum(tmp_input[0] + '->' + new_inds, tmp_views[0])
+                tmp_input[0] = new_inds
 
-                tmp_views[num] = np.einsum(s + '->' + tmp_result, tmp_views[num])
-                tmp_input[num] = tmp_result
+            if (len(set(tmp_input[1])) != len(tmp_input[1])):
+                new_inds = ''.join(index_removed)[::-1] + ''.join(set(tmp_input[1]) - index_removed)
+                tmp_views[1] = np.einsum(tmp_input[1] + '->' + new_inds, tmp_views[1])
+                tmp_input[1] = new_inds
+                sort_left = False
 
-                # Need to rebuild the resulting index
-                index_result = tmp_input[0] + tmp_input[1]
-                for s in index_removed:
-                    index_result = index_result.replace(s, '')
+            # Build resulting index
+            index_result = tmp_input[0] + tmp_input[1]
+            for s in index_removed:
+                index_result = index_result.replace(s, '')
 
+            # Find indices to contract over
             ftpos, stpos = [], []
             for s in index_removed:
                 ftpos.append(tmp_input[0].find(s))
                 stpos.append(tmp_input[1].find(s))
+
             # Tensordot does not sort the indices intelligently, we can help it out
-            ftpos, stpos = zip(*sorted(zip(ftpos, stpos)))
+            if sort_left:
+                ftpos, stpos = zip(*sorted(zip(ftpos, stpos)))
+            else:
+                stpos, ftpos = zip(*sorted(zip(stpos, ftpos)))
+
             new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(ftpos, stpos))
 
         # Conventional einsum
         else:
+            # We can choose order of output indices, shortest first
+            sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
+            index_result = ''.join([x[1] for x in sorted(sort_result)])
+            einsum_string = ','.join(tmp_input) + '->' + index_result
             new_view = np.einsum(einsum_string, *tmp_views)
+
+        # Print current contraction
+        if debug_arg:
+            einsum_string = ','.join(tmp_input) + '->' + index_result
+            remaining = ','.join(input_list + [index_result]) + '->' + output_string
+            print('%4d    %6s %24s %40s' % (len(index_contract), can_tdot, einsum_string, remaining))
 
         # Append new items
         views += [new_view]
