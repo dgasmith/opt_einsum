@@ -16,7 +16,7 @@ path_arg = 'opportunistic'
 scale = 2
 
 # From current test set
-key = 'Slow4'
+key = 'Failed6'
 sum_string, index_size = th.tests[key]
 
 # Build your own

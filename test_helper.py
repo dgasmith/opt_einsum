@@ -25,13 +25,13 @@ tests['Hadamard8'] = ['ab,bc,cd,ad,abcd->abc', [60, 59, 58, 57]]
 
 # Real world test cases
 tests['EP_Theory1'] = ['acjl,pbpk,jkib,ilac,jlac,jklabc,ilac', [10, 5, 9, 10, 5, 25, 6, 14, 11]]
-tests['EP_Theory2'] = ['cj,bdik,akdb,ijca,jc,ijkbcd,ijac', [20, 14, 9, 10, 9, 12, 13, 14, 11]]
-tests['EP_Theory3'] = ['abik,ikjp,pjba,ikab,jab', [10, 22, 15, 26, 17, 25]]
-tests['EP_Theory4'] = ['bdk,cji,ajdb,ikca,kbd,ijkcd,ikac', [10, 11, 9, 10, 12, 15, 13, 14, 11]]
-tests['EP_Theory5'] = ['cij,bdk,ajbc,ikad,ijc,ijk,ikad', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
-tests['EP_Theory6'] = ['cij,bdk,ajbc,ikad,bdk,cji,ajdb', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
-tests['EP_Theory7'] = ['bdik,acaj,ikab,ajac,ikbd', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
-tests['EP_Theory8'] = ['acjl,pbpk,jkib,ilac,jlac,jklabc,ilac', [4, 3, 2, 20, 19, 18, 17, 16, 15]]
+tests['EP_Theory2'] = ['acjl,pbpk,jkib,ilac,jlac,jklabc,ilac', [4, 3, 2, 20, 19, 18, 17, 16, 15]]
+tests['EP_Theory3'] = ['cj,bdik,akdb,ijca,jc,ijkbcd,ijac', [20, 14, 9, 10, 9, 12, 13, 14, 11]]
+tests['EP_Theory4'] = ['abik,ikjp,pjba,ikab,jab', [10, 22, 15, 26, 17, 25]]
+tests['EP_Theory5'] = ['bdk,cji,ajdb,ikca,kbd,ijkcd,ikac', [10, 11, 9, 10, 12, 15, 13, 14, 11]]
+tests['EP_Theory6'] = ['cij,bdk,ajbc,ikad,ijc,ijk,ikad', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
+tests['EP_Theory7'] = ['cij,bdk,ajbc,ikad,bdk,cji,ajdb', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
+tests['EP_Theory8'] = ['bdik,acaj,ikab,ajac,ikbd', [10, 17, 9, 10, 13, 16, 15, 14, 11]]
 #tests['Actual2'] = [, [10, 5, 9, 10, 5, 25, 6, 14, 11]]
 
 # A few tricky cases
@@ -55,15 +55,24 @@ tests['Failed2'] = ['dd,fb,be,cdb->cef', [27, 28, 13, 18, 19, 20]]
 tests['Failed3'] = ['bca,cdb,dbf,afc->', [15, 27, 22, 17, 18, 29]]
 tests['Failed4'] = ['dcc,fce,ea,dbf->ab', [10, 24, 26, 22, 18, 29]]
 tests['Failed5'] = ['fdf,cdd,ccd,afe->ae',  [16, 11, 19, 17, 19, 15]] 
+tests['Failed6'] = ['abcd,ad', [59, 58, 57, 56]]
 
 # GEMM tests
 tests['Dot1'] = ['ab,bc', [400, 401, 402]]
-tests['Dot2'] = ['abc,bc', [400, 401, 402]]
-tests['Dot3'] = ['abc,abc', [300, 301, 303]]
-tests['Dot4'] = ['abcd,cdef->feba', [30, 29, 28, 27, 26, 25]]
-tests['Dot5'] = ['abcd,cdef->abef', [30, 29, 28, 27, 26, 25]]
-tests['Dot6'] = ['abcd,efdc->abef', [30, 29, 28, 27, 26, 25]]
-tests['Dot7'] = ['abcd,defc->abef', [30, 29, 28, 27, 26, 25]]
+tests['Dot2'] = ['ab,cb', [400, 401, 402]]
+tests['Dot3'] = ['ba,bc', [400, 401, 402]]
+tests['Dot4'] = ['ba,cb', [400, 401, 402]]
+tests['Dot5'] = ['abcd,cd', [59, 58, 57, 56]]
+tests['Dot6'] = ['abcd,ab', [59, 58, 57, 56]]
+tests['Dot8'] = ['abcd,cdef', [30, 29, 28, 27, 26, 25]]
+tests['Dot7'] = ['abcd,cdef->feba', [30, 29, 28, 27, 26, 25]]
+tests['Dot9'] = ['abcd,efdc', [30, 29, 28, 27, 26, 25]]
+
+#Test inner
+tests['Inner1'] = ['abc,abc', [300, 301, 303]]
+tests['Inner2'] = ['abc,bac', [300, 301, 303]]
+tests['Inner3'] = ['abc,cba', [300, 301, 303]]
+tests['Inner4'] = ['abc,bc', [400, 401, 402]]
 
 # Previous test showed that opt_einsum is 2-10x slower than einsum
 tests['Slow1'] = ['bcf,bbb,fbf,fc->', [15, 25, 10, 10, 12, 13]]

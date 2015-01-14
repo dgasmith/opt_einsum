@@ -180,7 +180,7 @@ def opt_einsum(string, *views, **kwargs):
         # Build output string
         tmp_string = string.replace(',', '')
         output_string = ''
-        for s in set(tmp_string):
+        for s in sorted(set(tmp_string)):
             if tmp_string.count(s) == 1:
                 output_string += s
 
@@ -189,10 +189,10 @@ def opt_einsum(string, *views, **kwargs):
     input_set = map(set, input_list)
     output_set = set(output_string)
     indices = set(input_string.replace(',', ''))
-    views = list(views)
 
-    # Must be double precision
-    dtype = np.result_type(*views)
+    # TODO Should be cast up to double precision
+    arr_dtype = np.result_type(*views)
+    views = [np.asanyarray(v, dtype=arr_dtype) for v in views]
 
     # Make sure number views is equivalent to the number of terms
     if len(input_list) != len(views):
@@ -271,6 +271,7 @@ def opt_einsum(string, *views, **kwargs):
         out_inds, input_set, index_removed, index_contract = contract
 
         # Build required structures and explicitly delete views
+        # Make sure to loop from right to left
         tmp_views, tmp_input = [], []
         for x in contract_inds:
             tmp_views.append(views.pop(x))
@@ -291,36 +292,66 @@ def opt_einsum(string, *views, **kwargs):
         # Tensordot
         elif can_tdot:
             # Check for duplicate indices, cannot do einsum('iij,jkk->ik') operations here
-            sort_left = True
-            if (len(set(tmp_input[0])) != len(tmp_input[0])):
-                new_inds = ''.join(set(tmp_input[0]) - index_removed) + ''.join(index_removed)
-                tmp_views[0] = np.einsum(tmp_input[0] + '->' + new_inds, tmp_views[0])
-                tmp_input[0] = new_inds
+            input_left = tmp_input[0]
+            input_right = tmp_input[1]
+            keep_left = set(input_left) - index_removed
+            keep_right = set(input_right) - index_removed
 
-            if (len(set(tmp_input[1])) != len(tmp_input[1])):
-                new_inds = ''.join(index_removed)[::-1] + ''.join(set(tmp_input[1]) - index_removed)
-                tmp_views[1] = np.einsum(tmp_input[1] + '->' + new_inds, tmp_views[1])
-                tmp_input[1] = new_inds
-                sort_left = False
+            if (len(set(input_left)) != len(input_left)):
+                new_inds = ''.join(keep_left) + ''.join(index_removed)
+                tmp_views[0] = np.einsum(input_left + '->' + new_inds, tmp_views[0])
+                input_left = new_inds
 
-            # Build resulting index
-            index_result = tmp_input[0] + tmp_input[1]
+            if (len(set(input_right)) != len(input_right)):
+                new_inds = ''.join(index_removed) + ''.join(keep_right)
+                tmp_views[1] = np.einsum(input_right + '->' + new_inds, tmp_views[1])
+                input_right = new_inds
+
+            # Tensordot guarantees a copy for ndim > 2, should avoid skip if possible
+            rs = len(index_removed)
+            dim_left = _compute_size(keep_left, dimension_dict)
+            dim_right = _compute_size(keep_right, dimension_dict)
+            dim_removed = _compute_size(index_removed, dimension_dict)
+            index_result = input_left + input_right
+
+            # No transpose needed
+            if input_left[-rs:] == input_right[:rs]:
+                new_view = np.dot(tmp_views[0].reshape(dim_left, dim_removed),
+                                  tmp_views[1].reshape(dim_removed, dim_right))
+
+            # Swap input order
+            elif input_left[:rs] == input_right[-rs:]:
+                index_result = input_right + input_left
+                new_view = np.dot(tmp_views[1].reshape(dim_right, dim_removed),
+                                  tmp_views[0].reshape(dim_removed, dim_left))
+
+            # Transpose left
+            elif input_left[-rs:] == input_right[-rs:]:
+                new_view = np.dot(tmp_views[0].reshape(dim_left, dim_removed),
+                                  tmp_views[1].reshape(dim_right, dim_removed).T)
+
+            # Tranpose right
+            elif input_left[:rs] == input_right[:rs]:
+                new_view = np.dot(tmp_views[0].reshape(dim_removed, dim_left).T,
+                                  tmp_views[1].reshape(dim_removed, dim_right))
+
+            # Conventional tensordot
+            else:
+                # Find indices to contract over
+                left_pos, right_pos = (), ()
+                for s in index_removed:
+                    left_pos += (input_left.find(s),)
+                    right_pos += (input_right.find(s),)
+                new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(left_pos, right_pos))
+
             for s in index_removed:
                 index_result = index_result.replace(s, '')
 
-            # Find indices to contract over
-            ftpos, stpos = [], []
-            for s in index_removed:
-                ftpos.append(tmp_input[0].find(s))
-                stpos.append(tmp_input[1].find(s))
-
-            # Tensordot does not sort the indices intelligently, we can help it out
-            if sort_left:
-                ftpos, stpos = zip(*sorted(zip(ftpos, stpos)))
+            shape_result = tuple(dimension_dict[x] for x in index_result)
+            if len(shape_result) > 0:
+                new_view = new_view.reshape(*shape_result)
             else:
-                stpos, ftpos = zip(*sorted(zip(stpos, ftpos)))
-
-            new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(ftpos, stpos))
+                new_view = np.squeeze(new_view)
 
         # Conventional einsum
         else:
