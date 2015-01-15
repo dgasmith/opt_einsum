@@ -5,6 +5,7 @@ import timeit
 import test_helper as th
 from opt_einsum import opt_einsum
 pd.set_option('display.width', 200)
+pd.set_option('display.max_rows', 200)
 
 # Kill if we use more than 10GB of memory
 import resource
@@ -42,7 +43,7 @@ for key in th.tests.keys():
             out.append([key, 'Opt_einsum failed', sum_string, scale, 0, 0])
             continue
 
-        if np.allclose(ein, opt) is False:
+        if ~np.allclose(ein, opt):
             out.append([key, 'Comparison failed', sum_string, scale, 0, 0])
             continue
 
@@ -66,7 +67,12 @@ df['Ratio'] = np.around(df['Einsum time']/df['Opt_einsum time'], 2)
 
 df = df.set_index(['Key', 'String', 'Scale'])
 df = df.sort_index()
+
 print df
+
+num_failed = (df['Flag']!='True').sum()
+if num_failed>0:
+    print 'WARNING! %d opt_einsum operations failed.' % num_failed 
 
 print '\nDescription of speedup:'
 print df['Ratio'].describe()

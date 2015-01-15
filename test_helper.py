@@ -58,6 +58,7 @@ tests['Failed5'] = ['fdf,cdd,ccd,afe->ae',  [16, 11, 19, 17, 19, 15]]
 tests['Failed6'] = ['abcd,ad', [59, 58, 57, 56]]
 tests['Failed7'] = ['ed,fcd,ff,bcf->be',  [10, 23, 19, 13, 29, 27]]
 tests['Failed8'] = ['baa,dcf,af,cde->be',  [23, 21, 14, 28, 14, 11]]
+tests['Failed9'] = ['bd,db,eac->ace',  [29, 24, 16, 17, 22, 23]]
 
 # GEMM tests
 tests['Dot1'] = ['ab,bc', [400, 401, 402]]
@@ -71,10 +72,11 @@ tests['Dot7'] = ['abcd,cdef->feba', [30, 29, 28, 27, 26, 25]]
 tests['Dot9'] = ['abcd,efdc', [30, 29, 28, 27, 26, 25]]
 
 #Test inner
-tests['Inner1'] = ['abc,abc', [300, 301, 303]]
-tests['Inner2'] = ['abc,bac', [300, 301, 303]]
-tests['Inner3'] = ['abc,cba', [300, 301, 303]]
-tests['Inner4'] = ['abc,bc', [400, 401, 402]]
+tests['Inner1'] = ['ab,ab', [1500, 1501]]
+tests['Inner2'] = ['ab,ba', [1500, 1501]]
+tests['Inner3'] = ['abc,abc', [300, 301, 303]]
+tests['Inner4'] = ['abc,bac', [300, 301, 303]]
+tests['Inner5'] = ['abc,cba', [300, 301, 303]]
 
 # Previous test showed that opt_einsum is 2-10x slower than einsum
 tests['Slow1'] = ['bcf,bbb,fbf,fc->', [15, 25, 10, 10, 12, 13]]
@@ -85,6 +87,7 @@ tests['Slow5'] = ['afd,ba,cc,dc->bf',  [20, 13, 16, 17, 20, 13]]
 tests['Slow6'] = ['adb,bc,fa,cfc->d',  [14, 12, 15, 12, 10, 11]]
 tests['Slow7'] = ['bbd,bda,fc,db->acf',  [14, 24, 13, 10, 23, 10]]
 tests['Slow8'] = ['dba,ead,cad->bce',  [23, 28, 17, 13, 25, 11]]
+tests['Slow9'] = ['aef,fbc,dca->bde',  [10, 25, 18, 19, 19, 19]]
 
 def build_views(string, sizes, scale=1):
     """

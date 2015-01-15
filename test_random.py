@@ -76,8 +76,9 @@ for x in range(200):
         out.append(['Opt_einsum failed', sum_string, index_size, 0, 0])
         continue
 
+
     ident = np.allclose(ein, opt)
-    if not ident:
+    if ~ident:
         out.append(['Comparison failed', sum_string, index_size, 0, 0])
         continue
 
