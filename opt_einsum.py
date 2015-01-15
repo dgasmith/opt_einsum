@@ -299,12 +299,12 @@ def opt_einsum(string, *views, **kwargs):
 
             if (len(set(input_left)) != len(input_left)):
                 new_inds = ''.join(keep_left) + ''.join(index_removed)
-                tmp_views[0] = np.einsum(input_left + '->' + new_inds, tmp_views[0])
+                tmp_views[0] = np.einsum(input_left + '->' + new_inds, tmp_views[0], order='C')
                 input_left = new_inds
 
             if (len(set(input_right)) != len(input_right)):
                 new_inds = ''.join(index_removed) + ''.join(keep_right)
-                tmp_views[1] = np.einsum(input_right + '->' + new_inds, tmp_views[1])
+                tmp_views[1] = np.einsum(input_right + '->' + new_inds, tmp_views[1], order='C')
                 input_right = new_inds
 
             # Tensordot guarantees a copy for ndim > 2, should avoid skip if possible
@@ -313,6 +313,8 @@ def opt_einsum(string, *views, **kwargs):
             dim_right = _compute_size(keep_right, dimension_dict)
             dim_removed = _compute_size(index_removed, dimension_dict)
             index_result = input_left + input_right
+            for s in index_removed:
+                index_result = index_result.replace(s, '')
 
             # No transpose needed
             if input_left[-rs:] == input_right[:rs]:
@@ -321,19 +323,29 @@ def opt_einsum(string, *views, **kwargs):
 
             # Swap input order
             elif input_left[:rs] == input_right[-rs:]:
-                index_result = input_right + input_left
-                new_view = np.dot(tmp_views[1].reshape(dim_right, dim_removed),
-                                  tmp_views[0].reshape(dim_removed, dim_left))
+                # Need to fix this
+                #index_result = input_left + input_right
+                #for s in index_removed:
+                #    index_result = index_result.replace(s, '')
+                #new_view = np.dot(tmp_views[1].reshape(dim_right, dim_removed),
+                #                  tmp_views[0].reshape(dim_removed, dim_left))
+                new_view = np.dot(tmp_views[0].reshape(dim_removed, dim_left).T,
+                                  tmp_views[1].reshape(dim_right, dim_removed).T)
 
-            # Transpose left
+            # Transpose right
             elif input_left[-rs:] == input_right[-rs:]:
                 new_view = np.dot(tmp_views[0].reshape(dim_left, dim_removed),
                                   tmp_views[1].reshape(dim_right, dim_removed).T)
 
-            # Tranpose right
+            # Tranpose left
             elif input_left[:rs] == input_right[:rs]:
                 new_view = np.dot(tmp_views[0].reshape(dim_removed, dim_left).T,
                                   tmp_views[1].reshape(dim_removed, dim_right))
+
+            # Einsum is faster than vectordot if we have to transpose
+            elif (len(keep_left) == 0) or (len(keep_right) == 0):
+                einsum_string = input_left + ',' + input_right + '->' + index_result
+                new_view = np.einsum(einsum_string, tmp_views[0], tmp_views[1])
 
             # Conventional tensordot
             else:
@@ -343,9 +355,6 @@ def opt_einsum(string, *views, **kwargs):
                     left_pos += (input_left.find(s),)
                     right_pos += (input_right.find(s),)
                 new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(left_pos, right_pos))
-
-            for s in index_removed:
-                index_result = index_result.replace(s, '')
 
             shape_result = tuple(dimension_dict[x] for x in index_result)
             if len(shape_result) > 0:

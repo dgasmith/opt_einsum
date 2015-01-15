@@ -56,6 +56,8 @@ tests['Failed3'] = ['bca,cdb,dbf,afc->', [15, 27, 22, 17, 18, 29]]
 tests['Failed4'] = ['dcc,fce,ea,dbf->ab', [10, 24, 26, 22, 18, 29]]
 tests['Failed5'] = ['fdf,cdd,ccd,afe->ae',  [16, 11, 19, 17, 19, 15]] 
 tests['Failed6'] = ['abcd,ad', [59, 58, 57, 56]]
+tests['Failed7'] = ['ed,fcd,ff,bcf->be',  [10, 23, 19, 13, 29, 27]]
+tests['Failed8'] = ['baa,dcf,af,cde->be',  [23, 21, 14, 28, 14, 11]]
 
 # GEMM tests
 tests['Dot1'] = ['ab,bc', [400, 401, 402]]
