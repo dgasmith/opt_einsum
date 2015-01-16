@@ -345,7 +345,7 @@ def opt_einsum(string, *views, **kwargs):
             # Einsum is faster than vectordot if we have to copy
             elif (len(keep_left) == 0) or (len(keep_right) == 0):
                 einsum_string = input_left + ',' + input_right + '->' + index_result
-                new_view = np.einsum(einsum_string, tmp_views[0], tmp_views[1])
+                new_view = np.einsum(einsum_string, tmp_views[0], tmp_views[1], order='C')
 
             # Conventional tensordot
             else:
@@ -370,7 +370,7 @@ def opt_einsum(string, *views, **kwargs):
             sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
             index_result = ''.join([x[1] for x in sorted(sort_result)])
             einsum_string = ','.join(tmp_input) + '->' + index_result
-            new_view = np.einsum(einsum_string, *tmp_views)
+            new_view = np.einsum(einsum_string, *tmp_views, order='C')
 
         # Print current contraction
         if debug_arg:
@@ -387,6 +387,6 @@ def opt_einsum(string, *views, **kwargs):
     if input_list[0] == output_string:
         return views[0]
     else:
-        return np.einsum(input_list[0] + '->' + output_string, views[0])
+        return np.einsum(input_list[0] + '->' + output_string, views[0], order='C').copy()
 
 

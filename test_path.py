@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import sys, traceback
 import timeit
+import time
 
 import test_helper as th
 from opt_einsum import opt_einsum
@@ -13,10 +14,13 @@ limit = int(1e10)
 resource.setrlimit(rsrc, (limit, limit))
 
 test_einsum = False
-test_paths = False
+test_paths = True
+opt_path_time = True
+term_thresh = 4
+tdot=True
 
 #scale_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-scale_list = [1]
+scale_list = [2]
 
 out = []
 for key in th.tests.keys():
@@ -25,17 +29,21 @@ for key in th.tests.keys():
         views = th.build_views(sum_string, index_size, scale=scale)
 
         # At this point lets assume everything works correctly
+        t = time.time()
         opt_path = opt_einsum(sum_string, *views, path='optimal', return_path=True)
+        opt_time = time.time() - t
         opp_path = opt_einsum(sum_string, *views, path='opportunistic', return_path=True)
+        if opt_path_time and (len(views) > term_thresh):
+            print 'Path optimal took %3.5f seconds for %d terms.' % (opt_time, len(views))
 
         # If identical paths lets just skip them
         if all(x==y for x, y in zip(opp_path, opt_path)):
             break
 
         setup = "import numpy as np; from opt_einsum import opt_einsum; \
-                 from __main__ import sum_string, views, opt_path, opp_path"
-        opportunistic_string = "opt_einsum(sum_string, *views, path=opp_path)"
-        optimal_string = "opt_einsum(sum_string, *views, path=opt_path)"
+                 from __main__ import sum_string, views, opt_path, opp_path, tdot"
+        opportunistic_string = "opt_einsum(sum_string, *views, path=opp_path, tensordot=tdot)"
+        optimal_string = "opt_einsum(sum_string, *views, path=opt_path, tensordot=tdot)"
 
         # Optional test
         if test_paths:

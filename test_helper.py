@@ -71,6 +71,14 @@ tests['Dot8'] = ['abcd,cdef', [30, 29, 28, 27, 26, 25]]
 tests['Dot7'] = ['abcd,cdef->feba', [30, 29, 28, 27, 26, 25]]
 tests['Dot9'] = ['abcd,efdc', [30, 29, 28, 27, 26, 25]]
 
+# Collapse GEMM tests
+tests['CDot1'] = ['aab,bc->ac', [300, 301, 302]]
+tests['CDot2'] = ['ab,bcc->ac', [300, 301, 302]]
+tests['CDot3'] = ['aab,bcc->ac', [300, 301, 302]]
+tests['CDot4'] = ['baa,bcc->ac', [300, 301, 302]]
+tests['CDot5'] = ['aab,ccb->ac', [300, 301, 302]]
+#tests['Dot8'] = ['abcd,cdef', [30, 29, 28, 27, 26, 25]]
+
 #Test inner
 tests['Inner1'] = ['ab,ab', [1500, 1501]]
 tests['Inner2'] = ['ab,ba', [1500, 1501]]
