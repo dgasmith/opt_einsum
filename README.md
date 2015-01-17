@@ -40,6 +40,9 @@ def optimized(I, C):
 The einsum function does not consider building intermediate arrays; therefore, helping einsum out by building intermediate arrays can result in a considerable cost savings even for small N (N=10):
 
 ```
+np.allclose(naive(I, C), optimized(I, C))
+True
+
 %timeit naive(I, C)
 1 loops, best of 3: 1.18 s per loop
 
@@ -47,8 +50,8 @@ The einsum function does not consider building intermediate arrays; therefore, h
 1000 loops, best of 3: 612 µs per loop
 ```
 
-The index transformation is a fairly simple contraction that leads to straightforward intermediates.
-This can be further complicated by considering that the shape of the C matrices need not be the same, in this case the ordering in which the indices are transformed matters greatly.
+The index transformation is a well known contraction that leads to straightforward intermediates.
+This contraction can be further complicated by considering that the shape of the C matrices need not be the same, in this case the ordering in which the indices are transformed matters greatly.
 Logic can be built that optimizes the ordering; however, this is a lot of time and effort for a single expression. 
 Now lets consider the following expression found in a perturbation theory (one of ~5,000 such expressions):
 `bdik,acaj,ikab,ajac,ikbd`
@@ -59,7 +62,7 @@ At first, it would appear that this scales like N^7 as there are 7 unique indice
 
 `result = acaj,ajac,a` (N^4 scaling)
 
-this is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now lets let opt_einsum compute the optimal path:
+This is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now lets let opt_einsum compute the optimal path:
 
 ```python
 import test_helper as th
@@ -128,14 +131,16 @@ By considering limited memory this can be sieved and can reduce the cost of comp
 Lets look at an example:
 ```python
 Contraction:  abc,dc,ac->bd
-
-iteration 0:
-Build a list with tuples that have the following form:
-   cost  path   list of input sets remaining
-[ (0,    [],    [set(['a', 'c', 'b']), set(['d', 'c']), set(['a', 'c'])] ]
-
 ```
-Since this is effectively iteration zero, we have the entire list of input sets.
+
+Build a list with tuples that have the following form:
+```python
+iteration 0:
+ "(cost, path,  list of input sets remaining)"
+[ (0,    [],    [set(['a', 'c', 'b']), set(['d', 'c']), set(['a', 'c'])] ]
+```
+
+Since this is iteration zero, we have the initial list of input sets.
 We can consider three possible combinations where we contract list positions (0, 1), (0, 2), or (1, 2) together:
 ```python
 iteration 1:
@@ -176,13 +181,14 @@ Testing this function thoroughly is absolutely crucial; the testing scripts do r
     
 ## Outstanding issues
 
- - path_opportunistic probably can be improved.
- - path_optimal is terribly programmed and very slow. A dynamic programming approach would help greatly.
- - Both paths should consider if tensordot can be used. The downside is: figuring out if tensordot can be used is quite expensive.
- - Einsum can compute any Hadamard product of 3 or more tensors faster than building intermediates (e.g ``` np.einsum('ij,ij,ij->ij', ...) or np.einsum('jk,ijk,ij->ijk', ...) ```. Testing shows we must consider the usage of tensordot as well or everything slows down considerably.
- - I make a lot of assumptions about tensordot as I am testing against vendor BLAS (intel MKL on haswell or opteron architecture).
- - Often we can choose the order of output indices, choosing the correct order can have speed ups of 2x or more.
- - More memory options should be available. For example should we consider cumulative memory? 
+
+ - path_optimal is poorly programmed. A dynamic programming approach would help greatly.
+ - Comparing path_optimal and path_opportunistic shows that path_opportunistic can occasionally be faster. (I believe this is due to the simplicity of the cost expression. The speed of einsum can very greatly depending on the order of input indices.)
+ - Often we can choose the order of output indices, choosing the correct order can have speed ups of 2x or more. (Directly related to the above.) 
+ - Both paths should consider if tensordot can be used. The downside is: figuring out if tensordot can be used is quite expensive. (Tests show that this has little effect on choosing the optimal path.)
+ - The "improved" tensordot code is becoming fairly unwieldy. At this point only about ~40% of the dot-like expressions are handed off to tensordot.  
+ - I make a lot of assumptions about tensordot as I am testing against vendor BLAS (intel MKL on haswell or opteron architecture).  
+ - More memory options should be available. For example should we consider cumulative memory? (Feedback on the numpy mailing suggest this is not a great concern) 
  - Are we handling view dereferencing correctly? Views really should be garbage collected as soon as possible.
 
 

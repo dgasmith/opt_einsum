@@ -158,13 +158,12 @@ def opt_einsum(string, *views, **kwargs):
             contracting the listed tensors.
 
     memory : int, optional (default: largest input or output array size)
-        Maximum number of elements in an array. Defaults to the size of the
-            largest ndarry view our output.
+        Maximum number of elements in an intermediate array.
 
     Returns
     -------
     output : ndarray
-        The result based on Einstein summation convention.
+        The results based on Einstein summation convention.
 
     See Also
     --------
@@ -183,6 +182,10 @@ def opt_einsum(string, *views, **kwargs):
         for s in sorted(set(tmp_string)):
             if tmp_string.count(s) == 1:
                 output_string += s
+
+    # This can be fixed with an improved parsing function.
+    if ('.' in input_string) or ('.' in output_string):
+        raise ValueError("Ellipsis are not currenly supported in opt_einsum.")
 
     # Build a few useful list and sets
     input_list = input_string.split(',')
