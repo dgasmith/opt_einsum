@@ -1,8 +1,11 @@
 import numpy as np
 
 
-def _compute_size(inds, ind_dict):
-    # Computes the product of indices based on a dictionary
+def _compute_size_by_dict(inds, ind_dict):
+    """
+    Computes the product of the elements in ind based on the
+    dictionary ind_dict.
+    """
     ret = 1
     for i in inds:
         ret *= ind_dict[i]
@@ -10,15 +13,17 @@ def _compute_size(inds, ind_dict):
 
 
 def _find_contraction(positions, input_sets, output_set):
-    # Finds the contraction for a given set of input and output sets
-    # positions - positions of the input_sets that are contracted
-    # input_sets - list of sets in the input
-    # output_set - output index set
-    # returns:
-    #   new_result - the indices of the resulting contraction
-    #   remaining - list of sets that have not been contracted
-    #   index_removed - indices removed from the entire contraction
-    #   index_contract - the indices that are used in the contraction
+    """
+    Finds the contraction for a given set of input and output sets
+    positions - positions of the input_sets that are contracted
+    input_sets - list of sets in the input
+    output_set - output index set
+    returns:
+      new_result - the indices of the resulting contraction
+      remaining - list of sets that have not been contracted
+      index_removed - indices removed from the entire contraction
+      index_contract - the indices that are used in the contraction
+    """
 
     index_contract = set()
     index_remain = output_set.copy()
@@ -37,12 +42,14 @@ def _find_contraction(positions, input_sets, output_set):
 
 
 def _path_optimal(inp, out, ind_dict, memory):
-    # Computes all possible ways to contract the tensors
-    # inp - list of sets for input indices
-    # out - set of output indices
-    # ind_dict - dictionary for the size of each index
-    # memory - largest allowed number of elements in a new array
-    # returns path
+    """
+    Computes all possible ways to contract the tensors
+    inp - list of sets for input indices
+    out - set of output indices
+    ind_dict - dictionary for the size of each index
+    memory - largest allowed number of elements in a new array
+    returns path
+    """
 
     inp_set = map(set, inp)
     out_set = set(out)
@@ -60,11 +67,11 @@ def _path_optimal(inp, out, ind_dict, memory):
                 new_result, new_inp, index_removed, index_contract = contract
 
                 # Sieve the results based on memory, prevents unnecessarily large tensors
-                if _compute_size(new_result, ind_dict) > memory:
+                if _compute_size_by_dict(new_result, ind_dict) > memory:
                     continue
 
                 # Find cost
-                new_cost = _compute_size(index_contract, ind_dict)
+                new_cost = _compute_size_by_dict(index_contract, ind_dict)
                 if len(index_removed) > 0:
                     new_cost *= 2
 
@@ -86,13 +93,15 @@ def _path_optimal(inp, out, ind_dict, memory):
 
 
 def _path_opportunistic(inp, out, ind_dict, memory):
-    # Finds best path by choosing the best pair contraction
-    # Best pair is determined by the sorted tuple (-index_removed, cost)
-    # inp - list of sets for input indices
-    # out - set of output indices
-    # ind_dict - dictionary for the size of each index
-    # memory - largest allowed number of elements in a new array
-    # returns path
+    """
+    Finds best path by choosing the best pair contraction
+    Best pair is determined by the sorted tuple (-index_removed, cost)
+    inp - list of sets for input indices
+    out - set of output indices
+    ind_dict - dictionary for the size of each index
+    memory - largest allowed number of elements in a new array
+    returns path
+    """
 
     inp_set = map(set, inp)
     out_set = set(out)
@@ -107,12 +116,12 @@ def _path_opportunistic(inp, out, ind_dict, memory):
             index_result, new_inp, index_removed, index_contract = contract
 
             # Sieve the results based on memory, prevents unnecessarily large tensors
-            if _compute_size(index_result, ind_dict) > memory:
+            if _compute_size_by_dict(index_result, ind_dict) > memory:
                 continue
 
             # Build sort tuple
-            removed_size = _compute_size(index_removed, ind_dict)
-            cost = _compute_size(index_contract, ind_dict)
+            removed_size = _compute_size_by_dict(index_removed, ind_dict)
+            cost = _compute_size_by_dict(index_contract, ind_dict)
             sort = (-removed_size, cost)
 
             # Add contraction to possible choices
@@ -133,7 +142,7 @@ def _path_opportunistic(inp, out, ind_dict, memory):
 
 
 # Rewrite einsum to handle different cases
-def opt_einsum(string, *views, **kwargs):
+def contract(subscripts, *operands, **kwargs):
     """
     Attempts to contract tensors in an optimal order using both
     np.einsum and np.tensordot. Primarily aims at reducing the
@@ -141,9 +150,10 @@ def opt_einsum(string, *views, **kwargs):
 
     Parameters
     ----------
-    string : str
-        Einsum string of contractions
-    *view : list of views utilized
+    subscripts : str
+        Specifies the subscripts for summation.
+    *operands : list of array_like
+        These are the arrays for the operation.
     debug : bool, (default: False)
         Level of printing.
     tensordot : bool, optional (default: True)
@@ -171,55 +181,57 @@ def opt_einsum(string, *views, **kwargs):
 
     """
 
-    # Split into output and input string
-    if '->' in string:
-        input_string, output_string = string.split('->')
+    # Split into input and output subscripts
+    if '->' in subscripts:
+        input_subscripts, output_subscript = subscripts.split('->')
     else:
-        input_string = string
-        # Build output string
-        tmp_string = string.replace(',', '')
-        output_string = ''
-        for s in sorted(set(tmp_string)):
-            if tmp_string.count(s) == 1:
-                output_string += s
+        input_subscripts = subscripts
+        # Build output subscripts
+        tmp_subscripts = subscripts.replace(',', '')
+        output_subscript = ''
+        for s in sorted(set(tmp_subscripts)):
+            if tmp_subscripts.count(s) == 1:
+                output_subscript += s
 
-    # This can be fixed with an improved parsing function.
-    if ('.' in input_string) or ('.' in output_string):
-        raise ValueError("Ellipsis are not currenly supported in opt_einsum.")
+    if ('.' in input_subscripts) or ('.' in output_subscript):
+        raise ValueError("Ellipsis are not currenly supported by contract.")
 
     # Build a few useful list and sets
-    input_list = input_string.split(',')
+    input_list = input_subscripts.split(',')
     input_set = map(set, input_list)
-    output_set = set(output_string)
-    indices = set(input_string.replace(',', ''))
+    output_set = set(output_subscript)
+    indices = set(input_subscripts.replace(',', ''))
 
-    # TODO Should be cast up to double precision
-    arr_dtype = np.result_type(*views)
-    views = [np.asanyarray(v, dtype=arr_dtype) for v in views]
+    # TODO Should probably be cast up to double precision
+    arr_dtype = np.result_type(*operands)
+    operands = [np.asanyarray(v, dtype=arr_dtype) for v in operands]
 
-    # Make sure number views is equivalent to the number of terms
-    if len(input_list) != len(views):
-        raise ValueError("Number of einsum terms must be equal to the number of views.")
+    # Make sure number operands is equivalent to the number of terms
+    if len(input_list) != len(operands):
+        raise ValueError("Number of einsum subscripts must be equal to the \
+                          number of operands.")
 
     # Get length of each unique index and ensure all dimension are correct
     inds_left = indices.copy()
     dimension_dict = {}
     for tnum, term in enumerate(input_list):
-        sh = views[tnum].shape
+        sh = operands[tnum].shape
         if len(sh) != len(term):
-            raise ValueError("Dimensions of array and term does not match for term %d.", tnum)
+            raise ValueError("einstein sum subscript %s does not contain the \
+              correct number of indices for operand %d.", operands[tnum], tnum)
         for cnum, char in enumerate(term):
             dim = sh[cnum]
             if char in dimension_dict.keys():
                 if dimension_dict[char] != dim:
-                    raise ValueError("Size of label '%s' does not match other terms.", char)
+                    raise ValueError("Size of label '%s' for operand %d does \
+                                      not match previous terms.", char, tnum)
             else:
                 dimension_dict[char] = dim
 
     # Compute size of each input array plus the output array
     size_list = []
-    for term in input_list + [output_string]:
-        size_list.append(_compute_size(term, dimension_dict))
+    for term in input_list + [output_subscript]:
+        size_list.append(_compute_size_by_dict(term, dimension_dict))
     out_size = max(size_list)
 
     # Grab a few kwargs
@@ -230,21 +242,23 @@ def opt_einsum(string, *views, **kwargs):
     return_path_arg = kwargs.get("return_path", False)
 
     # If total flops is very small just avoid the overhead altogether
-    total_flops = _compute_size(indices, dimension_dict)
-    if (total_flops < 1e6) and not return_path_arg:
-        return np.einsum(string, *views)
+    total_flops = _compute_size_by_dict(indices, dimension_dict)
+    # if (total_flops < 1e6) and not return_path_arg:
+    #     return np.einsum(subscripts, *operands)
 
     # If no rank reduction leave it to einsum
     if (indices == output_set) and not return_path_arg:
-        return np.einsum(string, *views)
+        return np.einsum(subscripts, *operands)
 
     if debug_arg:
-        print('Complete contraction:  %s' % (input_string + '->' + output_string))
+        print('Complete contraction:  %s' % (input_subscripts + '->' + output_subscript))
         print('       Naive scaling:%4d' % len(indices))
 
     # Compute path
     if not isinstance(path_arg, str):
         path = path_arg
+    elif len(input_list) == 1:
+        path = [(0)]
     elif len(input_list) == 2:
         path = [(0, 1)]
     elif path_arg == "opportunistic":
@@ -260,6 +274,10 @@ def opt_einsum(string, *views, **kwargs):
     if return_path_arg:
         return path
 
+    # Only a single operand - leave it to einsum
+    if path[0] == (0):
+        return np.einsum(subscripts, operands[0])
+
     if debug_arg:
         print('-' * 80)
         print('%6s %6s %24s %40s' % ('scaling', 'GEMM', 'current', 'remaining'))
@@ -273,123 +291,34 @@ def opt_einsum(string, *views, **kwargs):
         contract = _find_contraction(contract_inds, input_set, output_set)
         out_inds, input_set, index_removed, index_contract = contract
 
-        # Build required structures and explicitly delete views
+        # Build required structures and explicitly delete operands
         # Make sure to loop from right to left
-        tmp_views, tmp_input = [], []
+        tmp_operands, tmp_input = [], []
         for x in contract_inds:
-            tmp_views.append(views.pop(x))
+            tmp_operands.append(operands.pop(x))
             tmp_input.append(input_list.pop(x))
 
-        # Consider doing tensordot
-        tdot_result = tmp_input[0] + tmp_input[1]
-        for s in index_removed:
-            tdot_result = tdot_result.replace(s, '')
-        can_tdot = tdot_arg & (len(tmp_views) == 2) & (len(index_removed) > 0)
-        can_tdot &= (set(tmp_input[0]) ^ set(tmp_input[1])) == set(tdot_result)
-
-        # Scalar product
-        if ((len(tmp_input[0]) == 0) or (len(tmp_input[1]) == 0)) and (len(tmp_views) == 2):
-            new_view = np.dot(tmp_views[0], tmp_views[1])
-            index_result = tmp_input[0] + tmp_input[1]
-
-        # Tensordot
-        elif can_tdot:
-            input_left = tmp_input[0]
-            input_right = tmp_input[1]
-            keep_left = set(input_left) - index_removed
-            keep_right = set(input_right) - index_removed
-
-            # Check for duplicate indices, cannot do einsum('iij,jkk->ik') operations here
-            if (len(set(input_left)) != len(input_left)):
-                new_inds = ''.join(keep_left) + ''.join(index_removed)
-                tmp_views[0] = np.einsum(input_left + '->' + new_inds, tmp_views[0], order='C')
-                input_left = new_inds
-
-            if (len(set(input_right)) != len(input_right)):
-                new_inds = ''.join(index_removed) + ''.join(keep_right)
-                tmp_views[1] = np.einsum(input_right + '->' + new_inds, tmp_views[1], order='C')
-                input_right = new_inds
-
-            # Tensordot guarantees a copy for ndim > 2, should avoid skip if possible
-            rs = len(index_removed)
-            dim_left = _compute_size(keep_left, dimension_dict)
-            dim_right = _compute_size(keep_right, dimension_dict)
-            dim_removed = _compute_size(index_removed, dimension_dict)
-            index_result = input_left + input_right
-            for s in index_removed:
-                index_result = index_result.replace(s, '')
-
-            # This is ugly, but can vastly speed up certain operations
-            # Vectordot
-            if input_left == input_right:
-                new_view = np.dot(tmp_views[0].ravel(), tmp_views[1].ravel())
-
-            # Matrix multiply
-            # No transpose needed
-            elif input_left[-rs:] == input_right[:rs]:
-                new_view = np.dot(tmp_views[0].reshape(dim_left, dim_removed),
-                                  tmp_views[1].reshape(dim_removed, dim_right))
-
-            # Transpose both
-            elif input_left[:rs] == input_right[-rs:]:
-                new_view = np.dot(tmp_views[0].reshape(dim_removed, dim_left).T,
-                                  tmp_views[1].reshape(dim_right, dim_removed).T)
-
-            # Transpose right
-            elif input_left[-rs:] == input_right[-rs:]:
-                new_view = np.dot(tmp_views[0].reshape(dim_left, dim_removed),
-                                  tmp_views[1].reshape(dim_right, dim_removed).T)
-
-            # Tranpose left
-            elif input_left[:rs] == input_right[:rs]:
-                new_view = np.dot(tmp_views[0].reshape(dim_removed, dim_left).T,
-                                  tmp_views[1].reshape(dim_removed, dim_right))
-
-            # Einsum is faster than vectordot if we have to copy
-            elif (len(keep_left) == 0) or (len(keep_right) == 0):
-                einsum_string = input_left + ',' + input_right + '->' + index_result
-                new_view = np.einsum(einsum_string, tmp_views[0], tmp_views[1], order='C')
-
-            # Conventional tensordot
-            else:
-                # Find indices to contract over
-                left_pos, right_pos = (), ()
-                for s in index_removed:
-                    left_pos += (input_left.find(s),)
-                    right_pos += (input_right.find(s),)
-                new_view = np.tensordot(tmp_views[0], tmp_views[1], axes=(left_pos, right_pos))
-
-            # Make sure the resulting shape is correct
-            shape_result = tuple(dimension_dict[x] for x in index_result)
-            if (new_view.shape != shape_result):
-                if (len(index_result) > 0):
-                    new_view = new_view.reshape(shape_result)
-                else:
-                    new_view = np.squeeze(new_view)
-
-        # Conventional einsum
-        else:
-            # We can choose order of output indices, shortest first
-            sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
-            index_result = ''.join([x[1] for x in sorted(sort_result)])
-            einsum_string = ','.join(tmp_input) + '->' + index_result
-            new_view = np.einsum(einsum_string, *tmp_views, order='C')
+        # We can choose order of output indices, shortest first
+        sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
+        index_result = ''.join([x[1] for x in sorted(sort_result)])
+        einsum_subscripts = ','.join(tmp_input) + '->' + index_result
+        new_view = np.einsum(einsum_subscripts, *tmp_operands, order='C')
 
         # Print current contraction
         if debug_arg:
-            einsum_string = ','.join(tmp_input) + '->' + index_result
-            remaining = ','.join(input_list + [index_result]) + '->' + output_string
-            print('%4d    %6s %24s %40s' % (len(index_contract), can_tdot, einsum_string, remaining))
+            einsum_subscripts = ','.join(tmp_input) + '->' + index_result
+            remaining = ','.join(input_list + [index_result]) + '->' + output_subscript
+            print('%4d    %6s %24s %40s' % (len(index_contract), can_tdot, einsum_subscripts, remaining))
 
         # Append new items
-        views += [new_view]
+        operands += [new_view]
         input_list += [index_result]
-        del tmp_views, new_view  # Dereference what we can
+        del tmp_operands, new_view  # Dereference what we can
 
     # We may need to do a final transpose
-    if input_list[0] == output_string:
-        return views[0]
+    if input_list[0] == output_subscript:
+        return operands[0]
     else:
-        return np.einsum(input_list[0] + '->' + output_string, views[0], order='C').copy()
+        return np.einsum(input_list[0] + '->' + output_subscript, operands[0], order='C').copy()
 
 
