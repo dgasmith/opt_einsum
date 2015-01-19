@@ -17,126 +17,120 @@ def _find_contraction(positions, input_sets, output_set):
     Finds the contraction for a given set of input and output sets
     positions - positions of the input_sets that are contracted
     input_sets - list of sets in the input
-    output_set - output index set
+    output_set - output idx set
     returns:
       new_result - the indices of the resulting contraction
       remaining - list of sets that have not been contracted
-      index_removed - indices removed from the entire contraction
-      index_contract - the indices that are used in the contraction
+      idx_removed - indices removed from the entire contraction
+      idx_contract - the indices that are used in the contraction
     """
 
-    index_contract = set()
-    index_remain = output_set.copy()
+    idx_contract = set()
+    idx_remain = output_set.copy()
     remaining = []
     for ind, value in enumerate(input_sets):
         if ind in positions:
-            index_contract |= value
+            idx_contract |= value
         else:
             remaining.append(value)
-            index_remain |= value
+            idx_remain |= value
 
-    new_result = index_remain & index_contract
-    index_removed = (index_contract - new_result)
+    new_result = idx_remain & idx_contract
+    idx_removed = (idx_contract - new_result)
     remaining.append(new_result)
-    return (new_result, remaining, index_removed, index_contract)
+    return (new_result, remaining, idx_removed, idx_contract)
 
 
-def _path_optimal(inp, out, ind_dict, memory):
+def _path_optimal(input_sets, output_set, ind_dict, memory):
     """
     Computes all possible ways to contract the tensors
-    inp - list of sets for input indices
-    out - set of output indices
-    ind_dict - dictionary for the size of each index
+    input_sets - list of sets for input_setsut indices
+    output_set - set of output_setput indices
+    ind_dict - dictionary for the size of each idx
     memory - largest allowed number of elements in a new array
     returns path
     """
 
-    inp_set = map(set, inp)
-    out_set = set(out)
-
-    current = [(0, [], inp_set)]
-    for iteration in range(len(inp) - 1):
+    current = [(0, [], input_sets)]
+    for iteration in range(len(input_sets) - 1):
         new = []
         # Grab all unique pairs
-        comb_iter = zip(*np.triu_indices(len(inp) - iteration, 1))
+        comb_iter = zip(*np.triu_indices(len(input_sets) - iteration, 1))
         for curr in current:
             cost, positions, remaining = curr
             for con in comb_iter:
 
-                contract = _find_contraction(con, remaining, out_set)
-                new_result, new_inp, index_removed, index_contract = contract
+                contract = _find_contraction(con, remaining, output_set)
+                new_result, new_input_sets, idx_removed, idx_contract = contract
 
-                # Sieve the results based on memory, prevents unnecessarily large tensors
+                # Sieve the results based on memory
                 if _compute_size_by_dict(new_result, ind_dict) > memory:
                     continue
 
                 # Find cost
-                new_cost = _compute_size_by_dict(index_contract, ind_dict)
-                if len(index_removed) > 0:
+                new_cost = _compute_size_by_dict(idx_contract, ind_dict)
+                if len(idx_removed) > 0:
                     new_cost *= 2
 
                 # Build (total_cost, positions, indices_remaining)
                 new_cost += cost
                 new_pos = positions + [con]
-                new.append((new_cost, new_pos, new_inp))
+                new.append((new_cost, new_pos, new_input_sets))
 
         # Update list to iterate over
         current = new
 
     # If we have not found anything return single einsum contraction
     if len(new) == 0:
-        return [tuple(range(len(inp)))]
+        return [tuple(range(len(input_sets)))]
 
     new.sort()
     path = new[0][1]
     return path
 
 
-def _path_opportunistic(inp, out, ind_dict, memory):
+def _path_opportunistic(input_sets, output_set, ind_dict, memory):
     """
     Finds best path by choosing the best pair contraction
-    Best pair is determined by the sorted tuple (-index_removed, cost)
-    inp - list of sets for input indices
-    out - set of output indices
-    ind_dict - dictionary for the size of each index
+    Best pair is determined by the sorted tuple (-idx_removed, cost)
+    input_sets - list of sets for input_setsut indices
+    output_set - set of output_setput indices
+    ind_dict - dictionary for the size of each idx
     memory - largest allowed number of elements in a new array
     returns path
     """
 
-    inp_set = map(set, inp)
-    out_set = set(out)
-
     path = []
-    for iteration in range(len(inp) - 1):
+    for iteration in range(len(input_sets) - 1):
         iteration_results = []
-        comb_iter = zip(*np.triu_indices(len(inp_set), 1))
+        comb_iter = zip(*np.triu_indices(len(input_sets), 1))
         for positions in comb_iter:
 
-            contract = _find_contraction(positions, inp_set, out_set)
-            index_result, new_inp, index_removed, index_contract = contract
+            contract = _find_contraction(positions, input_sets, output_set)
+            idx_result, new_input_sets, idx_removed, idx_contract = contract
 
-            # Sieve the results based on memory, prevents unnecessarily large tensors
-            if _compute_size_by_dict(index_result, ind_dict) > memory:
+            # Sieve the results based on memory
+            if _compute_size_by_dict(idx_result, ind_dict) > memory:
                 continue
 
             # Build sort tuple
-            removed_size = _compute_size_by_dict(index_removed, ind_dict)
-            cost = _compute_size_by_dict(index_contract, ind_dict)
+            removed_size = _compute_size_by_dict(idx_removed, ind_dict)
+            cost = _compute_size_by_dict(idx_contract, ind_dict)
             sort = (-removed_size, cost)
 
             # Add contraction to possible choices
-            iteration_results.append([sort, positions, new_inp])
+            iteration_results.append([sort, positions, new_input_sets])
 
         # If we did not find a new contraction contract remaining
         if len(iteration_results) == 0:
-            path.append(tuple(range(len(inp) - iteration)))
+            path.append(tuple(range(len(input_sets) - iteration)))
             break
 
-        # Sort based on first index
+        # Sort based on first idx
         iteration_results.sort()
         best = iteration_results[0]
         path.append(best[1])
-        inp_set = best[2]
+        input_sets = best[2]
 
     return path
 
@@ -198,21 +192,16 @@ def contract(subscripts, *operands, **kwargs):
 
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
-    input_set = map(set, input_list)
+    input_sets = map(set, input_list)
     output_set = set(output_subscript)
     indices = set(input_subscripts.replace(',', ''))
-
-    # TODO Should probably be cast up to double precision
-    arr_dtype = np.result_type(*operands)
-    operands = [np.asanyarray(v, dtype=arr_dtype) for v in operands]
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_list) != len(operands):
         raise ValueError("Number of einsum subscripts must be equal to the \
                           number of operands.")
 
-    # Get length of each unique index and ensure all dimension are correct
-    inds_left = indices.copy()
+    # Get length of each unique idx and ensure all dimension are correct
     dimension_dict = {}
     for tnum, term in enumerate(input_list):
         sh = operands[tnum].shape
@@ -228,6 +217,10 @@ def contract(subscripts, *operands, **kwargs):
             else:
                 dimension_dict[char] = dim
 
+    # TODO Should probably be cast up to double precision
+    arr_dtype = np.result_type(*operands)
+    operands = [np.asanyarray(v, dtype=arr_dtype) for v in operands]
+
     # Compute size of each input array plus the output array
     size_list = []
     for term in input_list + [output_subscript]:
@@ -235,7 +228,7 @@ def contract(subscripts, *operands, **kwargs):
     out_size = max(size_list)
 
     # Grab a few kwargs
-    debug_arg = kwargs.get("debug", False)
+    return_path_arg = kwargs.get("debug", False)
     tdot_arg = kwargs.get("tensordot", True)
     path_arg = kwargs.get("path", "opportunistic")
     memory_arg = kwargs.get("memory", out_size)
@@ -250,10 +243,6 @@ def contract(subscripts, *operands, **kwargs):
     if (indices == output_set) and not return_path_arg:
         return np.einsum(subscripts, *operands)
 
-    if debug_arg:
-        print('Complete contraction:  %s' % (input_subscripts + '->' + output_subscript))
-        print('       Naive scaling:%4d' % len(indices))
-
     # Compute path
     if not isinstance(path_arg, str):
         path = path_arg
@@ -262,11 +251,11 @@ def contract(subscripts, *operands, **kwargs):
     elif len(input_list) == 2:
         path = [(0, 1)]
     elif path_arg == "opportunistic":
-        # Maximum memory is an important variable here, should be at most out_size
+        # Maximum memory should be at most out_size for this algorithm
         memory_arg = min(memory_arg, out_size)
-        path = _path_opportunistic(input_list, output_set, dimension_dict, memory_arg)
+        path = _path_opportunistic(input_sets, output_set, dimension_dict, memory_arg)
     elif path_arg == "optimal":
-        path = _path_optimal(input_list, output_set, dimension_dict, memory_arg)
+        path = _path_optimal(input_sets, output_set, dimension_dict, memory_arg)
     else:
         raise KeyError("Path name %s not found", path_arg)
 
@@ -278,18 +267,22 @@ def contract(subscripts, *operands, **kwargs):
     if path[0] == (0):
         return np.einsum(subscripts, operands[0])
 
-    if debug_arg:
-        print('-' * 80)
-        print('%6s %6s %24s %40s' % ('scaling', 'GEMM', 'current', 'remaining'))
-        print('-' * 80)
+    if return_path_arg:
+        overall_contraction = input_subscripts + '->' + output_subscript
+        header = ('scaling', 'GEMM', 'current', 'remaining')
+        path_print = 'Complete contraction:  %s' % overall_contraction
+        path_print += '       Naive scaling:%4d' % len(indices)
+        path_print += '-' * 80
+        path_print += '%6s %6s %24s %40s' % header
+        path_print += '-' * 80
 
     # Start contraction loop
     for contract_inds in path:
         # Make sure we remove inds from right to left
         contract_inds = sorted(list(contract_inds), reverse=True)
 
-        contract = _find_contraction(contract_inds, input_set, output_set)
-        out_inds, input_set, index_removed, index_contract = contract
+        contract = _find_contraction(contract_inds, input_sets, output_set)
+        out_inds, input_sets, idx_removed, idx_contract = contract
 
         # Build required structures and explicitly delete operands
         # Make sure to loop from right to left
@@ -300,25 +293,31 @@ def contract(subscripts, *operands, **kwargs):
 
         # We can choose order of output indices, shortest first
         sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
-        index_result = ''.join([x[1] for x in sorted(sort_result)])
-        einsum_subscripts = ','.join(tmp_input) + '->' + index_result
-        new_view = np.einsum(einsum_subscripts, *tmp_operands, order='C')
+        idx_result = ''.join([x[1] for x in sorted(sort_result)])
+        einsum_str = ','.join(tmp_input) + '->' + idx_result
 
-        # Print current contraction
-        if debug_arg:
-            einsum_subscripts = ','.join(tmp_input) + '->' + index_result
-            remaining = ','.join(input_list + [index_result]) + '->' + output_subscript
-            print('%4d    %6s %24s %40s' % (len(index_contract), can_tdot, einsum_subscripts, remaining))
+        if return_path_arg:
+            # Debug printing
+            new_inputs = input_list + [idx_result]
+            remaining = ','.join(new_inputs) + '->' + output_subscript
+            path_run = (len(idx_contract), False, einsum_str, remaining)
+            path_print += '%4d    %6s %24s %40s' % path_run
+            input_list.append(idx_result)
 
-        # Append new items
-        operands += [new_view]
-        input_list += [index_result]
-        del tmp_operands, new_view  # Dereference what we can
+        else:
+            # Do the contraction
+            new_view = np.einsum(einsum_str, *tmp_operands, order='C')
+
+            # Append new items
+            operands.append(new_view)
+            input_list.append(idx_result)
+            del tmp_operands, new_view  # Dereference what we can
 
     # We may need to do a final transpose
-    if input_list[0] == output_subscript:
+    if return_path_arg:
+        return (path, path_print)
+    elif input_list[0] == output_subscript:
         return operands[0]
     else:
-        return np.einsum(input_list[0] + '->' + output_subscript, operands[0], order='C').copy()
-
-
+        einsum_str = input_list[0] + '->' + output_subscript
+        return np.einsum(einsum_str, operands[0], order='C').copy()

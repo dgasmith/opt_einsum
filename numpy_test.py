@@ -42,7 +42,9 @@ class TestContract(object):
         self.compare('a,b,ab->ab')
 
     def test_index_transformations():
+        self.compare('ea,fb,gc,hd,abcd->efgh')
         self.compare('ea,fb,abcd,gc,hd->efgh')
+        self.compare('abcd,ea,fb,gc,hd->efgh')
     
     def test_complex(self):
         self.compare('acdf,jbje,gihb,hfac,gfac,gifabc,hfac')
