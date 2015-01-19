@@ -123,7 +123,7 @@ def _path_opportunistic(input_sets, output_set, ind_dict, memory):
 
         # If we did not find a new contraction contract remaining
         if len(iteration_results) == 0:
-            path.append(tuple(range(len(input_sets) - iteration)))
+            path.append(tuple(range(len(input_sets))))
             break
 
         # Sort based on first idx
@@ -175,6 +175,9 @@ def contract(subscripts, *operands, **kwargs):
 
     """
 
+    # 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    # 'abcdefghijklmnopqrstuvwxyz'
+
     # Split into input and output subscripts
     if '->' in subscripts:
         input_subscripts, output_subscript = subscripts.split('->')
@@ -201,7 +204,7 @@ def contract(subscripts, *operands, **kwargs):
         raise ValueError("Number of einsum subscripts must be equal to the \
                           number of operands.")
 
-    # Get length of each unique idx and ensure all dimension are correct
+    # Get length of each unique dimension and ensure all dimension are correct
     dimension_dict = {}
     for tnum, term in enumerate(input_list):
         sh = operands[tnum].shape
@@ -228,7 +231,6 @@ def contract(subscripts, *operands, **kwargs):
     out_size = max(size_list)
 
     # Grab a few kwargs
-    return_path_arg = kwargs.get("debug", False)
     tdot_arg = kwargs.get("tensordot", True)
     path_arg = kwargs.get("path", "opportunistic")
     memory_arg = kwargs.get("memory", out_size)
@@ -259,65 +261,60 @@ def contract(subscripts, *operands, **kwargs):
     else:
         raise KeyError("Path name %s not found", path_arg)
 
-    # Return path if requested
-    if return_path_arg:
-        return path
-
-    # Only a single operand - leave it to einsum
-    if path[0] == (0):
-        return np.einsum(subscripts, operands[0])
-
-    if return_path_arg:
-        overall_contraction = input_subscripts + '->' + output_subscript
-        header = ('scaling', 'GEMM', 'current', 'remaining')
-        path_print = 'Complete contraction:  %s' % overall_contraction
-        path_print += '       Naive scaling:%4d' % len(indices)
-        path_print += '-' * 80
-        path_print += '%6s %6s %24s %40s' % header
-        path_print += '-' * 80
-
-    # Start contraction loop
-    for contract_inds in path:
+    contraction_list = []
+    # Build contraction tuple (positions, gemm, einsum_str, remaining)
+    for cnum, contract_inds in enumerate(path):
         # Make sure we remove inds from right to left
         contract_inds = sorted(list(contract_inds), reverse=True)
 
         contract = _find_contraction(contract_inds, input_sets, output_set)
         out_inds, input_sets, idx_removed, idx_contract = contract
 
-        # Build required structures and explicitly delete operands
-        # Make sure to loop from right to left
-        tmp_operands, tmp_input = [], []
+        tmp_inputs = []
         for x in contract_inds:
-            tmp_operands.append(operands.pop(x))
-            tmp_input.append(input_list.pop(x))
+            tmp_inputs.append(input_list.pop(x))
 
-        # We can choose order of output indices, shortest first
-        sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
-        idx_result = ''.join([x[1] for x in sorted(sort_result)])
-        einsum_str = ','.join(tmp_input) + '->' + idx_result
+        # Last contraction
+        if (cnum - len(path)) == -1:
+            idx_result = output_subscript
+        else:    
+            sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
+            idx_result = ''.join([x[1] for x in sorted(sort_result)])
 
-        if return_path_arg:
-            # Debug printing
-            new_inputs = input_list + [idx_result]
-            remaining = ','.join(new_inputs) + '->' + output_subscript
-            path_run = (len(idx_contract), False, einsum_str, remaining)
-            path_print += '%4d    %6s %24s %40s' % path_run
-            input_list.append(idx_result)
+        input_list.append(idx_result)
+        einsum_str = ','.join(tmp_inputs) + '->' + idx_result
+        contraction = (contract_inds, False, einsum_str, input_list[:])
+        contraction_list.append(contraction)
 
-        else:
-            # Do the contraction
-            new_view = np.einsum(einsum_str, *tmp_operands, order='C')
-
-            # Append new items
-            operands.append(new_view)
-            input_list.append(idx_result)
-            del tmp_operands, new_view  # Dereference what we can
-
-    # We may need to do a final transpose
+    # Return the path along with a nice string representation
     if return_path_arg:
+        overall_contraction = input_subscripts + '->' + output_subscript
+        header = ('scaling', 'GEMM', 'current', 'remaining')
+
+        path_print = 'Complete contraction:  %s\n' % overall_contraction
+        path_print += '       Naive scaling:%4d\n' % len(indices)
+        path_print += '-' * 80 + '\n'
+        path_print += '%6s %6s %24s %40s\n' % header
+        path_print += '-' * 80 + '\n'
+
+        for inds, gemm, einsum_str, remaining in contraction_list:
+            remaining_str = ','.join(remaining) + '->' + output_subscript
+            path_run = (len(idx_contract), gemm, einsum_str, remaining_str)
+            path_print += '%4d    %6s %24s %40s\n' % path_run
+
         return (path, path_print)
-    elif input_list[0] == output_subscript:
-        return operands[0]
-    else:
-        einsum_str = input_list[0] + '->' + output_subscript
-        return np.einsum(einsum_str, operands[0], order='C').copy()
+
+    # Start contraction loop
+    for inds, gemm, einsum_str, remaining in contraction_list:
+        tmp_operands = []
+        for x in inds:
+            tmp_operands.append(operands.pop(x))
+
+        # Do the contraction
+        new_view = np.einsum(einsum_str, *tmp_operands, order='C')
+
+        # Append new items
+        operands.append(new_view)
+        del tmp_operands, new_view  # Dereference what we can
+
+    return operands[0]
