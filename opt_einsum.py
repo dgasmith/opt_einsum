@@ -145,8 +145,8 @@ def contract(subscripts, *operands, **kwargs):
 
     Produces results identical to that of the einsum function; however,
     the contract function expands on the einsum function by building 
-    intermediate arrays to reduce the computational scaling and uses
-    tensordot calls when possible.
+    intermediate arrays to reduce the computational scaling and utilizes
+    BLAS calls when possible.
 
     Parameters
     ----------
@@ -165,7 +165,7 @@ def contract(subscripts, *operands, **kwargs):
         - 'optimal' means a N! algorithm that tries all possible ways of
             contracting the listed tensors.
 
-    memory : int, optional (default: largest input or output array size)
+    memory_limit : int, optional (default: largest input or output array size)
         Maximum number of elements allowed in an intermediate array.
     return_path : bool, optional (default: False)
         If true retuns the path and a string representation of the path.
@@ -173,6 +173,12 @@ def contract(subscripts, *operands, **kwargs):
 
     Returns
     -------
+    if return_path : tuple (path, path_string)
+        path : list
+            The order of contracted indices.
+        path_string : string
+            A string representation of the contraction.
+            
     output : ndarray
         The results based on Einstein summation convention.
 
@@ -183,35 +189,49 @@ def contract(subscripts, *operands, **kwargs):
     Notes
     -----
     Subscript labels follow the same convention as einsum with the current
-    exceptions that ellipses and integer indexing are not currently supported. 
+    exception that integer indexing and ellipses are not currently supported. 
     If output subscripts are not supplied they are built following the
     Einstein summation convention, these indices are then sorted.
 
-    One operand operations are supported by calling `np.einsum`.
-    Two operand operations are first checked to see if a BLAS call can be utilized.
-    For example `np.contract('ab,bc->', a, b)`, `np.contract('abcd,cdef', a, b)`, and
-    `np.contract('abcd,cd', a, b)` will all call a GEMM or GEMV function.
-    The operation `np.contract('abcd,ad', a, b)` will call `np.einsum` as the
-    first operand would have to be copied in order to call GEMV which
-    is slower than calling `np.einsum` as it would be a N^4 copy for a N^4 operation.
-    However, the operation `np.einsum('abcd,adef', a, b)` would result in the second
-    operand being transposed as a N^4 copy on a N^6 operation is beneficial.
-    Even considering transposes a vendor BLAS can be 5-60 times faster than a pure
-    einsum implementation. BLAS functionality can be turned off by setting `tensordot=False`.
+    The amount of extra memory used by this function depends greatly on the einsum expression and BLAS usage.
+    Without BLAS the maximum memory used is: `(number_of_terms / 2) * memory_limit`.
+    With BLAS the maximum memory used is: `max((number_of_terms / 2), 2) * memory_limit`.
+    For most operations the memory usage is approximately equivalent to the memory_limit.    
 
+    Note: BLAS is not yet implemented.
+    One operand operations are supported by calling `np.einsum`.
+    Two operand operations are first checked to see if a BLAS call can be utilized then defaulted to einsum.
+    For example `np.contract('ab,bc->', a, b)` and `np.contract('ab,cb->', a, b)` are
+    prototypical matrix matrix multiplication examples.
+    Higher dimensional matrix matrix multiplicaitons are also considered such as 
+    `np.contract('abcd,cdef', a, b)` and `np.contract('abcd,cefd', a, b)`. For the former GEMM can be
+    called without copying data; however, the latter requires a copy of the second operand.
+    For all matrix matrix multiplicaiton examples it is beneficial to copy the data and call GEMM; however, for
+    matrix vector multiplication it is not beneficial to do so.
+    For example `np.contract('abcd,cd', a, b)` will call GEMV while `np.contract('abcd,ad', a, b)` will
+    call einsum as copying the first operand then calling GEMV does provide a speed up compared to simply calling einsum.
+
+    For three or more operands contract computes the optimal order of two and one operand operations.
+    The `optimal` path scales like N! where N is the number of terms and is found by calculating the cost of every possible path and choosing the lowest cost.
+    This path can be more costly to compute than the contraction itself for a large number of terms (N>7).
+    The `opportunistic` path scales like N^3 and first tries to first do any matrix matrix multiplications, than inner products, and finally outer products.
+    This path usually takes a trivial amount of time to compute unless the number of terms is extremely large (N>20).
+    The opportunistic path typically computes the most optimal path, but is not guaranteed to do so.
+    Both of these algorithms are sieved by the variable memory to prevent very large tensors from being formed.
 
 
     Examples
     --------
+    A index transformation example, contract runs ~2000 times faster than einsum even for this small example.
+    Note: BLAS will be True for all contractions here when everything is finished.
 
     >>> I = np.random.rand(10, 10, 10, 10)
     >>> C = np.random.rand(10, 10)
-    >>> ein_result = np.einsum('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C)
     >>> opt_path = contract('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, return_path=True)
 
-    >>> opt_path[0]
-    [(0, 2), (0, 3), (0, 2), (0, 1)]
-    >>> print opt_path[1]
+    >>> print(opt_path[0])
+    [(2, 0), (3, 0), (2, 0), (1, 0)]
+    >>> print(opt_path[1])
     Complete contraction:  ea,fb,abcd,gc,hd->efgh
            Naive scaling:   8
     --------------------------------------------------------------------------------
@@ -221,17 +241,31 @@ def contract(subscripts, *operands, **kwargs):
        5     False            bcde,fb->cdef                         gc,hd,cdef->efgh
        5     False            cdef,gc->defg                            hd,defg->efgh
        5     False            defg,hd->efgh                               efgh->efgh
-
+    >>> ein_result = np.einsum('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, path=opt_path[0])
     >>> np.allclose(ein_result, opt_result)
     True
 
-
     """
 
-    symbols = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    # Parse input
+    if not isinstance(subscripts, basestring):
+        raise TypeError('subscripts must be a string')
+
+    if ('-' in subscripts) or ('>' in subscripts):
+        invalid = (subscripts.count('-') > 1) or (subscripts.count('>') > 1)
+        if invalid or (subscripts.count('->') != 1):
+            raise ValueError("Subscripts can only contain one '->'.")
 
     if '.' in subscripts:
-        raise ValueError("Ellipsis are not currently supported by contract.")
+        raise ValueError("Ellipses are not currently supported by contract.")
+    
+    symbols = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    for s in subscripts:
+        if s in ',->':
+            continue
+        if s not in symbols:
+            raise ValueError("Character %s is not a valid symbol." % s)
+
 
     # Split into input and output subscripts
     if '->' in subscripts:
@@ -258,6 +292,11 @@ def contract(subscripts, *operands, **kwargs):
         raise ValueError("Number of einsum subscripts must be equal to the \
                           number of operands.")
 
+    # TODO Should probably be cast up to double precision
+    arr_dtype = np.result_type(*operands)
+    operands = [np.asanyarray(v) for v in operands]
+    einsum_args = {'dtype':arr_dtype, 'order':'C'}
+
     # Get length of each unique dimension and ensure all dimension are correct
     dimension_dict = {}
     for tnum, term in enumerate(input_list):
@@ -274,10 +313,6 @@ def contract(subscripts, *operands, **kwargs):
             else:
                 dimension_dict[char] = dim
 
-    # TODO Should probably be cast up to double precision
-    arr_dtype = np.result_type(*operands)
-    operands = [np.asanyarray(v) for v in operands]
-    einsum_args = {'dtype':arr_dtype, 'order':'C'}
 
     # Compute size of each input array plus the output array
     size_list = []
@@ -288,7 +323,7 @@ def contract(subscripts, *operands, **kwargs):
     # Grab a few kwargs
     tdot_arg = kwargs.get("tensordot", True)
     path_arg = kwargs.get("path", "opportunistic")
-    memory_arg = kwargs.get("memory", out_size)
+    memory_arg = kwargs.get("memory_limit", out_size)
     return_path_arg = kwargs.get("return_path", False)
 
     # If total flops is very small just avoid the overhead altogether
@@ -320,7 +355,7 @@ def contract(subscripts, *operands, **kwargs):
     # Build contraction tuple (positions, gemm, einsum_str, remaining)
     for cnum, contract_inds in enumerate(path):
         # Make sure we remove inds from right to left
-        contract_inds = sorted(list(contract_inds), reverse=True)
+        contract_inds = tuple(sorted(list(contract_inds), reverse=True))
 
         contract = _find_contraction(contract_inds, input_sets, output_set)
         out_inds, input_sets, idx_removed, idx_contract = contract
@@ -352,10 +387,12 @@ def contract(subscripts, *operands, **kwargs):
         path_print += '%6s %6s %24s %40s\n' % header
         path_print += '-' * 80 + '\n'
 
+        path = []
         for inds, gemm, einsum_str, remaining in contraction_list:
             remaining_str = ','.join(remaining) + '->' + output_subscript
             path_run = (len(idx_contract), gemm, einsum_str, remaining_str)
             path_print += '%4d    %6s %24s %40s\n' % path_run
+            path.append(inds)        
 
         return (path, path_print)
 
