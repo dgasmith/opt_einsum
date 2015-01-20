@@ -137,10 +137,16 @@ def _path_opportunistic(input_sets, output_set, ind_dict, memory):
 
 # Rewrite einsum to handle different cases
 def contract(subscripts, *operands, **kwargs):
+    return_path_arg = kwargs.get("return_path", False)
     """
-    Attempts to contract tensors in an optimal order using both
-    np.einsum and np.tensordot. Primarily aims at reducing the
-    overall rank of the contration by building intermediates."
+    Evaluates the Einstein summation convention on the operands,
+    differs from np.einsum by utilizing intermediate arrays to
+    reduce overall computational time.
+
+    Produces results identical to that of the einsum function; however,
+    the contract function expands on the einsum function by building 
+    intermediate arrays to reduce the computational scaling and uses
+    tensordot calls when possible.
 
     Parameters
     ----------
@@ -148,8 +154,6 @@ def contract(subscripts, *operands, **kwargs):
         Specifies the subscripts for summation.
     *operands : list of array_like
         These are the arrays for the operation.
-    debug : bool, (default: False)
-        Level of printing.
     tensordot : bool, optional (default: True)
         If true use tensordot where possible.
     path : bool or list, optional (default: `opportunistic`)
@@ -162,7 +166,10 @@ def contract(subscripts, *operands, **kwargs):
             contracting the listed tensors.
 
     memory : int, optional (default: largest input or output array size)
-        Maximum number of elements in an intermediate array.
+        Maximum number of elements allowed in an intermediate array.
+    return_path : bool, optional (default: False)
+        If true retuns the path and a string representation of the path.
+
 
     Returns
     -------
@@ -173,10 +180,58 @@ def contract(subscripts, *operands, **kwargs):
     --------
     einsum, tensordot, dot
 
+    Notes
+    -----
+    Subscript labels follow the same convention as einsum with the current
+    exceptions that ellipses and integer indexing are not currently supported. 
+    If output subscripts are not supplied they are built following the
+    Einstein summation convention, these indices are then sorted.
+
+    One operand operations are supported by calling `np.einsum`.
+    Two operand operations are first checked to see if a BLAS call can be utilized.
+    For example `np.contract('ab,bc->', a, b)`, `np.contract('abcd,cdef', a, b)`, and
+    `np.contract('abcd,cd', a, b)` will all call a GEMM or GEMV function.
+    The operation `np.contract('abcd,ad', a, b)` will call `np.einsum` as the
+    first operand would have to be copied in order to call GEMV which
+    is slower than calling `np.einsum` as it would be a N^4 copy for a N^4 operation.
+    However, the operation `np.einsum('abcd,adef', a, b)` would result in the second
+    operand being transposed as a N^4 copy on a N^6 operation is beneficial.
+    Even considering transposes a vendor BLAS can be 5-60 times faster than a pure
+    einsum implementation. BLAS functionality can be turned off by setting `tensordot=False`.
+
+
+
+    Examples
+    --------
+
+    >>> I = np.random.rand(10, 10, 10, 10)
+    >>> C = np.random.rand(10, 10)
+    >>> ein_result = np.einsum('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C)
+    >>> opt_path = contract('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, return_path=True)
+
+    >>> opt_path[0]
+    [(0, 2), (0, 3), (0, 2), (0, 1)]
+    >>> print opt_path[1]
+    Complete contraction:  ea,fb,abcd,gc,hd->efgh
+           Naive scaling:   8
+    --------------------------------------------------------------------------------
+    scaling   BLAS                  current                                remaining
+    --------------------------------------------------------------------------------
+       5     False            abcd,ea->bcde                      fb,gc,hd,bcde->efgh
+       5     False            bcde,fb->cdef                         gc,hd,cdef->efgh
+       5     False            cdef,gc->defg                            hd,defg->efgh
+       5     False            defg,hd->efgh                               efgh->efgh
+
+    >>> np.allclose(ein_result, opt_result)
+    True
+
+
     """
 
-    # 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    # 'abcdefghijklmnopqrstuvwxyz'
+    symbols = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+    if '.' in subscripts:
+        raise ValueError("Ellipsis are not currently supported by contract.")
 
     # Split into input and output subscripts
     if '->' in subscripts:
@@ -187,11 +242,10 @@ def contract(subscripts, *operands, **kwargs):
         tmp_subscripts = subscripts.replace(',', '')
         output_subscript = ''
         for s in sorted(set(tmp_subscripts)):
+            if s not in symbols:
+                raise ValueError("Character %s is not a valid symbol." % s)
             if tmp_subscripts.count(s) == 1:
                 output_subscript += s
-
-    if ('.' in input_subscripts) or ('.' in output_subscript):
-        raise ValueError("Ellipsis are not currenly supported by contract.")
 
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
@@ -222,7 +276,8 @@ def contract(subscripts, *operands, **kwargs):
 
     # TODO Should probably be cast up to double precision
     arr_dtype = np.result_type(*operands)
-    operands = [np.asanyarray(v, dtype=arr_dtype) for v in operands]
+    operands = [np.asanyarray(v) for v in operands]
+    einsum_args = {'dtype':arr_dtype, 'order':'C'}
 
     # Compute size of each input array plus the output array
     size_list = []
@@ -239,11 +294,11 @@ def contract(subscripts, *operands, **kwargs):
     # If total flops is very small just avoid the overhead altogether
     total_flops = _compute_size_by_dict(indices, dimension_dict)
     # if (total_flops < 1e6) and not return_path_arg:
-    #     return np.einsum(subscripts, *operands)
+    #     return np.einsum(subscripts, *operands, **einsum_args)
 
     # If no rank reduction leave it to einsum
     if (indices == output_set) and not return_path_arg:
-        return np.einsum(subscripts, *operands)
+        return np.einsum(subscripts, *operands, **einsum_args)
 
     # Compute path
     if not isinstance(path_arg, str):
@@ -289,7 +344,7 @@ def contract(subscripts, *operands, **kwargs):
     # Return the path along with a nice string representation
     if return_path_arg:
         overall_contraction = input_subscripts + '->' + output_subscript
-        header = ('scaling', 'GEMM', 'current', 'remaining')
+        header = ('scaling', 'BLAS', 'current', 'remaining')
 
         path_print = 'Complete contraction:  %s\n' % overall_contraction
         path_print += '       Naive scaling:%4d\n' % len(indices)
@@ -311,7 +366,7 @@ def contract(subscripts, *operands, **kwargs):
             tmp_operands.append(operands.pop(x))
 
         # Do the contraction
-        new_view = np.einsum(einsum_str, *tmp_operands, order='C')
+        new_view = np.einsum(einsum_str, *tmp_operands, **einsum_args)
 
         # Append new items
         operands.append(new_view)
