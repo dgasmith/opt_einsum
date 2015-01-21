@@ -1,28 +1,51 @@
 import numpy as np
 
-
-def _compute_size_by_dict(inds, ind_dict):
+def _compute_size_by_dict(indices, indices_dict):
     """
-    Computes the product of the elements in ind based on the
-    dictionary ind_dict.
+    Computes the product of the elements in indices based on the dictionary
+    indices_dict.
+
+    Parameters
+    ----------
+    indices : iterable
+        Indices to base the product on.
+    indices_dict : dictionary
+        Dictionary of index sizes
+
+    Returns
+    -------
+    ret : int
+        The resulting product.
     """
     ret = 1
-    for i in inds:
-        ret *= ind_dict[i]
+    for i in indices:
+        ret *= indices_dict[i]
     return ret
 
 
 def _find_contraction(positions, input_sets, output_set):
     """
-    Finds the contraction for a given set of input and output sets
-    positions - positions of the input_sets that are contracted
-    input_sets - list of sets in the input
-    output_set - output idx set
-    returns:
-      new_result - the indices of the resulting contraction
-      remaining - list of sets that have not been contracted
-      idx_removed - indices removed from the entire contraction
-      idx_contract - the indices that are used in the contraction
+    Finds the contraction for a given set of input and output sets.
+
+    Paramaters
+    ----------
+    positions : iterable
+        Integer positions of terms used in the contraction.
+    input_sets : iterable
+        List of sets that represent the lhs side of the einsum subscript
+    output_set : set
+        Set that represents the rhs side of the overall einsum subscript
+
+    Returns
+    -------
+    new_result : set
+        The indices of the resulting contraction
+    remaining : set
+        List of sets that have not been contracted
+    idx_removed : set
+        Indices removed from the entire contraction
+    idx_contraction : set
+        The indices used in the current contraction
     """
 
     idx_contract = set()
@@ -41,14 +64,26 @@ def _find_contraction(positions, input_sets, output_set):
     return (new_result, remaining, idx_removed, idx_contract)
 
 
-def _path_optimal(input_sets, output_set, ind_dict, memory):
+def _path_optimal(input_sets, output_set, indices_dict, memory_limit):
     """
-    Computes all possible ways to contract the tensors
-    input_sets - list of sets for input_setsut indices
-    output_set - set of output_setput indices
-    ind_dict - dictionary for the size of each idx
-    memory - largest allowed number of elements in a new array
-    returns path
+    Computes all possible pair contractions, sieves the results based
+    on `memory_limit_limit` and return the cheapest path.
+
+    Paramaters
+    ----------
+    input_sets : iterable
+        List of sets that represent the lhs side of the einsum subscript
+    output_set : set
+        Set that represents the rhs side of the overall einsum subscript
+    indices_dict : dictionary
+        Dictionary of index sizes
+    memory_limit : int
+        The maximum number of elements in a temporary array.
+
+    Returns
+    -------
+    path : list
+        The optimal order of pair contractions.
     """
 
     current = [(0, [], input_sets)]
@@ -63,12 +98,13 @@ def _path_optimal(input_sets, output_set, ind_dict, memory):
                 contract = _find_contraction(con, remaining, output_set)
                 new_result, new_input_sets, idx_removed, idx_contract = contract
 
-                # Sieve the results based on memory
-                if _compute_size_by_dict(new_result, ind_dict) > memory:
+                # Sieve the results based on memory_limit
+                new_size = _compute_size_by_dict(new_result, indices_dict)
+                if new_size > memory_limit:
                     continue
 
                 # Find cost
-                new_cost = _compute_size_by_dict(idx_contract, ind_dict)
+                new_cost = _compute_size_by_dict(idx_contract, indices_dict)
                 if len(idx_removed) > 0:
                     new_cost *= 2
 
@@ -89,15 +125,27 @@ def _path_optimal(input_sets, output_set, ind_dict, memory):
     return path
 
 
-def _path_opportunistic(input_sets, output_set, ind_dict, memory):
+def _path_opportunistic(input_sets, output_set, indices_dict, memory_limit):
     """
-    Finds best path by choosing the best pair contraction
-    Best pair is determined by the sorted tuple (-idx_removed, cost)
-    input_sets - list of sets for input_setsut indices
-    output_set - set of output_setput indices
-    ind_dict - dictionary for the size of each idx
-    memory - largest allowed number of elements in a new array
-    returns path
+    Finds the best pair contraction at each iteration. First considers GEMM or
+    inner product operations, then Hadamard like operations, and finally outer
+    operations. Outer products are limited by `memory_limit`.
+
+    Paramaters
+    ----------
+    input_sets : iterable
+        List of sets that represent the lhs side of the einsum subscript
+    output_set : set
+        Set that represents the rhs side of the overall einsum subscript
+    indices_dict : dictionary
+        Dictionary of index sizes
+    memory_limit_limit : int
+        The maximum number of elements in a temporary array.
+
+    Returns
+    -------
+    path : list
+        The opportunistic order of pair contractions.
     """
 
     path = []
@@ -109,13 +157,13 @@ def _path_opportunistic(input_sets, output_set, ind_dict, memory):
             contract = _find_contraction(positions, input_sets, output_set)
             idx_result, new_input_sets, idx_removed, idx_contract = contract
 
-            # Sieve the results based on memory
-            if _compute_size_by_dict(idx_result, ind_dict) > memory:
+            # Sieve the results based on memory_limit
+            if _compute_size_by_dict(idx_result, indices_dict) > memory_limit:
                 continue
 
             # Build sort tuple
-            removed_size = _compute_size_by_dict(idx_removed, ind_dict)
-            cost = _compute_size_by_dict(idx_contract, ind_dict)
+            removed_size = _compute_size_by_dict(idx_removed, indices_dict)
+            cost = _compute_size_by_dict(idx_contract, indices_dict)
             sort = (-removed_size, cost)
 
             # Add contraction to possible choices
@@ -144,7 +192,7 @@ def contract(subscripts, *operands, **kwargs):
     reduce overall computational time.
 
     Produces results identical to that of the einsum function; however,
-    the contract function expands on the einsum function by building 
+    the contract function expands on the einsum function by building
     intermediate arrays to reduce the computational scaling and utilizes
     BLAS calls when possible.
 
@@ -178,7 +226,7 @@ def contract(subscripts, *operands, **kwargs):
             The order of contracted indices.
         path_string : string
             A string representation of the contraction.
-            
+
     output : ndarray
         The results based on Einstein summation convention.
 
@@ -189,41 +237,51 @@ def contract(subscripts, *operands, **kwargs):
     Notes
     -----
     Subscript labels follow the same convention as einsum with the current
-    exception that integer indexing and ellipses are not currently supported. 
-    If output subscripts are not supplied they are built following the
-    Einstein summation convention, these indices are then sorted.
+    exception that integer indexing and ellipses are not currently supported.
+    If output subscripts are not supplied they are built following the Einstein
+    summation convention, these indices are then sorted.
 
-    The amount of extra memory used by this function depends greatly on the einsum expression and BLAS usage.
-    Without BLAS the maximum memory used is: `(number_of_terms / 2) * memory_limit`.
-    With BLAS the maximum memory used is: `max((number_of_terms / 2), 2) * memory_limit`.
-    For most operations the memory usage is approximately equivalent to the memory_limit.    
+    The amount of extra memory used by this function depends greatly on the
+    einsum expression and BLAS usage.  Without BLAS the maximum memory used is:
+    ``(number_of_terms / 2) * memory_limit``.  With BLAS the maximum memory used
+    is: ``max((number_of_terms / 2), 2) * memory_limit``.  For most operations
+    the memory usage is approximately equivalent to the memory_limit.
 
-    Note: BLAS is not yet implemented.
-    One operand operations are supported by calling `np.einsum`.
-    Two operand operations are first checked to see if a BLAS call can be utilized then defaulted to einsum.
-    For example `np.contract('ab,bc->', a, b)` and `np.contract('ab,cb->', a, b)` are
-    prototypical matrix matrix multiplication examples.
-    Higher dimensional matrix matrix multiplicaitons are also considered such as 
-    `np.contract('abcd,cdef', a, b)` and `np.contract('abcd,cefd', a, b)`. For the former GEMM can be
-    called without copying data; however, the latter requires a copy of the second operand.
-    For all matrix matrix multiplicaiton examples it is beneficial to copy the data and call GEMM; however, for
-    matrix vector multiplication it is not beneficial to do so.
-    For example `np.contract('abcd,cd', a, b)` will call GEMV while `np.contract('abcd,ad', a, b)` will
-    call einsum as copying the first operand then calling GEMV does provide a speed up compared to simply calling einsum.
+    Note: BLAS is not yet implemented.  One operand operations are supported by
+    calling `np.einsum`.  Two operand operations are first checked to see if a
+    BLAS call can be utilized then defaulted to einsum.  For example
+    ``np.contract('ab,bc->', a, b)`` and ``np.contract('ab,cb->', a, b)`` are
+    prototypical matrix matrix multiplication examples.  Higher dimensional
+    matrix matrix multiplicaitons are also considered such as
+    ``np.contract('abcd,cdef', a, b)`` and ``np.contract('abcd,cefd', a, b)``.
+    For the former GEMM can be called without copying data; however, the latter
+    requires a copy of the second operand.  For all matrix matrix
+    multiplication examples it is beneficial to copy the data and call GEMM;
+    however, for matrix vector multiplication it is not beneficial to do so.
+    For example ``np.contract('abcd,cd', a, b)`` will call GEMV while
+    ``np.contract('abcd,ad', a, b)`` will call einsum as copying the first
+    operand then calling GEMV does provide a speed up compared to simply
+    calling einsum.
 
-    For three or more operands contract computes the optimal order of two and one operand operations.
-    The `optimal` path scales like N! where N is the number of terms and is found by calculating the cost of every possible path and choosing the lowest cost.
-    This path can be more costly to compute than the contraction itself for a large number of terms (N>7).
-    The `opportunistic` path scales like N^3 and first tries to first do any matrix matrix multiplications, than inner products, and finally outer products.
-    This path usually takes a trivial amount of time to compute unless the number of terms is extremely large (N>20).
-    The opportunistic path typically computes the most optimal path, but is not guaranteed to do so.
-    Both of these algorithms are sieved by the variable memory to prevent very large tensors from being formed.
+    For three or more operands contract computes the optimal order of two and
+    one operand operations.  The `optimal` path scales like N! where N is the
+    number of terms and is found by calculating the cost of every possible path
+    and choosing the lowest cost.  This path can be more costly to compute than
+    the contraction itself for a large number of terms (N>7).  The
+    `opportunistic` path scales like N^3 and first tries to first do any matrix
+    matrix multiplications, than inner products, and finally outer products.
+    This path usually takes a trivial amount of time to compute unless the
+    number of terms is extremely large (N>20).  The opportunistic path
+    typically computes the most optimal path, but is not guaranteed to do so.
+    Both of these algorithms are sieved by the variable memory to prevent very
+    large tensors from being formed.
 
 
     Examples
     --------
-    A index transformation example, contract runs ~2000 times faster than einsum even for this small example.
-    Note: BLAS will be True for all contractions here when everything is finished.
+    A index transformation example, contract runs ~2000 times faster than
+    einsum even for this small example.  Note: BLAS will be True for all
+    contractions here when everything is finished.
 
     >>> I = np.random.rand(10, 10, 10, 10)
     >>> C = np.random.rand(10, 10)
@@ -246,7 +304,6 @@ def contract(subscripts, *operands, **kwargs):
     True
 
     """
-
     # Parse input
     if not isinstance(subscripts, basestring):
         raise TypeError('subscripts must be a string')
@@ -258,7 +315,7 @@ def contract(subscripts, *operands, **kwargs):
 
     if '.' in subscripts:
         raise ValueError("Ellipses are not currently supported by contract.")
-    
+
     symbols = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
     for s in subscripts:
         if s in ',->':
@@ -266,8 +323,6 @@ def contract(subscripts, *operands, **kwargs):
         if s not in symbols:
             raise ValueError("Character %s is not a valid symbol." % s)
 
-
-    # Split into input and output subscripts
     if '->' in subscripts:
         input_subscripts, output_subscript = subscripts.split('->')
     else:
@@ -295,7 +350,8 @@ def contract(subscripts, *operands, **kwargs):
     # TODO Should probably be cast up to double precision
     arr_dtype = np.result_type(*operands)
     operands = [np.asanyarray(v) for v in operands]
-    einsum_args = {'dtype':arr_dtype, 'order':'C'}
+    einsum_args = {'dtype': arr_dtype}
+    #einsum_args = {'dtype': arr_dtype, 'order': 'C'}
 
     # Get length of each unique dimension and ensure all dimension are correct
     dimension_dict = {}
@@ -312,7 +368,6 @@ def contract(subscripts, *operands, **kwargs):
                                       not match previous terms.", char, tnum)
             else:
                 dimension_dict[char] = dim
-
 
     # Compute size of each input array plus the output array
     size_list = []
@@ -367,7 +422,7 @@ def contract(subscripts, *operands, **kwargs):
         # Last contraction
         if (cnum - len(path)) == -1:
             idx_result = output_subscript
-        else:    
+        else:
             sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
             idx_result = ''.join([x[1] for x in sorted(sort_result)])
 
@@ -392,7 +447,7 @@ def contract(subscripts, *operands, **kwargs):
             remaining_str = ','.join(remaining) + '->' + output_subscript
             path_run = (len(idx_contract), gemm, einsum_str, remaining_str)
             path_print += '%4d    %6s %24s %40s\n' % path_run
-            path.append(inds)        
+            path.append(inds)
 
         return (path, path_print)
 
