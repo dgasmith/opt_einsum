@@ -18,12 +18,9 @@ import time
 ### Build dictionary of tests
 
 class TestContract(object):
-    def setup(self, n=1):
+    def setup(self):
         chars = 'abcdefghij'
         sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4]) 
-        if n!=1:
-            sizes *= 1 + np.random.rand(sizes.shape[0]) * n 
-            sizes = sizes.astype(np.int)
         self.sizes = {c: s for c, s in zip(chars, sizes)}
 
     def compare(self, string):
@@ -36,6 +33,17 @@ class TestContract(object):
         ein = np.einsum(string, *views)
         opt = contract(string, *views)
         assert_allclose(ein, opt)
+
+    def test_input(self):
+        assert_raises(ValueError, contract, "")
+
+        # subscripts must be a string
+        assert_raises(TypeError, contract, 0, 0)
+
+        # invalid subscript character
+        assert_raises(ValueError, contract, "i%...", [0, 0])
+        assert_raises(ValueError, contract, "...j$", [0, 0])
+        assert_raises(ValueError, contract, "i->&", [0, 0])
 
     def test_hadamard_like_products(self):
         self.compare('a,ab,abc->abc')
@@ -73,6 +81,7 @@ class TestContract(object):
         self.compare('ab,bcd,cd->abd') 
 
     def test_previously_failed(self):
+        # Random test cases that have previously failed
         self.compare('eb,cb,fb->cef')
         self.compare('dd,fb,be,cdb->cef')
         self.compare('bca,cdb,dbf,afc->')
@@ -82,6 +91,8 @@ class TestContract(object):
         self.compare('ed,fcd,ff,bcf->be')
         self.compare('baa,dcf,af,cde->be')
         self.compare('bd,db,eac->ace')
+        self.compare('fff,fae,bef,def->abd')
+        self.compare('efc,dbc,acf,fd->abe')
 
     def test_inner_product(self): 
         # Inner products
@@ -126,6 +137,7 @@ class TestContract(object):
 t = time.time()
 c = TestContract()
 c.setup()
+c.test_input()
 c.test_hadamard_like_products()
 c.test_complex()
 c.test_collapse()

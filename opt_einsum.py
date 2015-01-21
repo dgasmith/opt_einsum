@@ -1,15 +1,15 @@
 import numpy as np
 
-def _compute_size_by_dict(indices, indices_dict):
+def _compute_size_by_dict(indices, idx_dict):
     """
     Computes the product of the elements in indices based on the dictionary
-    indices_dict.
+    idx_dict.
 
     Parameters
     ----------
     indices : iterable
         Indices to base the product on.
-    indices_dict : dictionary
+    idx_dict : dictionary
         Dictionary of index sizes
 
     Returns
@@ -19,7 +19,7 @@ def _compute_size_by_dict(indices, indices_dict):
     """
     ret = 1
     for i in indices:
-        ret *= indices_dict[i]
+        ret *= idx_dict[i]
     return ret
 
 
@@ -31,7 +31,7 @@ def _find_contraction(positions, input_sets, output_set):
     ----------
     positions : iterable
         Integer positions of terms used in the contraction.
-    input_sets : iterable
+    input_sets : list
         List of sets that represent the lhs side of the einsum subscript
     output_set : set
         Set that represents the rhs side of the overall einsum subscript
@@ -64,18 +64,18 @@ def _find_contraction(positions, input_sets, output_set):
     return (new_result, remaining, idx_removed, idx_contract)
 
 
-def _path_optimal(input_sets, output_set, indices_dict, memory_limit):
+def _path_optimal(input_sets, output_set, idx_dict, memory_limit):
     """
     Computes all possible pair contractions, sieves the results based
-    on `memory_limit_limit` and return the cheapest path.
+    on ``memory_limit`` and returns the cheapest path.
 
     Paramaters
     ----------
-    input_sets : iterable
+    input_sets : list
         List of sets that represent the lhs side of the einsum subscript
     output_set : set
         Set that represents the rhs side of the overall einsum subscript
-    indices_dict : dictionary
+    idx_dict : dictionary
         Dictionary of index sizes
     memory_limit : int
         The maximum number of elements in a temporary array.
@@ -99,12 +99,12 @@ def _path_optimal(input_sets, output_set, indices_dict, memory_limit):
                 new_result, new_input_sets, idx_removed, idx_contract = contract
 
                 # Sieve the results based on memory_limit
-                new_size = _compute_size_by_dict(new_result, indices_dict)
+                new_size = _compute_size_by_dict(new_result, idx_dict)
                 if new_size > memory_limit:
                     continue
 
                 # Find cost
-                new_cost = _compute_size_by_dict(idx_contract, indices_dict)
+                new_cost = _compute_size_by_dict(idx_contract, idx_dict)
                 if len(idx_removed) > 0:
                     new_cost *= 2
 
@@ -125,19 +125,19 @@ def _path_optimal(input_sets, output_set, indices_dict, memory_limit):
     return path
 
 
-def _path_opportunistic(input_sets, output_set, indices_dict, memory_limit):
+def _path_opportunistic(input_sets, output_set, idx_dict, memory_limit):
     """
     Finds the best pair contraction at each iteration. First considers GEMM or
     inner product operations, then Hadamard like operations, and finally outer
-    operations. Outer products are limited by `memory_limit`.
+    operations. Outer products are limited by ``memory_limit``.
 
     Paramaters
     ----------
-    input_sets : iterable
+    input_sets : list
         List of sets that represent the lhs side of the einsum subscript
     output_set : set
         Set that represents the rhs side of the overall einsum subscript
-    indices_dict : dictionary
+    idx_dict : dictionary
         Dictionary of index sizes
     memory_limit_limit : int
         The maximum number of elements in a temporary array.
@@ -158,12 +158,12 @@ def _path_opportunistic(input_sets, output_set, indices_dict, memory_limit):
             idx_result, new_input_sets, idx_removed, idx_contract = contract
 
             # Sieve the results based on memory_limit
-            if _compute_size_by_dict(idx_result, indices_dict) > memory_limit:
+            if _compute_size_by_dict(idx_result, idx_dict) > memory_limit:
                 continue
 
             # Build sort tuple
-            removed_size = _compute_size_by_dict(idx_removed, indices_dict)
-            cost = _compute_size_by_dict(idx_contract, indices_dict)
+            removed_size = _compute_size_by_dict(idx_removed, idx_dict)
+            cost = _compute_size_by_dict(idx_contract, idx_dict)
             sort = (-removed_size, cost)
 
             # Add contraction to possible choices
@@ -204,7 +204,7 @@ def contract(subscripts, *operands, **kwargs):
         These are the arrays for the operation.
     tensordot : bool, optional (default: True)
         If true use tensordot where possible.
-    path : bool or list, optional (default: `opportunistic`)
+    path : bool or list, optional (default: ``opportunistic``)
         Choose the type of path.
 
         - if a list is given uses this as the path.
@@ -221,14 +221,15 @@ def contract(subscripts, *operands, **kwargs):
 
     Returns
     -------
-    if return_path : tuple (path, path_string)
+    if return_path:
         path : list
             The order of contracted indices.
         path_string : string
             A string representation of the contraction.
 
-    output : ndarray
-        The results based on Einstein summation convention.
+    else:
+        output : ndarray
+            The results based on Einstein summation convention.
 
     See Also
     --------
@@ -264,19 +265,21 @@ def contract(subscripts, *operands, **kwargs):
     one operand operations.  The `optimal` path scales like N! where N is the
     number of terms and is found by calculating the cost of every possible path and
     choosing the lowest cost.  This path can be more costly to compute than the
-    contraction itself for a large number of terms (N>7).  The `opportunistic` path
-    scales like N^3 and first tries to do any matrix matrix multiplications, then
-    inner products, and finally outer products.  This path usually takes a trivial
-    amount of time to compute unless the number of terms is extremely large (N>20).
-    The opportunistic path typically computes the most optimal path, but is not
-    guaranteed to do so.  Both of these algorithms are sieved by the variable
-    memory to prevent very large tensors from being formed.
+    contraction itself for a large number of terms (~N>7).  The `opportunistic`
+    path scales like N^3 and first tries to do any matrix matrix multiplications,
+    then inner products, and finally outer products.  This path usually takes a
+    trivial amount of time to compute unless the number of terms is extremely large
+    (~N>20).  The opportunistic path typically computes the most optimal path, but
+    is not guaranteed to do so.  Both of these algorithms are sieved by the
+    variable memory to prevent very large tensors from being formed.
 
     Examples
     --------
     A index transformation example, contract runs ~2000 times faster than
-    einsum even for this small example.  Note: BLAS will be True for all
-    contractions here when everything is finished.
+    einsum even for this small example.
+
+    Note: BLAS will be True for all contractions here when everything is
+    finished.
 
     >>> I = np.random.rand(10, 10, 10, 10)
     >>> C = np.random.rand(10, 10)
@@ -301,7 +304,7 @@ def contract(subscripts, *operands, **kwargs):
 
     # Parse input
     if not isinstance(subscripts, basestring):
-        raise TypeError('subscripts must be a string')
+        raise TypeError('Subscripts must be a string.')
 
     if ('-' in subscripts) or ('>' in subscripts):
         invalid = (subscripts.count('-') > 1) or (subscripts.count('>') > 1)
@@ -353,7 +356,7 @@ def contract(subscripts, *operands, **kwargs):
     for tnum, term in enumerate(input_list):
         sh = operands[tnum].shape
         if len(sh) != len(term):
-            raise ValueError("einstein sum subscript %s does not contain the \
+            raise ValueError("Einstein sum subscript %s does not contain the \
               correct number of indices for operand %d.", operands[tnum], tnum)
         for cnum, char in enumerate(term):
             dim = sh[cnum]
@@ -377,6 +380,7 @@ def contract(subscripts, *operands, **kwargs):
     return_path_arg = kwargs.get("return_path", False)
 
     # If total flops is very small just avoid the overhead altogether
+    # Currently invalidates testing script
     total_flops = _compute_size_by_dict(indices, dimension_dict)
     # if (total_flops < 1e6) and not return_path_arg:
     #     return np.einsum(subscripts, *operands, **einsum_args)
