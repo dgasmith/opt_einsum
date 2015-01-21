@@ -187,7 +187,7 @@ def _path_opportunistic(input_sets, output_set, indices_dict, memory_limit):
 def contract(subscripts, *operands, **kwargs):
     return_path_arg = kwargs.get("return_path", False)
     """
-    Evaluates the Einstein summation convention on the operands,
+    Evaluates the Einstein summation convention based on the operands,
     differs from np.einsum by utilizing intermediate arrays to
     reduce overall computational time.
 
@@ -236,10 +236,8 @@ def contract(subscripts, *operands, **kwargs):
 
     Notes
     -----
-    Subscript labels follow the same convention as einsum with the current
-    exception that integer indexing and ellipses are not currently supported.
-    If output subscripts are not supplied they are built following the Einstein
-    summation convention, these indices are then sorted.
+    Subscript labels follow the same convention as einsum with the exception
+    that integer indexing and ellipses are not currently supported.
 
     The amount of extra memory used by this function depends greatly on the
     einsum expression and BLAS usage.  Without BLAS the maximum memory used is:
@@ -247,35 +245,32 @@ def contract(subscripts, *operands, **kwargs):
     is: ``max((number_of_terms / 2), 2) * memory_limit``.  For most operations
     the memory usage is approximately equivalent to the memory_limit.
 
-    Note: BLAS is not yet implemented.  One operand operations are supported by
-    calling `np.einsum`.  Two operand operations are first checked to see if a
-    BLAS call can be utilized then defaulted to einsum.  For example
-    ``np.contract('ab,bc->', a, b)`` and ``np.contract('ab,cb->', a, b)`` are
-    prototypical matrix matrix multiplication examples.  Higher dimensional
-    matrix matrix multiplicaitons are also considered such as
-    ``np.contract('abcd,cdef', a, b)`` and ``np.contract('abcd,cefd', a, b)``.
-    For the former GEMM can be called without copying data; however, the latter
-    requires a copy of the second operand.  For all matrix matrix
+    Note: BLAS is not yet implemented.
+    One operand operations are supported by calling `np.einsum`.  Two operand
+    operations are first checked to see if a BLAS call can be utilized then
+    defaulted to einsum.  For example ``np.contract('ab,bc->', a, b)`` and
+    ``np.contract('ab,cb->', a, b)`` are prototypical matrix matrix multiplication
+    examples.  Higher dimensional matrix matrix multiplicaitons are also considered
+    such as ``np.contract('abcd,cdef', a, b)`` and ``np.contract('abcd,cefd', a,
+    b)``.  For the former, GEMM can be called without copying data; however, the
+    latter requires a copy of the second operand.  For all matrix matrix
     multiplication examples it is beneficial to copy the data and call GEMM;
-    however, for matrix vector multiplication it is not beneficial to do so.
-    For example ``np.contract('abcd,cd', a, b)`` will call GEMV while
-    ``np.contract('abcd,ad', a, b)`` will call einsum as copying the first
-    operand then calling GEMV does provide a speed up compared to simply
-    calling einsum.
+    however, for matrix vector multiplication it is not beneficial to do so.  For
+    example ``np.contract('abcd,cd', a, b)`` will call GEMV while
+    ``np.contract('abcd,ad', a, b)`` will call einsum as copying the first operand
+    then calling GEMV does not provide a speed up compared to calling einsum.
 
     For three or more operands contract computes the optimal order of two and
     one operand operations.  The `optimal` path scales like N! where N is the
-    number of terms and is found by calculating the cost of every possible path
-    and choosing the lowest cost.  This path can be more costly to compute than
-    the contraction itself for a large number of terms (N>7).  The
-    `opportunistic` path scales like N^3 and first tries to first do any matrix
-    matrix multiplications, than inner products, and finally outer products.
-    This path usually takes a trivial amount of time to compute unless the
-    number of terms is extremely large (N>20).  The opportunistic path
-    typically computes the most optimal path, but is not guaranteed to do so.
-    Both of these algorithms are sieved by the variable memory to prevent very
-    large tensors from being formed.
-
+    number of terms and is found by calculating the cost of every possible path and
+    choosing the lowest cost.  This path can be more costly to compute than the
+    contraction itself for a large number of terms (N>7).  The `opportunistic` path
+    scales like N^3 and first tries to do any matrix matrix multiplications, then
+    inner products, and finally outer products.  This path usually takes a trivial
+    amount of time to compute unless the number of terms is extremely large (N>20).
+    The opportunistic path typically computes the most optimal path, but is not
+    guaranteed to do so.  Both of these algorithms are sieved by the variable
+    memory to prevent very large tensors from being formed.
 
     Examples
     --------
@@ -302,8 +297,8 @@ def contract(subscripts, *operands, **kwargs):
     >>> ein_result = np.einsum('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, path=opt_path[0])
     >>> np.allclose(ein_result, opt_result)
     True
-
     """
+
     # Parse input
     if not isinstance(subscripts, basestring):
         raise TypeError('subscripts must be a string')
@@ -460,8 +455,8 @@ def contract(subscripts, *operands, **kwargs):
         # Do the contraction
         new_view = np.einsum(einsum_str, *tmp_operands, **einsum_args)
 
-        # Append new items
+        # Append new items and derefernce what we can
         operands.append(new_view)
-        del tmp_operands, new_view  # Dereference what we can
+        del tmp_operands, new_view
 
     return operands[0]
