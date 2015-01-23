@@ -90,7 +90,10 @@ def _path_optimal(input_sets, output_set, idx_dict, memory_limit):
     for iteration in range(len(input_sets) - 1):
         new = []
         # Grab all unique pairs
-        comb_iter = zip(*np.triu_indices(len(input_sets) - iteration, 1))
+        comb_iter = []
+        for x in range(len(input_sets)):
+            for y in range(x + 1, len(input_sets)):
+                comb_iter.append((x,y))
         for curr in current:
             cost, positions, remaining = curr
             for con in comb_iter:
@@ -151,7 +154,10 @@ def _path_opportunistic(input_sets, output_set, idx_dict, memory_limit):
     path = []
     for iteration in range(len(input_sets) - 1):
         iteration_results = []
-        comb_iter = zip(*np.triu_indices(len(input_sets), 1))
+        comb_iter = []
+        for x in range(len(input_sets)):
+            for y in range(x + 1, len(input_sets)):
+                comb_iter.append((x,y))
         for positions in comb_iter:
 
             contract = _find_contraction(positions, input_sets, output_set)

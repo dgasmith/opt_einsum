@@ -49,7 +49,7 @@ class TestContract(object):
         self.compare('a,ab,abc->abc')
         self.compare('a,b,ab->ab')
 
-    def test_index_transformations():
+    def test_index_transformations(self):
         self.compare('ea,fb,gc,hd,abcd->efgh')
         self.compare('ea,fb,abcd,gc,hd->efgh')
         self.compare('abcd,ea,fb,gc,hd->efgh')
@@ -142,7 +142,7 @@ c.test_hadamard_like_products()
 c.test_complex()
 c.test_collapse()
 c.test_expand()
-c.test_expand()
+c.test_index_transformations()
 c.test_previously_failed()
 c.test_inner_product()
 c.test_dot_product()
