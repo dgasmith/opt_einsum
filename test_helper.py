@@ -81,6 +81,13 @@ tests['CDot4'] = ['baa,bcc->ac', [300, 301, 302]]
 tests['CDot5'] = ['aab,ccb->ac', [300, 301, 302]]
 #tests['Dot8'] = ['abcd,cdef', [30, 29, 28, 27, 26, 25]]
 
+# GEMM tests
+tests['ChainDot1'] = ['ab,bc,cd', [150, 151, 152, 153]]
+tests['ChainDot2'] = ['ba,cb,cd', [150, 151, 152, 153]]
+tests['ChainDot3'] = ['ab,cd,bc', [150, 151, 152, 153]]
+tests['ChainDot4'] = ['ab,bc,cd,df', [40, 41, 42, 43, 44]]
+tests['ChainDot5'] = ['ab,cd,fd,bc', [40, 41, 42, 43, 44]]
+
 #Test inner
 tests['Inner1'] = ['ab,ab', [1500, 1501]]
 tests['Inner2'] = ['ab,ba', [1500, 1501]]
@@ -89,7 +96,7 @@ tests['Inner4'] = ['abc,bac', [300, 301, 303]]
 tests['Inner5'] = ['abc,cba', [300, 301, 303]]
 
 # Previous test showed that opt_einsum is 2-10x slower than einsum
-tests['Slow1'] = ['bcf,bbb,fbf,fc->', [15, 25, 10, 10, 12, 13]]
+tests['Slow1'] = ['bcf,bbb,fbf,fc->', [15, 25, 10, 15, 12, 13]]
 tests['Slow2'] = ['bb,ff,be->e', [27, 24, 27, 25, 17, 22]]
 tests['Slow3'] = ['bcb,bb,fc,fff->', [12, 22, 18, 22, 19, 29]] 
 tests['Slow4'] = ['fbb,dfd,fc,fc->',  [15, 24, 23, 26, 25, 24]]

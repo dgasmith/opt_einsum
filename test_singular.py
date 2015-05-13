@@ -9,8 +9,8 @@ pd.set_option('display.width', 1000)
 ### Start variables
 
 # Choose a path
-#path_arg = 'optimal'
-path_arg = 'opportunistic'
+path_arg = 'optimal'
+#path_arg = 'opportunistic'
 
 # Choose to roughly scale overall time taken
 scale = 1

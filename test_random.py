@@ -10,6 +10,9 @@ resource.setrlimit(rsrc, (limit, limit))
 from opt_einsum import contract
 pd.set_option('display.width', 200)
 
+
+opt_path = 'optimal'
+
 # Number of dimensions
 max_dims = 3
 min_dims = 2
@@ -83,9 +86,9 @@ for x in range(200):
         continue
 
     setup = "import numpy as np; from opt_einsum import contract; \
-             from __main__ import sum_string, views"
+             from __main__ import sum_string, views, opt_path"
     einsum_string = "np.einsum(sum_string, *views)"
-    contract_string = "contract(sum_string, *views)"
+    contract_string = "contract(sum_string, *views, path=opt_path)"
 
     e_n = 1
     o_n = 1
