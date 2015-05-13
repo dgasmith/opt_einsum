@@ -86,13 +86,14 @@ def _path_optimal(input_sets, output_set, idx_dict, memory_limit):
         The optimal order of pair contractions.
     """
 
+    memory_limited = []
     current = [(0, [], input_sets)]
     for iteration in range(len(input_sets) - 1):
         new = []
         # Grab all unique pairs
         comb_iter = []
-        for x in range(len(input_sets)):
-            for y in range(x + 1, len(input_sets)):
+        for x in range(len(input_sets) - iteration):
+            for y in range(x + 1, len(input_sets) - iteration):
                 comb_iter.append((x,y))
         for curr in current:
             cost, positions, remaining = curr
