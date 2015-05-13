@@ -97,6 +97,17 @@ def _path_optimal(input_sets, output_set, idx_dict, memory_limit):
                 comb_iter.append((x,y))
         for curr in current:
             cost, positions, remaining = curr
+
+            # The memory limited case
+            idx_contract = set('').union(*remaining)
+            new_cost = _compute_size_by_dict(idx_contract, idx_dict)
+            if len(idx_contract - output_set) > 0:
+                new_cost *= 2
+            new_cost *= len(remaining) - 1
+            new_cost += cost
+            new_pos = positions + [tuple(range(len(remaining)))]
+            memory_limited.append((new_cost, new_pos, []))
+                     
             for con in comb_iter:
 
                 contract = _find_contraction(con, remaining, output_set)
@@ -120,13 +131,9 @@ def _path_optimal(input_sets, output_set, idx_dict, memory_limit):
         # Update list to iterate over
         current = new
 
-    # If we have not found anything return single einsum contraction
-    if len(new) == 0:
-        return [tuple(range(len(input_sets)))]
-
+    new += memory_limited
     new.sort()
-    path = new[0][1]
-    return path
+    return new[0][1]
 
 
 def _path_opportunistic(input_sets, output_set, idx_dict, memory_limit):
@@ -389,8 +396,8 @@ def contract(subscripts, *operands, **kwargs):
     # If total flops is very small just avoid the overhead altogether
     # Currently invalidates testing script
     total_flops = _compute_size_by_dict(indices, dimension_dict)
-    # if (total_flops < 1e6) and not return_path_arg:
-    #     return np.einsum(subscripts, *operands, **einsum_args)
+    if (total_flops < 1e6) and not return_path_arg:
+        return np.einsum(subscripts, *operands, **einsum_args)
 
     # If no rank reduction leave it to einsum
     if (indices == output_set) and not return_path_arg:
