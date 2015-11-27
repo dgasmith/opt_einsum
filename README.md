@@ -4,13 +4,13 @@ opt_einsum
 If this grows any further it might be a good idea to migrate to the wiki.
 
 # TOC
- - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/master/README.md#optimizing-numpys-einsum-function)
- - [More details on paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#more-details-on-paths)
- - [Finding the optimal path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-optimal-path)
- - [Finding the opportunistic path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-opportunistic-path)
- - [Testing](https://github.com/dgasmith/opt_einsum/blob/master/README.md#testing)
- - [Outstanding issues](https://github.com/dgasmith/opt_einsum/blob/master/README.md#outstanding-issues)
- - [Installation](https://github.com/dgasmith/opt_einsum/blob/master/README.md#installation)
+ - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#optimizing-numpys-einsum-function)
+ - [More details on paths](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#more-details-on-paths)
+ - [Finding the optimal path](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#finding-the-optimal-path)
+ - [Finding the opportunistic path](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#finding-the-opportunistic-path)
+ - [Testing](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#testing)
+ - [Outstanding issues](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#outstanding-issues)
+ - [Installation](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#installation)
 
 ## Optimizing numpy's einsum function
 Einsum is a very powerful function for contracting tensors of arbitrary dimension and index.
