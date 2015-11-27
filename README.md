@@ -10,6 +10,7 @@ If this grows any further it might be a good idea to migrate to the wiki.
  - [Finding the opportunistic path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-opportunistic-path)
  - [Testing](https://github.com/dgasmith/opt_einsum/blob/master/README.md#testing)
  - [Outstanding issues](https://github.com/dgasmith/opt_einsum/blob/master/README.md#outstanding-issues)
+ - [Installation](https://github.com/dgasmith/opt_einsum/blob/master/README.md#installation)
 
 ## Optimizing numpy's einsum function
 Einsum is a very powerful function for contracting tensors of arbitrary dimension and index.
@@ -183,14 +184,13 @@ Testing this function thoroughly is absolutely crucial; the testing scripts do r
 
 
  - path_optimal is poorly programmed. A dynamic programming approach would help greatly.
- - Comparing path_optimal and path_opportunistic shows that path_opportunistic can occasionally be faster. (I believe this is due to the simplicity of the cost expression. The speed of einsum can very greatly depending on the order of input indices.)
- - Often we can choose the order of output indices, choosing the correct order can have speed ups of 2x or more. (Directly related to the above.) 
- - Both paths should consider if tensordot can be used. The downside is: figuring out if tensordot can be used is quite expensive. (Tests show that this has little effect on choosing the optimal path.)
+ - Comparing path_optimal and path_opportunistic shows that path_opportunistic can occasionally be faster. This is due to the fact that the input and output index order can have dramatic effects on performance for einsum.
  - The "improved" tensordot code is becoming fairly unwieldy. At this point only about ~40% of the dot-like expressions are handed off to tensordot.  
  - I make a lot of assumptions about tensordot as I am testing against vendor BLAS (intel MKL on haswell or opteron architecture).  
  - More memory options should be available. For example should we consider cumulative memory? (Feedback on the numpy mailing suggest this is not a great concern) 
  - Are we handling view dereferencing correctly? Views really should be garbage collected as soon as possible.
 
+## Installation
 
-
-
+Thanks to [Nils Werner](https://github.com/nils-werner) `opt_einsum` can be installed with the line `pip install -e .[tests]`.
+Test cases can then be run with `py.test -v`.
