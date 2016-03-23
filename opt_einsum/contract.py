@@ -1,5 +1,5 @@
-import paths
-import parser
+from . import paths
+from . import parser
 import numpy as np
 
 def contract_path(*operands, **kwargs):
