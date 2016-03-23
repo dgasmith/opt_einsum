@@ -3,7 +3,7 @@ import setuptools
 if __name__ == "__main__":
     setuptools.setup(
         name='opt_einsum',
-        version="0.1",
+        version="0.1.1",
         description='Optimizing numpys einsum function',
         author='Daniel Smith',
         author_email='malorian@me.com',
