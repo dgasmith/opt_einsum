@@ -1,0 +1,48 @@
+# After changing this file, check it on:
+#   http://lint.travis-ci.org/
+language: python
+
+# Run jobs on container-based infrastructure, can be overridden per job
+sudo: false
+
+# Travis whitelists the installable packages, additions can be requested
+#   https://github.com/travis-ci/apt-package-whitelist
+# addons:
+#   apt:
+#     packages: &common_packages
+#       - gfortran
+#       - libatlas-dev
+#       - libatlas-base-dev
+#       # Speedup builds, particularly when USE_CHROOT=1
+#       - eatmydata
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+python:
+  - 2.7
+  - 3.4
+  - 3.5
+
+matrix:
+  include:
+    - python: 2.7
+    - python: 3.4
+    - python: 3.5
+
+before_install:
+  - uname -a
+  - free -m
+  - df -h
+  - ulimit -a
+  - python -V
+  - pip install --upgrade pip setuptools
+  - pip install pytest pytest-cov
+  - pip install numpy
+
+script:
+  - py.test -v
+
+# after_success:
+#   - ./tools/travis-upload-wheel.sh
