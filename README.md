@@ -78,7 +78,8 @@ index_size = [10, 17, 9, 10, 13, 16, 15, 14]
 views = th.build_views(sum_string, index_size) # Function that builds random arrays of the correct shape
 ein_result = np.einsum(sum_string, *views)
 opt_ein_result = opt_einsum(sum_string, *views, debug=1)
-
+```
+```
 Complete contraction:  bdik,acaj,ikab,ajac,ikbd->
        Naive scaling:   7
 ---------------------------------------------------------------------------------
@@ -89,9 +90,12 @@ scaling   GEMM                   current                                remainin
    4      True               bik,ikab->a                                    a,a->
    1      True                     a,a->                                      ,->
    
+```
+```python
 np.allclose(ein_result, opt_ein_result)
 >>> True
-   ```
+```
+
 By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and small dimensions, opt_einsum is roughly 900 times faster than pure einsum for this expression.
 
 ## More details on paths
@@ -108,7 +112,7 @@ This opt_path represents the path taken in our above example.
 The first contraction (1,3) contracts the first and third terms together to produce a new term which is then appended to the list of terms, this is continued until all terms are contracted.
 An example should illuminate this:
 
-```python
+```
 ---------------------------------------------------------------------------------
 scaling   GEMM                   current                                remaining
 ---------------------------------------------------------------------------------
@@ -120,7 +124,7 @@ terms = ['ikab', 'a', 'bik'] contraction = (0, 2)
   4      True               bik,ikab->a                                    a,a->
 terms = ['a', 'a'] contraction = (0, 1)
   1      True                     a,a->                                      ,->
-   ```
+```
 
 
 
@@ -134,7 +138,7 @@ This algorithm runs in about 1 second for 7 terms, 15 seconds for 8 terms, and 4
 By considering limited memory this can be sieved and can reduce the cost of computing the optimal function by an order of magnitude or more.
 
 Lets look at an example:
-```python
+```
 Contraction:  abc,dc,ac->bd
 ```
 
