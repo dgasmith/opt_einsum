@@ -5,6 +5,36 @@ from opt_einsum import contract
 import pytest
 
 
+def test_type_errors():
+    # subscripts must be a string
+    with pytest.raises(TypeError):
+        contract(0, 0)
+
+    # out parameter must be an array
+    with pytest.raises(TypeError):
+        contract("", 0, out='test')
+
+    # order parameter must be a valid order
+    with pytest.raises(TypeError):
+        contract("", 0, order='W')
+
+    # casting parameter must be a valid casting
+    with pytest.raises(ValueError):
+        contract("", 0, casting='blah')
+
+    # dtype parameter must be a valid dtype
+    with pytest.raises(TypeError):
+        contract("", 0, dtype='bad_data_type')
+
+    # other keyword arguments are rejected
+    with pytest.raises(TypeError):
+        contract("", 0, bad_arg=0)
+
+    # issue 4528 revealed a segfault with this call
+    with pytest.raises(TypeError):
+        contract(*(None,)*63)
+
+
 def test_value_errors():
     with pytest.raises(ValueError):
         contract("")
@@ -20,6 +50,69 @@ def test_value_errors():
         contract("...j$", [0, 0])
     with pytest.raises(ValueError):
         contract("i->&", [0, 0])
+
+    with pytest.raises(ValueError):
+        contract("")
+    # number of operands must match count in subscripts string
+    with pytest.raises(ValueError):
+        contract("", 0, 0)
+    with pytest.raises(ValueError):
+        contract(",", 0, [0], [0])
+    with pytest.raises(ValueError):
+        contract(",", [0])
+
+    # can't have more subscripts than dimensions in the operand
+    with pytest.raises(ValueError):
+        contract("i", 0)
+    with pytest.raises(ValueError):
+        contract("ij", [0, 0])
+    with pytest.raises(ValueError):
+        contract("...i", 0)
+    with pytest.raises(ValueError):
+        contract("i...j", [0, 0])
+    with pytest.raises(ValueError):
+        contract("i...", 0)
+    with pytest.raises(ValueError):
+        contract("ij...", [0, 0])
+
+    # invalid ellipsis
+    with pytest.raises(ValueError):
+        contract("i..", [0, 0])
+    with pytest.raises(ValueError):
+        contract(".i...", [0, 0])
+    with pytest.raises(ValueError):
+        contract("j->..j", [0, 0])
+    with pytest.raises(ValueError):
+        contract("j->.j...", [0, 0])
+
+    # invalid subscript character
+    with pytest.raises(ValueError):
+        contract("i%...", [0, 0])
+    with pytest.raises(ValueError):
+        contract("...j$", [0, 0])
+    with pytest.raises(ValueError):
+        contract("i->&", [0, 0])
+
+    # output subscripts must appear in input
+    with pytest.raises(ValueError):
+        contract("i->ij", [0, 0])
+
+    # output subscripts may only be specified once
+    with pytest.raises(ValueError):
+        contract("ij->jij", [[0, 0], [0, 0]])
+
+    # dimensions much match when being collapsed
+    with pytest.raises(ValueError):
+        contract("ii", np.arange(6).reshape(2, 3))
+    with pytest.raises(ValueError):
+        contract("ii->i", np.arange(6).reshape(2, 3))
+
+    # broadcasting to new dimensions must be enabled explicitly
+    with pytest.raises(ValueError):
+        contract("i", np.arange(6).reshape(2, 3))
+    with pytest.raises(ValueError):
+        contract("i->i", [[0, 1], [0, 1]], out=np.arange(4).reshape(2, 2))
+
 
 
 @pytest.mark.parametrize("string", [
