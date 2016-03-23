@@ -46,3 +46,6 @@ script:
 
 # after_success:
 #   - ./tools/travis-upload-wheel.sh
+
+notifications:
+    email: false
