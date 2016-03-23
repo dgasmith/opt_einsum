@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def _compute_size_by_dict(indices, idx_dict):
     """
     Computes the product of the elements in indices based on the dictionary
@@ -107,7 +108,7 @@ def _path_optimal(input_sets, output_set, idx_dict, memory_limit):
             new_cost += cost
             new_pos = positions + [tuple(range(len(remaining)))]
             memory_limited.append((new_cost, new_pos, []))
-                     
+
             for con in comb_iter:
 
                 contract = _find_contraction(con, remaining, output_set)
@@ -317,7 +318,7 @@ def contract(subscripts, *operands, **kwargs):
     """
 
     # Parse input
-    if not isinstance(subscripts, basestring):
+    if not isinstance(subscripts, str):
         raise TypeError('Subscripts must be a string.')
 
     if ('-' in subscripts) or ('>' in subscripts):
@@ -350,7 +351,7 @@ def contract(subscripts, *operands, **kwargs):
 
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
-    input_sets = map(set, input_list)
+    input_sets = list(map(set, input_list))
     output_set = set(output_subscript)
     indices = set(input_subscripts.replace(',', ''))
 
@@ -363,7 +364,7 @@ def contract(subscripts, *operands, **kwargs):
     arr_dtype = np.result_type(*operands)
     operands = [np.asanyarray(v) for v in operands]
     einsum_args = {'dtype': arr_dtype}
-    #einsum_args = {'dtype': arr_dtype, 'order': 'C'}
+    # einsum_args = {'dtype': arr_dtype, 'order': 'C'}
 
     # Get length of each unique dimension and ensure all dimension are correct
     dimension_dict = {}
@@ -374,7 +375,7 @@ def contract(subscripts, *operands, **kwargs):
               correct number of indices for operand %d.", operands[tnum], tnum)
         for cnum, char in enumerate(term):
             dim = sh[cnum]
-            if char in dimension_dict.keys():
+            if char in list(dimension_dict.keys()):
                 if dimension_dict[char] != dim:
                     raise ValueError("Size of label '%s' for operand %d does \
                                       not match previous terms.", char, tnum)
