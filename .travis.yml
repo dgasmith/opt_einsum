@@ -16,14 +16,14 @@ sudo: false
 #       # Speedup builds, particularly when USE_CHROOT=1
 #       - eatmydata
 
-cache:
-  directories:
-    - $HOME/.cache/pip
-
-python:
-  - 2.7
-  - 3.4
-  - 3.5
+# cache:
+#   directories:
+#     - $HOME/.cache/pip
+# 
+# python:
+#   - 2.7
+#   - 3.4
+#   - 3.5
 
 matrix:
   include:
