@@ -1,7 +1,6 @@
 opt_einsum
 ==========
 
------------------
 |  **`Travis CI Status`**   |
 |-------------------|
 | [![Build Status](https://travis-ci.org/dgasmith/opt_einsum.svg?branch=numpy_pr)](https://travis-ci.org/dgasmith/opt_einsum) |
