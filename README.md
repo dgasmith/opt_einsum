@@ -1,6 +1,11 @@
 opt_einsum
 ==========
 
+-----------------
+|  **`Travis CI Status`**   |
+|-------------------|
+| [![Build Status](https://travis-ci.org/dgasmith/opt_einsum.svg?branch=numpy_pr)](https://travis-ci.org/dgasmith/opt_einsum) |
+
 If this grows any further it might be a good idea to migrate to the wiki.
 
 # TOC
