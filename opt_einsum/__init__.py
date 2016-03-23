@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def _compute_size_by_dict(indices, idx_dict):
     """
     Computes the product of the elements in indices based on the dictionary
@@ -94,7 +95,7 @@ def _path_optimal(input_sets, output_set, idx_dict, memory_limit):
         comb_iter = []
         for x in range(len(input_sets) - iteration):
             for y in range(x + 1, len(input_sets) - iteration):
-                comb_iter.append((x,y))
+                comb_iter.append((x, y))
         for curr in current:
             cost, positions, remaining = curr
 
@@ -107,11 +108,12 @@ def _path_optimal(input_sets, output_set, idx_dict, memory_limit):
             new_cost += cost
             new_pos = positions + [tuple(range(len(remaining)))]
             memory_limited.append((new_cost, new_pos, []))
-                     
+
             for con in comb_iter:
 
                 contract = _find_contraction(con, remaining, output_set)
-                new_result, new_input_sets, idx_removed, idx_contract = contract
+                new_result, new_input_sets, idx_removed, idx_contract \
+                    = contract
 
                 # Sieve the results based on memory_limit
                 new_size = _compute_size_by_dict(new_result, idx_dict)
@@ -165,7 +167,7 @@ def _path_opportunistic(input_sets, output_set, idx_dict, memory_limit):
         comb_iter = []
         for x in range(len(input_sets)):
             for y in range(x + 1, len(input_sets)):
-                comb_iter.append((x,y))
+                comb_iter.append((x, y))
         for positions in comb_iter:
 
             contract = _find_contraction(positions, input_sets, output_set)
@@ -256,7 +258,7 @@ def contract(subscripts, *operands, **kwargs):
 
     The amount of extra memory used by this function depends greatly on the
     einsum expression and BLAS usage.  Without BLAS the maximum memory used is:
-    ``(number_of_terms / 2) * memory_limit``.  With BLAS the maximum memory used
+    ``(number_of_terms / 2) * memory_limit``. With BLAS the maximum memory used
     is: ``max((number_of_terms / 2), 2) * memory_limit``.  For most operations
     the memory usage is approximately equivalent to the memory_limit.
 
@@ -264,28 +266,31 @@ def contract(subscripts, *operands, **kwargs):
     One operand operations are supported by calling `np.einsum`.  Two operand
     operations are first checked to see if a BLAS call can be utilized then
     defaulted to einsum.  For example ``np.contract('ab,bc->', a, b)`` and
-    ``np.contract('ab,cb->', a, b)`` are prototypical matrix matrix multiplication
-    examples.  Higher dimensional matrix matrix multiplicaitons are also considered
-    such as ``np.contract('abcd,cdef', a, b)`` and ``np.contract('abcd,cefd', a,
-    b)``.  For the former, GEMM can be called without copying data; however, the
-    latter requires a copy of the second operand.  For all matrix matrix
-    multiplication examples it is beneficial to copy the data and call GEMM;
-    however, for matrix vector multiplication it is not beneficial to do so.  For
-    example ``np.contract('abcd,cd', a, b)`` will call GEMV while
-    ``np.contract('abcd,ad', a, b)`` will call einsum as copying the first operand
-    then calling GEMV does not provide a speed up compared to calling einsum.
+    ``np.contract('ab,cb->', a, b)`` are prototypical matrix matrix
+    multiplication examples. Higher dimensional matrix matrix multiplicaitons
+    are also considered such as ``np.contract('abcd,cdef', a, b)`` and
+    ``np.contract('abcd,cefd', a, b)``. For the former, GEMM can be called
+    without copying data; however, the latter requires a copy of the second
+    operand.  For all matrix matrix multiplication examples it is beneficial
+    to copy the data and call GEMM; however, for matrix vector multiplication
+    it is not beneficial to do so. For example
+    ``np.contract('abcd,cd', a, b)`` will call GEMV while
+    ``np.contract('abcd,ad', a, b)`` will call einsum as
+    copying the first operand then calling GEMV does not provide a speed up
+    compared to calling einsum.
 
     For three or more operands contract computes the optimal order of two and
     one operand operations.  The `optimal` path scales like N! where N is the
-    number of terms and is found by calculating the cost of every possible path and
-    choosing the lowest cost.  This path can be more costly to compute than the
-    contraction itself for a large number of terms (~N>7).  The `opportunistic`
-    path scales like N^3 and first tries to do any matrix matrix multiplications,
-    then inner products, and finally outer products.  This path usually takes a
-    trivial amount of time to compute unless the number of terms is extremely large
-    (~N>20).  The opportunistic path typically computes the most optimal path, but
-    is not guaranteed to do so.  Both of these algorithms are sieved by the
-    variable memory to prevent very large tensors from being formed.
+    number of terms and is found by calculating the cost of every possible
+    path and choosing the lowest cost. This path can be more costly to
+    compute than the contraction itself for a large number of terms (~N>7).
+    The `opportunistic` path scales like N^3 and first tries to do any
+    matrix matrix multiplications, then inner products, and finally outer
+    products. This path usually takes a trivial amount of time to compute
+    unless the number of terms is extremely large (~N>20). The opportunistic
+    path typically computes the most optimal path, but is not guaranteed to
+    do so. Both of these algorithms are sieved by the variable memory to
+    prevent very large tensors from being formed.
 
     Examples
     --------
@@ -297,27 +302,33 @@ def contract(subscripts, *operands, **kwargs):
 
     >>> I = np.random.rand(10, 10, 10, 10)
     >>> C = np.random.rand(10, 10)
-    >>> opt_path = contract('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, return_path=True)
+    >>> opt_path = contract(
+            'ea,fb,abcd,gc,hd->efgh',
+            C, C, I, C, C,
+            return_path=True
+        )
 
     >>> print(opt_path[0])
     [(2, 0), (3, 0), (2, 0), (1, 0)]
     >>> print(opt_path[1])
     Complete contraction:  ea,fb,abcd,gc,hd->efgh
            Naive scaling:   8
-    --------------------------------------------------------------------------------
-    scaling   BLAS                  current                                remaining
-    --------------------------------------------------------------------------------
-       5     False            abcd,ea->bcde                      fb,gc,hd,bcde->efgh
-       5     False            bcde,fb->cdef                         gc,hd,cdef->efgh
-       5     False            cdef,gc->defg                            hd,defg->efgh
-       5     False            defg,hd->efgh                               efgh->efgh
-    >>> ein_result = np.einsum('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, path=opt_path[0])
+    ---------------------------------------------------------------------------
+    scaling   BLAS                  current                           remaining
+    ---------------------------------------------------------------------------
+       5     False            abcd,ea->bcde                 fb,gc,hd,bcde->efgh
+       5     False            bcde,fb->cdef                    gc,hd,cdef->efgh
+       5     False            cdef,gc->defg                       hd,defg->efgh
+       5     False            defg,hd->efgh                          efgh->efgh
+    >>> ein_result = np.einsum(
+            'ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, path=opt_path[0]
+        )
     >>> np.allclose(ein_result, opt_result)
     True
     """
 
     # Parse input
-    if not isinstance(subscripts, basestring):
+    if not isinstance(subscripts, str):
         raise TypeError('Subscripts must be a string.')
 
     if ('-' in subscripts) or ('>' in subscripts):
@@ -350,7 +361,7 @@ def contract(subscripts, *operands, **kwargs):
 
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
-    input_sets = map(set, input_list)
+    input_sets = list(map(set, input_list))
     output_set = set(output_subscript)
     indices = set(input_subscripts.replace(',', ''))
 
@@ -363,7 +374,7 @@ def contract(subscripts, *operands, **kwargs):
     arr_dtype = np.result_type(*operands)
     operands = [np.asanyarray(v) for v in operands]
     einsum_args = {'dtype': arr_dtype}
-    #einsum_args = {'dtype': arr_dtype, 'order': 'C'}
+    # einsum_args = {'dtype': arr_dtype, 'order': 'C'}
 
     # Get length of each unique dimension and ensure all dimension are correct
     dimension_dict = {}
@@ -374,7 +385,7 @@ def contract(subscripts, *operands, **kwargs):
               correct number of indices for operand %d.", operands[tnum], tnum)
         for cnum, char in enumerate(term):
             dim = sh[cnum]
-            if char in dimension_dict.keys():
+            if char in list(dimension_dict.keys()):
                 if dimension_dict[char] != dim:
                     raise ValueError("Size of label '%s' for operand %d does \
                                       not match previous terms.", char, tnum)
@@ -388,7 +399,7 @@ def contract(subscripts, *operands, **kwargs):
     out_size = max(size_list)
 
     # Grab a few kwargs
-    tdot_arg = kwargs.get("tensordot", True)
+    # tdot_arg = kwargs.get("tensordot", True)
     path_arg = kwargs.get("path", "opportunistic")
     memory_arg = kwargs.get("memory_limit", out_size)
     return_path_arg = kwargs.get("return_path", False)
@@ -413,9 +424,13 @@ def contract(subscripts, *operands, **kwargs):
     elif path_arg == "opportunistic":
         # Maximum memory should be at most out_size for this algorithm
         memory_arg = min(memory_arg, out_size)
-        path = _path_opportunistic(input_sets, output_set, dimension_dict, memory_arg)
+        path = _path_opportunistic(
+            input_sets, output_set, dimension_dict, memory_arg
+        )
     elif path_arg == "optimal":
-        path = _path_optimal(input_sets, output_set, dimension_dict, memory_arg)
+        path = _path_optimal(
+            input_sets, output_set, dimension_dict, memory_arg
+        )
     else:
         raise KeyError("Path name %s not found", path_arg)
 
