@@ -1,2 +1,3 @@
-from contract import contract
-import paths
+from .contract import contract, contract_path
+from . import paths
+
