@@ -1,9 +1,10 @@
 opt_einsum
 ==========
 
-|  **`Travis CI Status`**   |
-|-------------------|
-| [![Build Status](https://travis-ci.org/dgasmith/opt_einsum.svg?branch=numpy_pr)](https://travis-ci.org/dgasmith/opt_einsum) |
+|  **`Travis CI Status`**   |  **`CodeCov`**   |
+|:-------------------:|:-------------------:|
+| [![Build Status](https://travis-ci.org/dgasmith/opt_einsum.svg?branch=numpy_pr)](https://travis-ci.org/dgasmith/opt_einsum) |[![codecov.io](https://codecov.io/github/dgasmith/opt_einsum/coverage.svg?branch=master)](https://codecov.io/github/dgasmith/opt_einsum?branch=master)|
+
 
 If this grows any further it might be a good idea to migrate to the wiki.
 
