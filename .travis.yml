@@ -40,6 +40,7 @@ before_install:
   - pip install --upgrade pip setuptools
   - pip install pytest pytest-cov
   - pip install numpy
+  - pip install codecov
 
 script:
   - py.test -v
@@ -49,3 +50,6 @@ script:
 
 notifications:
     email: false
+
+after_success:
+  - codecov
