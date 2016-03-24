@@ -43,7 +43,7 @@ before_install:
   - pip install codecov
 
 script:
-  - py.test -v
+  - py.test -v --cov=./
 
 # after_success:
 #   - ./tools/travis-upload-wheel.sh
