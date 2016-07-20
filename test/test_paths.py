@@ -65,5 +65,5 @@ def test_path_greedy():
     assert assert_contract_order(test_func, test_data, 0, [(0, 1, 2)])
 
 
-
+    
 
