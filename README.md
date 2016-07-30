@@ -43,7 +43,7 @@ def optimized(I, C):
     return K
 ```
 
-The einsum function does not consider building intermediate arrays; therefore, helping einsum out by building intermediate arrays can result in a considerable cost savings even for small N (N=10):
+The einsum function does not consider building intermediate arrays; therefore, helping einsum out by building these intermediate arrays can result in a considerable cost savings even for small N (N=10):
 
 ```python
 np.allclose(naive(I, C), optimized(I, C))
@@ -58,8 +58,21 @@ True
 
 The index transformation is a well known contraction that leads to straightforward intermediates.
 This contraction can be further complicated by considering that the shape of the C matrices need not be the same, in this case the ordering in which the indices are transformed matters greatly.
-Logic can be built that optimizes the ordering; however, this is a lot of time and effort for a single expression. 
-Now lets consider the following expression found in a perturbation theory (one of ~5,000 such expressions):
+Logic can be built that optimizes the ordering; however, this is a lot of time and effort for a single expression.
+
+The opt_einsum package is a drop in replacement for the np.einsum function and can handle all of the logic for you:
+
+```python
+from opt_einsum import contract
+
+contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
+```
+
+The above will automatically find the optimal contraction order, in this case identical to that of the optimized function above, and compute the products for you. In this case, it even uses np.dot under the hood to exploit any vendor BLAS functionality that your NumPy build has!
+
+## Obtaining the path expression
+
+Now, lets consider the following expression found in a perturbation theory (one of ~5,000 such expressions):
 `bdik,acaj,ikab,ajac,ikbd`
 
 At first, it would appear that this scales like N^7 as there are 7 unique indices; however, we can define a intermediate to reduce this scaling.
@@ -203,3 +216,5 @@ Testing this function thoroughly is absolutely crucial; the testing scripts do r
 
 Thanks to [Nils Werner](https://github.com/nils-werner) `opt_einsum` can be installed with the line `pip install -e .[tests]`.
 Test cases can then be run with `py.test -v`.
+
+We are also now on PyPi: `pip install opt_einsum`
