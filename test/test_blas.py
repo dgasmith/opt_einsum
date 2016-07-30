@@ -2,8 +2,7 @@ from __future__ import division, absolute_import, print_function
 
 import numpy as np
 import pytest
-from opt_einsum import blas
-import build_views as bv
+from opt_einsum import blas, helpers
 
 blas_tests = [
     # DOT
@@ -82,7 +81,7 @@ def test_tensor_blas(inp, benchmark):
         assert False
         return
 
-    view_left, view_right = bv.build_views(einsum_str)
+    view_left, view_right = helpers.build_views(einsum_str)
 
     einsum_result = np.einsum(einsum_str, view_left, view_right)
     blas_result = blas.tensor_blas(view_left, tensor_strs[0],

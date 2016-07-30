@@ -1,8 +1,7 @@
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
-from opt_einsum import contract, contract_path
-import build_views as bv
+from opt_einsum import contract, contract_path, helpers
 import pytest
 
 tests = [
@@ -89,7 +88,7 @@ tests = [
 ]
 @pytest.mark.parametrize("string", tests)
 def test_compare(string):
-    views = bv.build_views(string)
+    views = helpers.build_views(string)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(string, *views, tensordot=False)
@@ -100,7 +99,7 @@ def test_compare(string):
 
 @pytest.mark.parametrize("string", tests)
 def test_compare_blas(string):
-    views = bv.build_views(string)
+    views = helpers.build_views(string)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(string, *views, tensordot=True)
@@ -111,9 +110,9 @@ def test_compare_blas(string):
 
 def test_printing():
     string = "bbd,bda,fc,db->acf"
-    views = bv.build_views(string)
+    views = helpers.build_views(string)
 
     ein = contract_path(string, *views, optimize=False)
     print(ein[1])
-    assert len(ein[1]) == 703
+    assert len(ein[1]) == 729
 

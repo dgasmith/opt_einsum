@@ -43,24 +43,25 @@ def contract_path(*operands, **kwargs):
     --------
     >>> I = np.random.rand(10, 10, 10, 10)
     >>> C = np.random.rand(10, 10)
-    >>> opt_path = np.einsum_path('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, return_path=True)
+    >>> path_info = oe.contract_path('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C)
 
-    >>> print(opt_path[0])
-    [(2, 0), (3, 0), (2, 0), (1, 0)]
-    >>> print(opt_path[1])
+    >>> print(path_info[0])
+    [(0, 2), (0, 3), (0, 2), (0, 1)]
+    >>> print(path_info[1])
       Complete contraction:  ea,fb,abcd,gc,hd->efgh
-             Naive scaling:   8
-          Naive FLOP count:  1.000e+09
+             Naive scaling:  8
+         Optimized scaling:  5
+          Naive FLOP count:  8.000e+08
       Optimized FLOP count:  8.000e+05
-       Theoretical speedup:  1250.000
+       Theoretical speedup:  1000.000
       Largest intermediate:  1.000e+04 elements
     --------------------------------------------------------------------------------
     scaling   BLAS                  current                                remaining
     --------------------------------------------------------------------------------
-       5     False            abcd,ea->bcde                      fb,gc,hd,bcde->efgh
-       5     False            bcde,fb->cdef                         gc,hd,cdef->efgh
-       5     False            cdef,gc->defg                            hd,defg->efgh
-       5     False            defg,hd->efgh                               efgh->efgh
+       5      GEMM            abcd,ea->bcde                      fb,gc,hd,bcde->efgh
+       5      GEMM            bcde,fb->cdef                         gc,hd,cdef->efgh
+       5      GEMM            cdef,gc->defg                            hd,defg->efgh
+       5      GEMM            defg,hd->efgh                               efgh->efgh
     """
 
     path_arg = kwargs.pop("path", "greedy")
@@ -188,7 +189,8 @@ def contract_path(*operands, **kwargs):
     header = ("scaling", "BLAS", "current", "remaining")
 
     path_print  = "  Complete contraction:  %s\n" % overall_contraction
-    path_print += "         Naive scaling:  %2d\n" % len(indices)
+    path_print += "         Naive scaling:  %d\n" % len(indices)
+    path_print += "     Optimized scaling:  %d\n" % max(scale_list)
     path_print += "      Naive FLOP count:  %.3e\n" % naive_cost
     path_print += "  Optimized FLOP count:  %.3e\n" % opt_cost
     path_print += "   Theoretical speedup:  %3.3f\n" % (naive_cost / float(opt_cost))

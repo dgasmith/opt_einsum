@@ -3,10 +3,11 @@ import setuptools
 if __name__ == "__main__":
     setuptools.setup(
         name='opt_einsum',
-        version="0.2.0",
+        version="0.2.1",
         description='Optimizing numpys einsum function',
         author='Daniel Smith',
-        author_email='malorian@me.com',
+        author_email='dgasmith@icloud.com',
+        url="https://github.com/dgasmith/opt_einsum",
         license='MIT',
         packages=setuptools.find_packages(),
         install_requires=[
@@ -20,7 +21,6 @@ if __name__ == "__main__":
                 'numpydoc',
             ],
             'tests': [
-                'pandas',
                 'pytest',
                 'pytest-cov',
                 'pytest-pep8',
@@ -29,7 +29,6 @@ if __name__ == "__main__":
         },
 
         tests_require=[
-            'pandas',
             'pytest',
             'pytest-cov',
             'pytest-pep8',
