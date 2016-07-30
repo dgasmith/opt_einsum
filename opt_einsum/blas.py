@@ -1,5 +1,5 @@
 import numpy as np
-import paths
+from . import paths
 
 
 def can_blas(inputs, result, idx_removed):
