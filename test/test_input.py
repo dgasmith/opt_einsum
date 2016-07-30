@@ -176,6 +176,9 @@ def test_ellipse_input4():
     views = build_views(string)
 
     ein = contract(string, *views, optimize=False)
+    print(ein)
+    print('----------')
     opt = contract(views[0], [Ellipsis, 1], views[1], [Ellipsis, 0], [Ellipsis])
+    print(opt)
     assert np.allclose(ein, opt)
 

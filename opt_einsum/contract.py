@@ -1,10 +1,11 @@
 from . import paths
 from . import parser
+from . import blas
 import numpy as np
 
 def contract_path(*operands, **kwargs):
     """
-    Evaluates the lowest cost contraction order for a given set of contrains.
+    Evaluates the lowest cost contraction order for a given set of contraints.
 
     Parameters
     ----------
@@ -64,6 +65,7 @@ def contract_path(*operands, **kwargs):
 
     path_arg = kwargs.pop("path", "greedy")
     memory_limit = kwargs.pop('memory_limit', None)
+    tensordot = kwargs.pop('tensordot', True)
 
     # Hidden option, only einsum should call this
     einsum_call_arg = kwargs.pop("einsum_call", False)
@@ -83,13 +85,14 @@ def contract_path(*operands, **kwargs):
     for tnum, term in enumerate(input_list):
         sh = operands[tnum].shape
         if len(sh) != len(term):
-            raise ValueError("Einstein sum subscript %s does not contain the "\
-              "correct number of indices for operand %d.", input_subscripts[tnum], tnum)
+            raise ValueError("Einstein sum subscript %s does not contain the "
+                             "correct number of indices for operand %d.",
+                             input_subscripts[tnum], tnum)
         for cnum, char in enumerate(term):
             dim = sh[cnum]
             if char in dimension_dict.keys():
                 if dimension_dict[char] != dim:
-                    raise ValueError("Size of label '%s' for operand %d does "\
+                    raise ValueError("Size of label '%s' for operand %d does "
                                      "not match previous terms.", char, tnum)
             else:
                 dimension_dict[char] = dim
@@ -163,7 +166,13 @@ def contract_path(*operands, **kwargs):
 
         input_list.append(idx_result)
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
-        contraction = (contract_inds, False, einsum_str, input_list[:])
+
+        if tensordot:
+            can_gemm = blas.can_blas(tmp_inputs, idx_result, idx_removed)
+        else:
+            can_gemm = False
+
+        contraction = (contract_inds, idx_removed, can_gemm, einsum_str, input_list[:])
         contraction_list.append(contraction)
 
     opt_cost = sum(cost_list)
@@ -180,18 +189,19 @@ def contract_path(*operands, **kwargs):
     path_print += "      Naive FLOP count:  %.3e\n" % naive_cost
     path_print += "  Optimized FLOP count:  %.3e\n" % opt_cost
     path_print += "   Theoretical speedup:  %3.3f\n" % (naive_cost / float(opt_cost))
-    path_print += "  Largest intermediate:  %.3e elements\n" % max(size_list) 
+    path_print += "  Largest intermediate:  %.3e elements\n" % max(size_list)
     path_print += "-" * 80 + "\n"
     path_print += "%6s %6s %24s %40s\n" % header
     path_print += "-" * 80
 
     for n, contraction in enumerate(contraction_list):
-        inds, gemm, einsum_str, remaining = contraction
+        inds, idx_rm, gemm, einsum_str, remaining = contraction
         remaining_str = ",".join(remaining) + "->" + output_subscript
         path_run = (scale_list[n], gemm, einsum_str, remaining_str)
         path_print += "\n%4d    %6s %24s %40s" % path_run
 
     return (path, path_print)
+
 
 # Rewrite einsum to handle different cases
 def contract(*operands, **kwargs):
@@ -291,40 +301,64 @@ def contract(*operands, **kwargs):
     if optimize_arg is True:
         optimize_arg = 'greedy'
 
+    valid_einsum_kwargs = ['out', 'dtype', 'order', 'casting']
+    einsum_kwargs = {k: v for (k, v) in kwargs.items() if k in valid_einsum_kwargs}
+
     # If no optimization, run pure einsum
     if (optimize_arg is False):
-        return np.einsum(*operands, **kwargs)
+        return np.einsum(*operands, **einsum_kwargs)
+
+    # Make sure all keywords are valid
+    valid_contract_kwargs = ['tensordot', 'path', 'memory_limit'] + valid_einsum_kwargs
+    unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
+    if len(unknown_kwargs):
+        raise TypeError("Contract: Did not understand the following kwargs: %s" % unknown_kwargs)
+
+    use_tensordot = kwargs.pop('tensordot', True)
 
     # Special handeling if out is specified
     specified_out = False
     out_array = kwargs.pop('out', None)
     if out_array is not None:
         specified_out = True
-  
-    # Build the contraction list and operand 
+
+    # Build the contraction list and operand
     memory_limit = kwargs.pop('memory_limit', None)
     operands, contraction_list = contract_path(*operands, path=optimize_arg,
-                                    memory_limit=memory_limit, einsum_call=True) 
+                                               memory_limit=memory_limit,
+                                               einsum_call=True,
+                                               tensordot=use_tensordot)
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
-        inds, gemm, einsum_str, remaining = contraction
+        inds, idx_rm, gemm, einsum_str, remaining = contraction
         tmp_operands = []
         for x in inds:
             tmp_operands.append(operands.pop(x))
-       
+
         # If out was specified
         if specified_out and ((num + 1) == len(contraction_list)):
             kwargs["out"] = out_array
 
         # Do the contraction
-        new_view = np.einsum(einsum_str, *tmp_operands, **kwargs)
+        if gemm is False:
+            new_view = np.einsum(einsum_str, *tmp_operands, **einsum_kwargs)
+        else:
+            inputs, result = einsum_str.split('->')
+            inds1, inds2 = inputs.split(',')
+            new_view = blas.tensor_blas(tmp_operands[0], inds1,
+                                        tmp_operands[1], inds2,
+                                        result, idx_rm)
+
+            # Poor way to handle this for now
+            if 'out' in kwargs:
+                kwargs['out'][:] = new_view
 
         # Append new items and derefernce what we can
         operands.append(new_view)
         del tmp_operands, new_view
 
     if specified_out:
-        return None
+        return out_array
     else:
         return operands[0]

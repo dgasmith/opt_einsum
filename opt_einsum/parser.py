@@ -3,6 +3,7 @@ import numpy as np
 einsum_symbols = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 einsum_symbols_set = set(einsum_symbols)
 
+
 def parse_einsum_input(operands):
     """
     A reproduction of einsum c side einsum parsing in python.
@@ -62,11 +63,11 @@ def parse_einsum_input(operands):
                 elif isinstance(s, int):
                     subscripts += einsum_symbols[s]
                 else:
-                    raise TypeError("For this input type lists must contain " \
+                    raise TypeError("For this input type lists must contain "
                                     "either int or Ellipsis")
             if num != last:
                 subscripts += ","
- 
+
         if output_list is not None:
             subscripts += "->"
             for s in output_list:
@@ -75,7 +76,7 @@ def parse_einsum_input(operands):
                 elif isinstance(s, int):
                     subscripts += einsum_symbols[s]
                 else:
-                    raise TypeError("For this input type lists must contain " \
+                    raise TypeError("For this input type lists must contain "
                                     "either int or Ellipsis")
     # Checkout for proper "->"
     if ("-" in subscripts) or (">" in subscripts):
@@ -85,7 +86,7 @@ def parse_einsum_input(operands):
 
     # Parse ellipses
     if "." in subscripts:
-        used = subscripts.replace(".", "").replace(",","").replace("->","")
+        used = subscripts.replace(".", "").replace(",", "").replace("->", "")
         unused = list(einsum_symbols_set - set(used))
         ellipse_inds = "".join(unused)
         longest = 0
@@ -123,7 +124,7 @@ def parse_einsum_input(operands):
         if out_sub:
             subscripts += "->" + output_sub.replace("...", out_ellipse)
         else:
-            # Special care for outputless ellipses 
+            # Special care for outputless ellipses
             output_subscript = ""
             tmp_subscripts = subscripts.replace(",", "")
             for s in sorted(set(tmp_subscripts)):
@@ -156,7 +157,7 @@ def parse_einsum_input(operands):
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(',')) != len(operands):
-        raise ValueError("Number of einsum subscripts must be equal to the "\
-                          "number of operands.")
+        raise ValueError("Number of einsum subscripts must be equal to the "
+                         "number of operands.")
 
     return (input_subscripts, output_subscript, operands)

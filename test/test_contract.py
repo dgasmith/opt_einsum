@@ -2,21 +2,10 @@ from __future__ import division, absolute_import, print_function
 
 import numpy as np
 from opt_einsum import contract, contract_path
+import build_views as bv
 import pytest
 
-def build_views(string):
-    chars = 'abcdefghij'
-    sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
-    sizes = {c: s for c, s in zip(chars, sizes)}
-
-    views = []
-    terms = string.split('->')[0].split(',')
-    for term in terms:
-        dims = [sizes[x] for x in term]
-        views.append(np.random.rand(*dims))
-    return views
-
-@pytest.mark.parametrize("string", [
+tests = [
     # test_hadamard_like_products
     'a,ab,abc->abc',
     'a,b,ab->ab',
@@ -97,21 +86,34 @@ def build_views(string):
     'bbd,bda,fc,db->acf',
     'dba,ead,cad->bce',
     'aef,fbc,dca->bde',
-])
+]
+@pytest.mark.parametrize("string", tests)
 def test_compare(string):
-    views = build_views(string)
+    views = bv.build_views(string)
 
     ein = contract(string, *views, optimize=False)
-    opt = contract(string, *views)
+    opt = contract(string, *views, tensordot=False)
     assert np.allclose(ein, opt)
 
-    opt = contract(string, *views, optimize='optimal')
+    opt = contract(string, *views, optimize='optimal', tensordot=False)
+    assert np.allclose(ein, opt)
+
+@pytest.mark.parametrize("string", tests)
+def test_compare_blas(string):
+    views = bv.build_views(string)
+
+    ein = contract(string, *views, optimize=False)
+    opt = contract(string, *views, tensordot=True)
+    assert np.allclose(ein, opt)
+
+    opt = contract(string, *views, optimize='optimal', tensordot=True)
     assert np.allclose(ein, opt)
 
 def test_printing():
     string = "bbd,bda,fc,db->acf"
-    views = build_views(string)
+    views = bv.build_views(string)
 
     ein = contract_path(string, *views, optimize=False)
+    print(ein[1])
     assert len(ein[1]) == 703
 

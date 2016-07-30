@@ -1,5 +1,6 @@
 # All possible opt_einsum paths live here
 
+
 def compute_size_by_dict(indices, idx_dict):
     """
     Computes the product of the elements in indices based on the dictionary
@@ -107,6 +108,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
     >>> _path_optimal(isets, oset, idx_sizes, 5000)
     [(0, 2), (0, 1)]
     """
+
 
     new = [] # Incase input_sets < 2
     current = [(0, [], input_sets)]
