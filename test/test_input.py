@@ -48,6 +48,31 @@ def test_type_errors():
     with pytest.raises(TypeError):
         contract(*(None,)*63)
 
+    # Cannot have two ->
+    with pytest.raises(ValueError):
+        contract("->,->", 0, 5)
+
+    # Undefined symbol lhs
+    with pytest.raises(ValueError):
+        contract("&,a->", 0, 5)
+
+    # Undefined symbol rhs
+    with pytest.raises(ValueError):
+        contract("a,a->&", 0, 5)
+
+    with pytest.raises(ValueError):
+        contract("a,a->&", 0, 5)
+
+    # Catch ellipsis errors
+    string = '...a->...a'
+    views = build_views(string)
+
+    with pytest.raises(TypeError):
+        contract(views[0], [Ellipsis, 'a'], [Ellipsis, 0])
+
+    with pytest.raises(TypeError):
+        contract(views[0], [Ellipsis, 0], [Ellipsis, 'a'])
+
 
 def test_value_errors():
     with pytest.raises(ValueError):
@@ -176,9 +201,6 @@ def test_ellipse_input4():
     views = build_views(string)
 
     ein = contract(string, *views, optimize=False)
-    print(ein)
-    print('----------')
     opt = contract(views[0], [Ellipsis, 1], views[1], [Ellipsis, 0], [Ellipsis])
-    print(opt)
     assert np.allclose(ein, opt)
 

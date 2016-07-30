@@ -33,14 +33,24 @@ blas_tests = [
     ((['jli', 'kjl'], 'ki', set('jl')),     'GEMM'), # GEMM T T Tensor
 
    # Tensor Dot (requires copy), lets not deal with this for now
-   ((['ilj', 'jlk'], 'ik', set('jl')),     False), # FT GEMM N N Tensor
-   ((['ijl', 'ljk'], 'ik', set('jl')),     False), # ST GEMM N N Tensor
-   ((['ilj', 'kjl'], 'ik', set('jl')),     False), # FT GEMM N T Tensor 
-   ((['ijl', 'klj'], 'ik', set('jl')),     False), # ST GEMM N T Tensor 
-   ((['lji', 'jlk'], 'ik', set('jl')),     False), # FT GEMM T N Tensor
-   ((['jli', 'ljk'], 'ik', set('jl')),     False), # ST GEMM T N Tensor
-   ((['lji', 'jlk'], 'ik', set('jl')),     False), # FT GEMM T N Tensor
-   ((['jli', 'ljk'], 'ik', set('jl')),     False), # ST GEMM T N Tensor
+   ((['ilj', 'jlk'], 'ik', set('jl')),     'TDOT'), # FT GEMM N N Tensor
+   ((['ijl', 'ljk'], 'ik', set('jl')),     'TDOT'), # ST GEMM N N Tensor
+   ((['ilj', 'kjl'], 'ik', set('jl')),     'TDOT'), # FT GEMM N T Tensor 
+   ((['ijl', 'klj'], 'ik', set('jl')),     'TDOT'), # ST GEMM N T Tensor 
+   ((['lji', 'jlk'], 'ik', set('jl')),     'TDOT'), # FT GEMM T N Tensor
+   ((['jli', 'ljk'], 'ik', set('jl')),     'TDOT'), # ST GEMM T N Tensor
+   ((['lji', 'jlk'], 'ik', set('jl')),     'TDOT'), # FT GEMM T N Tensor
+   ((['jli', 'ljk'], 'ik', set('jl')),     'TDOT'), # ST GEMM T N Tensor
+
+   # Tensor Dot (requires copy), lets not deal with this for now with transpose
+   ((['ilj', 'jlk'], 'ik', set('lj')),     'TDOT'), # FT GEMM N N Tensor
+   ((['ijl', 'ljk'], 'ik', set('lj')),     'TDOT'), # ST GEMM N N Tensor
+   ((['ilj', 'kjl'], 'ik', set('lj')),     'TDOT'), # FT GEMM N T Tensor 
+   ((['ijl', 'klj'], 'ik', set('lj')),     'TDOT'), # ST GEMM N T Tensor 
+   ((['lji', 'jlk'], 'ik', set('lj')),     'TDOT'), # FT GEMM T N Tensor
+   ((['jli', 'ljk'], 'ik', set('lj')),     'TDOT'), # ST GEMM T N Tensor
+   ((['lji', 'jlk'], 'ik', set('lj')),     'TDOT'), # FT GEMM T N Tensor
+   ((['jli', 'ljk'], 'ik', set('lj')),     'TDOT'), # ST GEMM T N Tensor
 
    # Other
    ((['ijk', 'ikj'], '', set('ijk')),       False), # Transpose DOT
@@ -79,6 +89,4 @@ def test_tensor_blas(inp, benchmark):
                                    view_right, tensor_strs[1],
                                    output, reduced_idx)
                                      
-    print(einsum_result)
-    print(blas_result)
     assert np.allclose(einsum_result, blas_result)
