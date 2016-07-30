@@ -169,6 +169,9 @@ def contract_path(*operands, **kwargs):
 
         if tensordot:
             can_gemm = blas.can_blas(tmp_inputs, idx_result, idx_removed)
+            # Dont want to deal with this quite yet
+            if can_gemm == 'TDOT':
+                can_gemm = False
         else:
             can_gemm = False
 

@@ -89,8 +89,7 @@ def can_blas(inputs, result, idx_removed):
 
     # Conventional tensordot
     else:
-        return False
-        # return 'TDOT'
+        return 'TDOT'
 
 
 def tensor_blas(view_left, input_left, view_right, input_right, index_result, idx_removed):
