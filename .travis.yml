@@ -5,26 +5,6 @@ language: python
 # Run jobs on container-based infrastructure, can be overridden per job
 sudo: false
 
-# Travis whitelists the installable packages, additions can be requested
-#   https://github.com/travis-ci/apt-package-whitelist
-# addons:
-#   apt:
-#     packages: &common_packages
-#       - gfortran
-#       - libatlas-dev
-#       - libatlas-base-dev
-#       # Speedup builds, particularly when USE_CHROOT=1
-#       - eatmydata
-
-# cache:
-#   directories:
-#     - $HOME/.cache/pip
-# 
-# python:
-#   - 2.7
-#   - 3.4
-#   - 3.5
-
 matrix:
   include:
     - python: 2.7
@@ -41,6 +21,7 @@ before_install:
   - pip install pytest pytest-cov
   - pip install numpy
   - pip install codecov
+  - pip install -e .
 
 script:
   - py.test -v --cov=./
