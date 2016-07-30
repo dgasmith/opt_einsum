@@ -10,6 +10,7 @@ If this grows any further it might be a good idea to migrate to the wiki.
 
 # TOC
  - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#optimizing-numpys-einsum-function)
+ - [Obtaining the path expression](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#obtaining-the-path-expression)
  - [More details on paths](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#more-details-on-paths)
  - [Finding the optimal path](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#finding-the-optimal-path)
  - [Finding the opportunistic path](https://github.com/dgasmith/opt_einsum/blob/numpy_pr/README.md#finding-the-opportunistic-path)
@@ -84,30 +85,45 @@ At first, it would appear that this scales like N^7 as there are 7 unique indice
 This is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now lets let opt_einsum compute the optimal path:
 
 ```python
-import test_helper as th
-from opt_einsum import opt_einsum
+imoprt opt_einsum as oe
 
-sum_string = 'bdik,acaj,ikab,ajac,ikbd'
+# Take a complex string
+einsum_string = 'bdik,acaj,ikab,ajac,ikbd->'
+
+# Build random views to represent this contraction
+unique_inds = set(einsum_string.replace(',', ''))
 index_size = [10, 17, 9, 10, 13, 16, 15, 14]
-views = th.build_views(sum_string, index_size) # Function that builds random arrays of the correct shape
-ein_result = np.einsum(sum_string, *views)
-opt_ein_result = opt_einsum(sum_string, *views, debug=1)
+sizes_dict = {c : s for c, s in zip(set(einsum_string), index_size)}
+views = oe.helpers.build_views(einsum_string, sizes_dict)
+
+path_info = oe.contract_path(einsum_string, *views)
+>>> print path_info[0]
+[(1, 3), (0, 2), (0, 2), (0, 1)]
+
 ```
 ```
-Complete contraction:  bdik,acaj,ikab,ajac,ikbd->
-       Naive scaling:   7
----------------------------------------------------------------------------------
-scaling   GEMM                   current                                remaining
----------------------------------------------------------------------------------
-   3     False              ajac,acaj->a                       bdik,ikab,ikbd,a->
-   4     False            ikbd,bdik->bik                             ikab,a,bik->
-   4      True               bik,ikab->a                                    a,a->
-   1      True                     a,a->                                      ,->
-   
+>>> print path_info[1]
+  Complete contraction:  bdik,acaj,ikab,ajac,ikbd->
+         Naive scaling:  7
+     Optimized scaling:  4
+      Naive FLOP count:  3.819e+08
+  Optimized FLOP count:  8.000e+04
+   Theoretical speedup:  4773.600
+  Largest intermediate:  1.872e+03 elements
+--------------------------------------------------------------------------------
+scaling   BLAS                  current                                remaining
+--------------------------------------------------------------------------------
+   3     False             ajac,acaj->a                       bdik,ikab,ikbd,a->
+   4     False           ikbd,bdik->bik                             ikab,a,bik->
+   4     False              bik,ikab->a                                    a,a->
+   1       DOT                    a,a->                                       ->
 ```
 ```python
-np.allclose(ein_result, opt_ein_result)
->>> True
+
+einsum_result = np.einsum("bdik,acaj,ikab,ajac,ikbd->", *views)
+contract_result = contract("bdik,acaj,ikab,ajac,ikbd->", *views)
+>>> np.allclose(einsum_result, contract_result)
+True
 ```
 
 By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and small dimensions, opt_einsum is roughly 900 times faster than pure einsum for this expression.
@@ -135,9 +151,9 @@ terms = ['bdik', 'acaj', 'ikab', 'ajac', 'ikbd'] contraction = (1, 3)
 terms = ['bdik', 'ikab', 'ikbd', 'a'] contraction = (0, 2)
   4     False            ikbd,bdik->bik                             ikab,a,bik->
 terms = ['ikab', 'a', 'bik'] contraction = (0, 2)
-  4      True               bik,ikab->a                                    a,a->
+  4     False              bik,ikab->a                                    a,a->
 terms = ['a', 'a'] contraction = (0, 1)
-  1      True                     a,a->                                      ,->
+  1       DOT                    a,a->                                       ->
 ```
 
 
