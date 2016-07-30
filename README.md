@@ -85,7 +85,7 @@ At first, it would appear that this scales like N^7 as there are 7 unique indice
 This is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now lets let opt_einsum compute the optimal path:
 
 ```python
-imoprt opt_einsum as oe
+import opt_einsum as oe
 
 # Take a complex string
 einsum_string = 'bdik,acaj,ikab,ajac,ikbd->'
