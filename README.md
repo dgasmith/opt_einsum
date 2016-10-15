@@ -1,12 +1,7 @@
+[![Build Status](https://travis-ci.org/dgasmith/opt_einsum.svg?branch=master)](https://travis-ci.org/dgasmith/opt_einsum) [![codecov](https://codecov.io/gh/dgasmith/opt_einsum/branch/master/graph/badge.svg)](https://codecov.io/gh/dgasmith/opt_einsum)[![DOI](https://zenodo.org/badge/27930623.svg)](https://zenodo.org/badge/latestdoi/27930623)
+
 opt_einsum
 ==========
-
-|  **`Travis CI Status`**   |  **`CodeCov`**   |  **`Zenodo`**   |
-|:-------------------:|:-------------------:|:-------------------:|
-| [![Build Status](https://travis-ci.org/dgasmith/opt_einsum.svg?branch=master)](https://travis-ci.org/dgasmith/opt_einsum) |[![codecov](https://codecov.io/gh/dgasmith/opt_einsum/branch/master/graph/badge.svg)](https://codecov.io/gh/dgasmith/opt_einsum)| [![DOI](https://zenodo.org/badge/27930623.svg)](https://zenodo.org/badge/latestdoi/27930623) |
-
-
-If this grows any further it might be a good idea to migrate to the wiki.
 
 # TOC
  - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/master/README.md#optimizing-numpys-einsum-function)
