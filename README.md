@@ -3,7 +3,6 @@
 Optimized Einsum: A tensor contraction order optimizer
 ==========
 
-# TOC
  - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/master/README.md#optimizing-numpys-einsum-function)
  - [Obtaining the path expression](https://github.com/dgasmith/opt_einsum/blob/master/README.md#obtaining-the-path-expression)
  - [More details on paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#more-details-on-paths)
