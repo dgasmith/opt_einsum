@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import timeit
 
 import resource
@@ -14,12 +14,12 @@ pd.set_option('display.width', 200)
 opt_path = 'optimal'
 
 # Number of dimensions
-max_dims = 3
+max_dims = 4
 min_dims = 2
 
 # Size of each dimension
-min_size = 10
-max_size = 30
+min_size = 5
+max_size = 8
 
 # Number of terms
 min_terms = 3
@@ -97,29 +97,29 @@ for x in range(200):
 
     out.append([ident, sum_string, index_size, einsum_time, contract_time])
 
-df = pd.DataFrame(out)
-df.columns = ['Flag', 'String', 'Shapes', 'Einsum time', 'Opt_einsum time']
-df['Ratio'] = df['Einsum time']/df['Opt_einsum time']
-
-diff_flags = df['Flag']!=True
-print '\nNumber of contract different than einsum: %d.' % np.sum(diff_flags)
-if sum(diff_flags)>0:
-    print 'Terms different than einsum'
-    print df[df['Flag']!=True]
-
-print '\nDescription of speedup in relative terms:'
-print df['Ratio'].describe()
-
-print '\nNumber of contract slower than einsum:   %d.' % np.sum(df['Ratio']<0.90)
-tmp = df.loc[df['Ratio']<0.90].copy()
-tmp['Diff (us)'] = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
-tmp = tmp.sort('Diff (us)', ascending=False)
-print tmp
-
-#diff_us = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
-print '\nDescription of slowdown:'
-
-print tmp.describe()
+#df = pd.DataFrame(out)
+#df.columns = ['Flag', 'String', 'Shapes', 'Einsum time', 'Opt_einsum time']
+#df['Ratio'] = df['Einsum time']/df['Opt_einsum time']
+#
+#diff_flags = df['Flag']!=True
+#print '\nNumber of contract different than einsum: %d.' % np.sum(diff_flags)
+#if sum(diff_flags)>0:
+#    print 'Terms different than einsum'
+#    print df[df['Flag']!=True]
+#
+#print '\nDescription of speedup in relative terms:'
+#print df['Ratio'].describe()
+#
+#print '\nNumber of contract slower than einsum:   %d.' % np.sum(df['Ratio']<0.90)
+#tmp = df.loc[df['Ratio']<0.90].copy()
+#tmp['Diff (us)'] = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
+#tmp = tmp.sort('Diff (us)', ascending=False)
+#print tmp
+#
+##diff_us = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
+#print '\nDescription of slowdown:'
+#
+#print tmp.describe()
 
 
 

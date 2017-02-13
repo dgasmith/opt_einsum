@@ -78,7 +78,7 @@ def parse_einsum_input(operands):
                 else:
                     raise TypeError("For this input type lists must contain "
                                     "either int or Ellipsis")
-    # Checkout for proper "->"
+    # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):
         invalid = (subscripts.count("-") > 1) or (subscripts.count(">") > 1)
         if invalid or (subscripts.count("->") != 1):
@@ -91,6 +91,7 @@ def parse_einsum_input(operands):
         ellipse_inds = "".join(unused)
         longest = 0
 
+        # Do we have an output to account for?
         if "->" in subscripts:
             input_tmp, output_sub = subscripts.split("->")
             split_subscripts = input_tmp.split(",")
@@ -104,7 +105,12 @@ def parse_einsum_input(operands):
                 if (sub.count(".") != 3) or (sub.count("...") != 1):
                     raise ValueError("Invalid Ellipses.")
 
-                ellipse_count = max(len(operands[num].shape), 1) - (len(sub) - 3)
+                # Take into account numerical values
+                if operands[num].shape == ():
+                    ellipse_count = 0
+                else:
+                    ellipse_count = max(len(operands[num].shape), 1) - (len(sub) - 3)
+
                 if ellipse_count > longest:
                     longest = ellipse_count
 
@@ -116,6 +122,8 @@ def parse_einsum_input(operands):
                     split_subscripts[num] = sub.replace('...', ellipse_inds[-ellipse_count:])
 
         subscripts = ",".join(split_subscripts)
+        
+        # Figure out output ellipses
         if longest == 0:
             out_ellipse = ""
         else:

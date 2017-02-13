@@ -5,7 +5,7 @@ import numpy as np
 
 def contract_path(*operands, **kwargs):
     """
-    Evaluates the lowest cost contraction order for a given set of contraints.
+    Evaluates the lowest cost einsum-like contraction order.
 
     Parameters
     ----------
@@ -13,34 +13,64 @@ def contract_path(*operands, **kwargs):
         Specifies the subscripts for summation.
     *operands : list of array_like
         These are the arrays for the operation.
-    path : bool or list, optional (default: ``greedy``)
+    path_type : bool or list, optional (default: ``greedy``)
         Choose the type of path.
 
         - if a list is given uses this as the path.
-        - 'greedy' A N^3 algorithm that chooses the best pair contraction
-            at each step.
-        - 'optimal' means a N! algorithm that tries all possible ways of
-            contracting the listed tensors.
+        - 'greedy' An algorithm that chooses the best pair contraction
+            at each step. Scales cubically with the number of terms in the
+            contraction.
+        - 'optimal' An algorithm that tries all possible ways of
+            contracting the listed tensors. Scales exponentially with
+            the number of terms in the contraction.
 
     memory_limit : int, optional (default: largest input or output array size)
-        Maximum number of elements allowed in an intermediate array.
+        Maximum number of elements allowed in intermediate arrays.
 
     Returns
     -------
-    path : list
+    path : list of tuples
         The einsum path
-    string_representation : str
+    string_repr : str
         A printable representation of the path
 
     Notes
     -----
-    A path is a list of tuples where the each tuple represents a single
-    contraction. For each tuple, the operands involved in the contraction are popped
-    and the array resulting from the contraction is appended to the end of the
-    operand list.
+    The resulting path indicates which terms of the input contraction should be
+    contracted first, the result of this contraction is then appended to the end of
+    the contraction list.
 
     Examples
     --------
+
+    We can begin with a chain dot example. In this case it is optimal to
+    contract the b and c tensors reprsented by the first element of the path (1,
+    2). The resulting tensor is added to the end of the contraction and the
+    remaining contraction (0, 1) is then completed.
+
+    >>> a = np.random.rand(2, 2)
+    >>> b = np.random.rand(2, 5)
+    >>> c = np.random.rand(5, 2)
+    >>> path_info = opt_einsum.contract_path('ij,jk,kl->il', a, b, c)
+    >>> print(path_info[0])
+    [(1, 2), (0, 1)]
+    >>> print(path_info[1])
+      Complete contraction:  ij,jk,kl->il
+             Naive scaling:  4
+         Optimized scaling:  3
+          Naive FLOP count:  1.600e+02
+      Optimized FLOP count:  5.600e+01
+       Theoretical speedup:  2.857
+      Largest intermediate:  4.000e+00 elements
+    -------------------------------------------------------------------------
+    scaling                  current                                remaining
+    -------------------------------------------------------------------------
+       3                   kl,jk->jl                                ij,jl->il
+       3                   jl,ij->il                                   il->il
+
+
+    A more complex index transformation example.
+
     >>> I = np.random.rand(10, 10, 10, 10)
     >>> C = np.random.rand(10, 10)
     >>> path_info = oe.contract_path('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C)
@@ -55,18 +85,23 @@ def contract_path(*operands, **kwargs):
       Optimized FLOP count:  8.000e+05
        Theoretical speedup:  1000.000
       Largest intermediate:  1.000e+04 elements
-    --------------------------------------------------------------------------------
-    scaling   BLAS                  current                                remaining
-    --------------------------------------------------------------------------------
-       5      GEMM            abcd,ea->bcde                      fb,gc,hd,bcde->efgh
-       5      GEMM            bcde,fb->cdef                         gc,hd,cdef->efgh
-       5      GEMM            cdef,gc->defg                            hd,defg->efgh
-       5      GEMM            defg,hd->efgh                               efgh->efgh
+    --------------------------------------------------------------------------
+    scaling                  current                                remaining
+    --------------------------------------------------------------------------
+       5               abcd,ea->bcde                      fb,gc,hd,bcde->efgh
+       5               bcde,fb->cdef                         gc,hd,cdef->efgh
+       5               cdef,gc->defg                            hd,defg->efgh
+       5               defg,hd->efgh                               efgh->efgh
     """
 
-    path_arg = kwargs.pop("path", "greedy")
+    # Make sure all keywords are valid
+    valid_contract_kwargs = ['path', 'memory_limit', 'einsum_call']
+    unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
+    if len(unknown_kwargs):
+        raise TypeError("einsum_path: Did not understand the following kwargs: %s" % unknown_kwargs)
+
+    path_type = kwargs.pop('path_type', 'greedy')
     memory_limit = kwargs.pop('memory_limit', None)
-    tensordot = kwargs.pop('tensordot', True)
 
     # Hidden option, only einsum should call this
     einsum_call_arg = kwargs.pop("einsum_call", False)
@@ -81,11 +116,12 @@ def contract_path(*operands, **kwargs):
     output_set = set(output_subscript)
     indices = set(input_subscripts.replace(',', ''))
 
-    # Get length of each unique dimension and ensure all dimension are correct
+    # Get length of each unique dimension and ensure all dimensions are correct
     dimension_dict = {}
     for tnum, term in enumerate(input_list):
         sh = operands[tnum].shape
-        if len(sh) != len(term):
+
+        if (len(sh) != len(term)):
             raise ValueError("Einstein sum subscript %s does not contain the "
                              "correct number of indices for operand %d.",
                              input_subscripts[tnum], tnum)
@@ -117,26 +153,30 @@ def contract_path(*operands, **kwargs):
         mult *= 2
     naive_cost *= mult
 
-    # Compute path
-    if not isinstance(path_arg, str):
-        path = path_arg
+    # Compute the path
+    if not isinstance(path_type, str):
+        path = path_type
     elif len(input_list) == 1:
+        # Nothing to be optimized
         path = [(0,)]
     elif len(input_list) == 2:
+        # Nothing to be optimized
         path = [(0, 1)]
     elif (indices == output_set):
         # If no rank reduction leave it to einsum
         path = [tuple(range(len(input_list)))]
-    elif (path_arg in ["greedy", "opportunistic"]):
+    elif (path_type in ["greedy", "opportunistic"]):
         # Maximum memory should be at most out_size for this algorithm
         memory_arg = min(memory_arg, out_size)
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_arg == "optimal":
+    elif path_type == "optimal":
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
     else:
-        raise KeyError("Path name %s not found", path_arg)
+        raise KeyError("Path name %s not found", path_type)
 
-    cost_list, scale_list, size_list = [], [], []
+    cost_list = []
+    scale_list = []
+    size_list = []
     contraction_list = []
 
     # Build contraction tuple (positions, gemm, einsum_str, remaining)
@@ -147,6 +187,7 @@ def contract_path(*operands, **kwargs):
         contract = paths.find_contraction(contract_inds, input_sets, output_set)
         out_inds, input_sets, idx_removed, idx_contract = contract
 
+        # Compute cost, scale, and size
         cost = paths.compute_size_by_dict(idx_contract, dimension_dict)
         if idx_removed:
             cost *= 2
@@ -168,15 +209,7 @@ def contract_path(*operands, **kwargs):
         input_list.append(idx_result)
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
 
-        if tensordot:
-            can_gemm = blas.can_blas(tmp_inputs, idx_result, idx_removed)
-            # Dont want to deal with this quite yet
-            if can_gemm == 'TDOT':
-                can_gemm = False
-        else:
-            can_gemm = False
-
-        contraction = (contract_inds, idx_removed, can_gemm, einsum_str, input_list[:])
+        contraction = (contract_inds, idx_removed, einsum_str, input_list[:])
         contraction_list.append(contraction)
 
     opt_cost = sum(cost_list)
@@ -186,7 +219,7 @@ def contract_path(*operands, **kwargs):
 
     # Return the path along with a nice string representation
     overall_contraction = input_subscripts + "->" + output_subscript
-    header = ("scaling", "BLAS", "current", "remaining")
+    header = ("scaling", "current", "remaining")
 
     path_print  = "  Complete contraction:  %s\n" % overall_contraction
     path_print += "         Naive scaling:  %d\n" % len(indices)
@@ -195,15 +228,15 @@ def contract_path(*operands, **kwargs):
     path_print += "  Optimized FLOP count:  %.3e\n" % opt_cost
     path_print += "   Theoretical speedup:  %3.3f\n" % (naive_cost / float(opt_cost))
     path_print += "  Largest intermediate:  %.3e elements\n" % max(size_list)
-    path_print += "-" * 80 + "\n"
-    path_print += "%6s %6s %24s %40s\n" % header
-    path_print += "-" * 80
+    path_print += "-" * 74 + "\n"
+    path_print += "%6s %24s %40s\n" % header
+    path_print += "-" * 74
 
     for n, contraction in enumerate(contraction_list):
-        inds, idx_rm, gemm, einsum_str, remaining = contraction
+        inds, idx_rm, einsum_str, remaining = contraction
         remaining_str = ",".join(remaining) + "->" + output_subscript
-        path_run = (scale_list[n], gemm, einsum_str, remaining_str)
-        path_print += "\n%4d    %6s %24s %40s" % path_run
+        path_run = (scale_list[n], einsum_str, remaining_str)
+        path_print += "\n%4d    %24s %40s" % path_run
 
     return (path, path_print)
 
@@ -211,94 +244,7 @@ def contract_path(*operands, **kwargs):
 # Rewrite einsum to handle different cases
 def contract(*operands, **kwargs):
     """
-    Evaluates the Einstein summation convention based on the operands,
-    differs from einsum by utilizing intermediate arrays to
-    reduce overall computational time.
-
-    Produces results identical to that of the einsum function; however,
-    the contract function expands on the einsum function by building
-    intermediate arrays to reduce the computational scaling and utilizes
-    BLAS calls when possible.
-
-    Parameters
-    ----------
-    subscripts : str
-        Specifies the subscripts for summation.
-    *operands : list of array_like
-        These are the arrays for the operation.
-    tensordot : bool, optional (default: True)
-        If true use tensordot where possible.
-    path : bool or list, optional (default: ``greedy``)
-        Choose the type of path.
-
-        - if a list is given uses this as the path.
-        - 'greedy' means a N^3 algorithm that greedily
-            chooses the best algorithm.
-        - 'optimal' means a N! algorithm that tries all possible ways of
-            contracting the listed tensors.
-
-    memory_limit : int, optional (default: largest input or output array size)
-        Maximum number of elements allowed in an intermediate array.
-
-
-    Returns
-    -------
-    output : ndarray
-        The results based on Einstein summation convention.
-
-    See Also
-    --------
-    einsum, tensordot, dot
-
-    Notes
-    -----
-    Subscript labels follow the same convention as einsum with the exception
-    that integer indexing and ellipses are not currently supported.
-
-    The amount of extra memory used by this function depends greatly on the
-    einsum expression and BLAS usage.  Without BLAS the maximum memory used is:
-    ``(number_of_terms / 2) * memory_limit``.  With BLAS the maximum memory used
-    is: ``max((number_of_terms / 2), 2) * memory_limit``.  For most operations
-    the memory usage is approximately equivalent to the memory_limit.
-
-    Note: BLAS is not yet implemented in this branch.
-    One operand operations are supported by calling ``np.einsum``.  Two operand
-    operations are first checked to see if a BLAS call can be utilized then
-    defaulted to einsum.  For example ``np.contract('ab,bc->', a, b)`` and
-    ``np.contract('ab,cb->', a, b)`` are prototypical matrix matrix multiplication
-    examples.  Higher dimensional matrix matrix multiplicaitons are also considered
-    such as ``np.contract('abcd,cdef', a, b)`` and ``np.contract('abcd,cefd', a,
-    b)``.  For the former, GEMM can be called without copying data; however, the
-    latter requires a copy of the second operand.  For all matrix matrix
-    multiplication examples it is beneficial to copy the data and call GEMM;
-    however, for matrix vector multiplication it is not beneficial to do so.  For
-    example ``np.contract('abcd,cd', a, b)`` will call GEMV while
-    ``np.contract('abcd,ad', a, b)`` will call einsum as copying the first operand
-    then calling GEMV does not provide a speed up compared to calling einsum.
-
-    For three or more operands contract computes the optimal order of two and
-    one operand operations.  The ``optimal`` path scales like N! where N is the
-    number of terms and is found by calculating the cost of every possible path and
-    choosing the lowest cost.  This path can be more costly to compute than the
-    contraction itself for a large number of terms (~N>7).  The ``greedy``
-    path scales like N^3 and first tries to do any matrix matrix multiplications,
-    then inner products, and finally outer products.  This path usually takes a
-    trivial amount of time to compute unless the number of terms is extremely large
-    (~N>20).  The greedy path typically computes the most optimal path, but
-    is not guaranteed to do so.  Both of these algorithms are sieved by the
-    variable memory to prevent the formation of very large tensors.
-
-    Examples
-    --------
-    A index transformation example, the optimized version runs ~2000 times faster than
-    conventional einsum even for this small example.
-
-    >>> I = np.random.rand(10, 10, 10, 10)
-    >>> C = np.random.rand(10, 10)
-    >>> opt_result = np.einsum('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C, optimize=True)
-    >>> ein_result = np.einsum('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C)
-    >>> np.allclose(ein_result, opt_result)
-    True
+    New features in 1.1 ...
     """
 
     # Grab non-einsum kwargs
@@ -314,50 +260,37 @@ def contract(*operands, **kwargs):
         return np.einsum(*operands, **einsum_kwargs)
 
     # Make sure all keywords are valid
-    valid_contract_kwargs = ['tensordot', 'path', 'memory_limit'] + valid_einsum_kwargs
+    valid_contract_kwargs = ['path', 'memory_limit'] + valid_einsum_kwargs
     unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
     if len(unknown_kwargs):
-        raise TypeError("Contract: Did not understand the following kwargs: %s" % unknown_kwargs)
-
-    use_tensordot = kwargs.pop('tensordot', True)
+        raise TypeError("Did not understand the following kwargs: %s" % unknown_kwargs)
 
     # Special handeling if out is specified
     specified_out = False
-    out_array = kwargs.pop('out', None)
+    out_array = einsum_kwargs.pop('out', None)
     if out_array is not None:
         specified_out = True
+
 
     # Build the contraction list and operand
     memory_limit = kwargs.pop('memory_limit', None)
     operands, contraction_list = contract_path(*operands, path=optimize_arg,
                                                memory_limit=memory_limit,
-                                               einsum_call=True,
-                                               tensordot=use_tensordot)
+                                               einsum_call=True)
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
-        inds, idx_rm, gemm, einsum_str, remaining = contraction
+        inds, idx_rm, einsum_str, remaining = contraction
         tmp_operands = []
         for x in inds:
             tmp_operands.append(operands.pop(x))
 
         # If out was specified
         if specified_out and ((num + 1) == len(contraction_list)):
-            kwargs["out"] = out_array
+            einsum_kwargs["out"] = out_array
 
         # Do the contraction
-        if gemm is False:
-            new_view = np.einsum(einsum_str, *tmp_operands, **einsum_kwargs)
-        else:
-            inputs, result = einsum_str.split('->')
-            inds1, inds2 = inputs.split(',')
-            new_view = blas.tensor_blas(tmp_operands[0], inds1,
-                                        tmp_operands[1], inds2,
-                                        result, idx_rm)
-
-            # Poor way to handle this for now
-            if 'out' in kwargs:
-                kwargs['out'][:] = new_view
+        new_view = np.einsum(einsum_str, *tmp_operands, **einsum_kwargs)
 
         # Append new items and derefernce what we can
         operands.append(new_view)

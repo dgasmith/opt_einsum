@@ -91,10 +91,10 @@ def test_compare(string):
     views = helpers.build_views(string)
 
     ein = contract(string, *views, optimize=False)
-    opt = contract(string, *views, tensordot=False)
+    opt = contract(string, *views)
     assert np.allclose(ein, opt)
 
-    opt = contract(string, *views, optimize='optimal', tensordot=False)
+    opt = contract(string, *views, optimize='optimal')
     assert np.allclose(ein, opt)
 
 @pytest.mark.parametrize("string", tests)
@@ -102,17 +102,17 @@ def test_compare_blas(string):
     views = helpers.build_views(string)
 
     ein = contract(string, *views, optimize=False)
-    opt = contract(string, *views, tensordot=True)
+    opt = contract(string, *views)
     assert np.allclose(ein, opt)
 
-    opt = contract(string, *views, optimize='optimal', tensordot=True)
+    opt = contract(string, *views, optimize='optimal')
     assert np.allclose(ein, opt)
 
-def test_printing():
-    string = "bbd,bda,fc,db->acf"
-    views = helpers.build_views(string)
-
-    ein = contract_path(string, *views, optimize=False)
-    print(ein[1])
-    assert len(ein[1]) == 729
+#def test_printing():
+#    string = "bbd,bda,fc,db->acf"
+#    views = helpers.build_views(string)
+#
+#    ein = contract_path(string, *views, optimize=False)
+#    print(ein[1])
+#    assert len(ein[1]) == 729
 
