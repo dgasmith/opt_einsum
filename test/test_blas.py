@@ -2,7 +2,7 @@ from __future__ import division, absolute_import, print_function
 
 import numpy as np
 import pytest
-from opt_einsum import blas, helpers
+from opt_einsum import blas, helpers, contract
 
 blas_tests = [
     # DOT
@@ -89,3 +89,21 @@ def test_tensor_blas(inp, benchmark):
                                    output, reduced_idx)
                                      
     assert np.allclose(einsum_result, blas_result)
+
+def test_blas_out():
+    a = np.random.rand(4, 4)
+    b = np.random.rand(4, 4)
+    c = np.random.rand(4, 4)
+    d = np.empty((4, 4))
+
+    contract('ij,jk->ik', a, b, out=d)
+
+    assert np.allclose(d, np.dot(a, b))
+    
+    contract('ij,jk,kl->il', a, b, c, out=d)
+
+    assert np.allclose(d, np.dot(a, b).dot(c))
+
+
+
+

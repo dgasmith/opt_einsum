@@ -108,11 +108,10 @@ def test_compare_blas(string):
     opt = contract(string, *views, optimize='optimal')
     assert np.allclose(ein, opt)
 
-#def test_printing():
-#    string = "bbd,bda,fc,db->acf"
-#    views = helpers.build_views(string)
-#
-#    ein = contract_path(string, *views, optimize=False)
-#    print(ein[1])
-#    assert len(ein[1]) == 729
+def test_printing():
+    string = "bbd,bda,fc,db->acf"
+    views = helpers.build_views(string)
+
+    ein = contract_path(string, *views)
+    assert len(ein[1]) == 729
 

@@ -23,6 +23,8 @@ def contract_path(*operands, **kwargs):
         - 'optimal' An algorithm that tries all possible ways of
             contracting the listed tensors. Scales exponentially with
             the number of terms in the contraction.
+    use_blas : bool
+        Use BLAS functions or not
 
     memory_limit : int, optional (default: largest input or output array size)
         Maximum number of elements allowed in intermediate arrays.
@@ -95,7 +97,7 @@ def contract_path(*operands, **kwargs):
     """
 
     # Make sure all keywords are valid
-    valid_contract_kwargs = ['path', 'memory_limit', 'einsum_call']
+    valid_contract_kwargs = ['path', 'memory_limit', 'einsum_call', 'use_blas']
     unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
     if len(unknown_kwargs):
         raise TypeError("einsum_path: Did not understand the following kwargs: %s" % unknown_kwargs)
@@ -105,6 +107,7 @@ def contract_path(*operands, **kwargs):
 
     # Hidden option, only einsum should call this
     einsum_call_arg = kwargs.pop("einsum_call", False)
+    use_blas = kwargs.pop('use_blas', True)
 
     # Python side parsing
     input_subscripts, output_subscript, operands = parser.parse_einsum_input(operands)
@@ -199,6 +202,11 @@ def contract_path(*operands, **kwargs):
         for x in contract_inds:
             tmp_inputs.append(input_list.pop(x))
 
+        if use_blas:
+            do_blas = blas.can_blas(tmp_inputs, out_inds, idx_removed)
+        else:
+            do_blas = False
+
         # Last contraction
         if (cnum - len(path)) == -1:
             idx_result = output_subscript
@@ -209,7 +217,7 @@ def contract_path(*operands, **kwargs):
         input_list.append(idx_result)
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
 
-        contraction = (contract_inds, idx_removed, einsum_str, input_list[:])
+        contraction = (contract_inds, idx_removed, einsum_str, input_list[:], do_blas)
         contraction_list.append(contraction)
 
     opt_cost = sum(cost_list)
@@ -219,7 +227,7 @@ def contract_path(*operands, **kwargs):
 
     # Return the path along with a nice string representation
     overall_contraction = input_subscripts + "->" + output_subscript
-    header = ("scaling", "current", "remaining")
+    header = ("scaling", "BLAS", "current", "remaining")
 
     path_print  = "  Complete contraction:  %s\n" % overall_contraction
     path_print += "         Naive scaling:  %d\n" % len(indices)
@@ -228,15 +236,15 @@ def contract_path(*operands, **kwargs):
     path_print += "  Optimized FLOP count:  %.3e\n" % opt_cost
     path_print += "   Theoretical speedup:  %3.3f\n" % (naive_cost / float(opt_cost))
     path_print += "  Largest intermediate:  %.3e elements\n" % max(size_list)
-    path_print += "-" * 74 + "\n"
-    path_print += "%6s %24s %40s\n" % header
-    path_print += "-" * 74
+    path_print += "-" * 80 + "\n"
+    path_print += "%6s %6s %24s %40s\n" % header
+    path_print += "-" * 80
 
     for n, contraction in enumerate(contraction_list):
-        inds, idx_rm, einsum_str, remaining = contraction
+        inds, idx_rm, einsum_str, remaining, do_blas = contraction
         remaining_str = ",".join(remaining) + "->" + output_subscript
-        path_run = (scale_list[n], einsum_str, remaining_str)
-        path_print += "\n%4d    %24s %40s" % path_run
+        path_run = (scale_list[n], do_blas, einsum_str, remaining_str)
+        path_print += "\n%4d %9s %24s %40s" % path_run
 
     return (path, path_print)
 
@@ -244,6 +252,13 @@ def contract_path(*operands, **kwargs):
 # Rewrite einsum to handle different cases
 def contract(*operands, **kwargs):
     """
+    contract(subscripts, *operands, out=None, dtype=None, order='K',
+           casting='safe', use_blas=False)
+
+    Evaluates the Einstein summation convention on the operands. A drop in
+    replacment for NumPy's einsum function that optimizes the order of contraction
+    to reduce overall scaling at the cost of several intermediate arrays.
+
     New features in 1.1 ...
     """
 
@@ -251,6 +266,8 @@ def contract(*operands, **kwargs):
     optimize_arg = kwargs.pop('optimize', True)
     if optimize_arg is True:
         optimize_arg = 'greedy'
+
+    use_blas = kwargs.pop('use_blas', True)
 
     valid_einsum_kwargs = ['out', 'dtype', 'order', 'casting']
     einsum_kwargs = {k: v for (k, v) in kwargs.items() if k in valid_einsum_kwargs}
@@ -260,7 +277,7 @@ def contract(*operands, **kwargs):
         return np.einsum(*operands, **einsum_kwargs)
 
     # Make sure all keywords are valid
-    valid_contract_kwargs = ['path', 'memory_limit'] + valid_einsum_kwargs
+    valid_contract_kwargs = ['path', 'memory_limit', 'use_blas'] + valid_einsum_kwargs
     unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
     if len(unknown_kwargs):
         raise TypeError("Did not understand the following kwargs: %s" % unknown_kwargs)
@@ -276,21 +293,34 @@ def contract(*operands, **kwargs):
     memory_limit = kwargs.pop('memory_limit', None)
     operands, contraction_list = contract_path(*operands, path=optimize_arg,
                                                memory_limit=memory_limit,
-                                               einsum_call=True)
+                                               einsum_call=True,
+                                               use_blas=use_blas)
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
-        inds, idx_rm, einsum_str, remaining = contraction
+        inds, idx_rm, einsum_str, remaining, do_blas = contraction
         tmp_operands = []
         for x in inds:
             tmp_operands.append(operands.pop(x))
 
-        # If out was specified
-        if specified_out and ((num + 1) == len(contraction_list)):
-            einsum_kwargs["out"] = out_array
+        if do_blas:
+            #print(einsum_str, do_blas)
+            input_str, results_str = einsum_str.split('->')
+            input_str = input_str.split(',')
+            new_view = blas.tensor_blas(tmp_operands[0], input_str[0], tmp_operands[1],
+                                        input_str[1], results_str, idx_rm) 
 
-        # Do the contraction
-        new_view = np.einsum(einsum_str, *tmp_operands, **einsum_kwargs)
+            # If out was specified, poor way of doing this at the moment
+            if specified_out and ((num + 1) == len(contraction_list)):
+                out_array[:] = new_view
+
+        else:
+            # If out was specified
+            if specified_out and ((num + 1) == len(contraction_list)):
+                einsum_kwargs["out"] = out_array
+
+            # Do the contraction
+            new_view = np.einsum(einsum_str, *tmp_operands, **einsum_kwargs)
 
         # Append new items and derefernce what we can
         operands.append(new_view)

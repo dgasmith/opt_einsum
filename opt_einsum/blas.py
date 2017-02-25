@@ -44,6 +44,10 @@ def can_blas(inputs, result, idx_removed):
     if len(inputs) != 2:
         return False
 
+    # Make sure there is overlap
+    if len(set(inputs[0]) & set(inputs[1])) == 0:
+        return False
+
     # Build a few temporaries
     sets = [set(x) for x in inputs]
     keep_left = sets[0] - idx_removed
@@ -94,11 +98,22 @@ def can_blas(inputs, result, idx_removed):
 
 def tensor_blas(view_left, input_left, view_right, input_right, index_result, idx_removed):
     """
-    Computes the DOT product between two tensors
+    Computes the dot product between two tensors, attempts to use np.dot and then tensordot if that fails.
 
     Parameters
     ----------
-
+    view_left : array_like
+        The left hand view
+    input_left : str
+        Indices of the left view
+    view_right : array_like
+        The right hand view
+    input_right : str
+        Indices of the right view
+    index_result : str
+        The resulting indices
+    idx_removed : set
+        Indices removed in the contraction
 
     Returns
     -------
@@ -107,21 +122,23 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
 
     Notes
     -----
-    Currently does little checks to ensure the accuracy of results
+    Interior function for tensor BLAS.
 
     Examples
     --------
-    >>> _can_blas(['ij', 'jk'], 'ik', set('j'))
-    'GEMM'
 
-    >>> _can_blas(['ijj', 'jk'], 'ik', set('j'))
-    False
+    >>> a = np.random.rand(4, 4)
+    >>> b = np.random.rand(4, 4)
+    >>> tmp = tensor_blas(a, 'ij', b, 'jk', 'ik', set('j'))
+    >>> np.allclose(tmp, np.dot(a, b))
+
 
     """
 
     idx_removed = set(idx_removed)
     keep_left = set(input_left) - idx_removed
     keep_right = set(input_right) - idx_removed
+    #print(input_left, input_right, idx_removed)
 
     # We trust this must be called correctly
     dimension_dict = {}
