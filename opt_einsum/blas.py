@@ -98,7 +98,8 @@ def can_blas(inputs, result, idx_removed):
 
 def tensor_blas(view_left, input_left, view_right, input_right, index_result, idx_removed):
     """
-    Computes the dot product between two tensors, attempts to use np.dot and then tensordot if that fails.
+    Computes the dot product between two tensors, attempts to use np.dot and
+    then tensordot if that fails.
 
     Parameters
     ----------
@@ -124,6 +125,12 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
     -----
     Interior function for tensor BLAS.
 
+    This function will attempt to use `np.dot` by the iterating through the
+    four possible transpose cases. If this fails all inner and matrix-vector
+    operations will be handed off to einsum while all matrix-matrix operations will
+    first copy the data, perform the DGEMM, and then copy the data to the required
+    order.
+
     Examples
     --------
 
@@ -131,7 +138,6 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
     >>> b = np.random.rand(4, 4)
     >>> tmp = tensor_blas(a, 'ij', b, 'jk', 'ik', set('j'))
     >>> np.allclose(tmp, np.dot(a, b))
-
 
     """
 

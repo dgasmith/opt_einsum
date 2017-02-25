@@ -253,13 +253,63 @@ def contract_path(*operands, **kwargs):
 def contract(*operands, **kwargs):
     """
     contract(subscripts, *operands, out=None, dtype=None, order='K',
-           casting='safe', use_blas=False)
+           casting='safe', use_blas=False, optimize=True)
 
     Evaluates the Einstein summation convention on the operands. A drop in
     replacment for NumPy's einsum function that optimizes the order of contraction
     to reduce overall scaling at the cost of several intermediate arrays.
 
-    New features in 1.1 ...
+    Parameters
+    ----------
+    subscripts : str
+        Specifies the subscripts for summation.
+    *operands : list of array_like
+        These are the arrays for the operation.
+    out : array_like
+        A output array in which set the resulting output.
+    dtype : str
+        The dtype of the given contraction, see np.einsum.
+    order : str
+        The order of the resulting contraction, see np.einsum.
+    casting : str
+        The casting procedure for operations of different dtype, see np.einsum.
+    use_blas : bool
+        Do you use BLAS for valid operations, may use extra memory for more intermediates.
+    path_type : bool or list, optional (default: ``greedy``)
+        Choose the type of path.
+
+        - if a list is given uses this as the path.
+        - 'greedy' An algorithm that chooses the best pair contraction
+            at each step. Scales cubically with the number of terms in the
+            contraction.
+        - 'optimal' An algorithm that tries all possible ways of
+            contracting the listed tensors. Scales exponentially with
+            the number of terms in the contraction.
+
+    Returns
+    -------
+    out : array_like
+        The result of the einsum expression.
+
+    Notes
+    -----
+    This function should produce result identical to that of NumPy's einsum
+    function. The primary difference is `contract` will attempt to form
+    intermediates which reduce the overall scaling of the given einsum contraction.
+    By default the worst intermediate formed will be equal to that of the largest
+    input array. For large einsum expressions with many input arrays this can
+    provide arbitrarily large (1000 fold+) speed improvements.
+    
+    For contractions with just two tensors this function will attempt to use
+    NumPy's built in BLAS functionality to ensure that the given operation is
+    preformed in an optimal manner. When NumPy is linked to a threaded BLAS, potenital
+    speedsups are on the order of 20-100 for a six core machine.
+
+    Examples
+    --------
+
+    See opt_einsum.contract_path or numpy.einsum
+
     """
 
     # Grab non-einsum kwargs
