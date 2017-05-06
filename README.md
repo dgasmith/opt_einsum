@@ -18,10 +18,10 @@ Optimized Einsum: A tensor contraction order optimizer
 Einsum is a very powerful function for contracting tensors of arbitrary dimension and index.
 However, it is only optimized to contract two terms at a time resulting in non-optimal scaling.
 
-For example, consider the following index transformation:
+For example, let us examine the following index transformation:
 `M_{pqrs} = C_{pi} C_{qj} I_{ijkl} C_{rk} C_{sl}`
 
-Consider two different algorithms:
+We can then develop two seperate implementations that produce the same result:
 ```python
 N = 10
 C = np.random.rand(N, N)
@@ -47,25 +47,26 @@ np.allclose(naive(I, C), optimized(I, C))
 True
 
 %timeit naive(I, C)
-1 loops, best of 3: 1.18 s per loop
+1 loops, best of 3: 934 ms per loop
 
 %timeit optimized(I, C)
-1000 loops, best of 3: 612 µs per loop
+1000 loops, best of 3: 527 µs per loop
 ```
 
-The index transformation is a well known contraction that leads to straightforward intermediates.
+A 2000 fold speed up for 4 extra lines of code!
 This contraction can be further complicated by considering that the shape of the C matrices need not be the same, in this case the ordering in which the indices are transformed matters greatly.
 Logic can be built that optimizes the ordering; however, this is a lot of time and effort for a single expression.
 
-The opt_einsum package is a drop in replacement for the np.einsum function and can handle all of the logic for you:
+The opt_einsum package is a drop in replacement for the np.einsum function and can handle all of this logic for you:
 
 ```python
 from opt_einsum import contract
 
-contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
+%timeit contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
+1000 loops, best of 3: 324 µs per loop
 ```
 
-The above will automatically find the optimal contraction order, in this case identical to that of the optimized function above, and compute the products for you. In this case, it even uses np.dot under the hood to exploit any vendor BLAS functionality that your NumPy build has!
+The above will automatically find the optimal contraction order, in this case identical to that of the optimized function above, and compute the products for you. In this case, it even uses `np.dot` under the hood to exploit any vendor BLAS functionality that your NumPy build has!
 
 ## Obtaining the path expression
 
@@ -78,7 +79,7 @@ At first, it would appear that this scales like N^7 as there are 7 unique indice
 
 `result = acaj,ajac,a` (N^4 scaling)
 
-This is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now lets let opt_einsum compute the optimal path:
+This is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now, let opt_einsum compute the optimal path:
 
 ```python
 import opt_einsum as oe
