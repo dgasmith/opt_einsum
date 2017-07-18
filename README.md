@@ -2,6 +2,7 @@
 [![codecov](https://codecov.io/gh/dgasmith/opt_einsum/branch/master/graph/badge.svg)](https://codecov.io/gh/dgasmith/opt_einsum)
 [![DOI](https://zenodo.org/badge/27930623.svg)](https://zenodo.org/badge/latestdoi/27930623)
 [![Conda](https://anaconda.org/conda-forge/opt_einsum/badges/version.svg)](https://anaconda.org/conda-forge/opt_einsum)
+[![PyPI](https://img.shields.io/pypi/v/opt_einsum.svg)]()
 
 ##### News: Opt_einsum will be in NumPy 1.12! Call opt_einsum as `np.einsum(..., optimize=True)`. This repostiory will continue to provide a testing ground for new features. 
 
