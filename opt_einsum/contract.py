@@ -102,7 +102,7 @@ def contract_path(*operands, **kwargs):
     if len(unknown_kwargs):
         raise TypeError("einsum_path: Did not understand the following kwargs: %s" % unknown_kwargs)
 
-    path_type = kwargs.pop('path_type', 'greedy')
+    path_type = kwargs.pop('path', 'greedy')
     memory_limit = kwargs.pop('memory_limit', None)
 
     # Hidden option, only einsum should call this
@@ -138,14 +138,21 @@ def contract_path(*operands, **kwargs):
                 dimension_dict[char] = dim
 
     # Compute size of each input array plus the output array
+    size_list = []
+    for term in input_list + [output_subscript]:
+        size_list.append(paths.compute_size_by_dict(term, dimension_dict))
+    out_size = max(size_list)
+
     if memory_limit is None:
-        size_list = []
-        for term in input_list + [output_subscript]:
-            size_list.append(paths.compute_size_by_dict(term, dimension_dict))
-        out_size = max(size_list)
         memory_arg = out_size
     else:
-        memory_arg = int(memory_limit)
+        if (memory_limit < 1):
+            if memory_limit == -1:
+                memory_arg = int(1e20)
+            else:
+                raise ValidationError("Memory limit must be larger than 0, or -1")
+        else:
+            memory_arg = int(memory_limit)
 
     # Compute naive cost
     # This isnt quite right, need to look into exactly how einsum does this
@@ -253,7 +260,7 @@ def contract_path(*operands, **kwargs):
 def contract(*operands, **kwargs):
     """
     contract(subscripts, *operands, out=None, dtype=None, order='K',
-           casting='safe', use_blas=False, optimize=True)
+           casting='safe', use_blas=False, optimize=True, memory_limit=None)
 
     Evaluates the Einstein summation convention on the operands. A drop in
     replacment for NumPy's einsum function that optimizes the order of contraction
@@ -275,7 +282,7 @@ def contract(*operands, **kwargs):
         The casting procedure for operations of different dtype, see np.einsum.
     use_blas : bool
         Do you use BLAS for valid operations, may use extra memory for more intermediates.
-    path_type : bool or list, optional (default: ``greedy``)
+    optimize : bool, str, or list, optional (default: ``greedy``)
         Choose the type of path.
 
         - if a list is given uses this as the path.
@@ -285,6 +292,14 @@ def contract(*operands, **kwargs):
         - 'optimal' An algorithm that tries all possible ways of
             contracting the listed tensors. Scales exponentially with
             the number of terms in the contraction.
+
+    memory_limit : int or None (default : None)
+        The upper limit of the size of tensor created, by default this will be
+        Give the upper bound of the largest intermediate tensor contract will build.
+        By default (None) will size the ``memory_limit`` as the largest input tensor.
+        Users can also specify ``-1`` to allow arbitrarily large tensors to be built.
+        Please note that for the `greedy` algorithm the ``memory_limit`` is capped at
+        the size of the largest input tensor due to algorithmic issues.
 
     Returns
     -------
@@ -299,7 +314,7 @@ def contract(*operands, **kwargs):
     By default the worst intermediate formed will be equal to that of the largest
     input array. For large einsum expressions with many input arrays this can
     provide arbitrarily large (1000 fold+) speed improvements.
-    
+
     For contractions with just two tensors this function will attempt to use
     NumPy's built in BLAS functionality to ensure that the given operation is
     preformed in an optimal manner. When NumPy is linked to a threaded BLAS, potenital
@@ -341,6 +356,7 @@ def contract(*operands, **kwargs):
 
     # Build the contraction list and operand
     memory_limit = kwargs.pop('memory_limit', None)
+
     operands, contraction_list = contract_path(*operands, path=optimize_arg,
                                                memory_limit=memory_limit,
                                                einsum_call=True,
@@ -358,7 +374,7 @@ def contract(*operands, **kwargs):
             input_str, results_str = einsum_str.split('->')
             input_str = input_str.split(',')
             new_view = blas.tensor_blas(tmp_operands[0], input_str[0], tmp_operands[1],
-                                        input_str[1], results_str, idx_rm) 
+                                        input_str[1], results_str, idx_rm)
 
             # If out was specified, poor way of doing this at the moment
             if specified_out and ((num + 1) == len(contraction_list)):
