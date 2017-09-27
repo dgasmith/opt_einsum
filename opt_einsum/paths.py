@@ -155,6 +155,15 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
                 new_pos = positions + [con]
                 iter_results.append((new_cost, new_pos, new_input_sets))
 
+        # Update combinatorial list, if we did not find anything return best
+        # path + remaining contractions
+        if iter_results:
+            full_results = iter_results
+        else:
+            path = min(full_results, key=lambda x: x[0])[1]
+            path += [tuple(range(len(input_sets) - iteration))]
+            return path
+
         # Update list to iterate over
         full_results = iter_results
 
