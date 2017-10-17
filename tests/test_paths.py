@@ -62,7 +62,7 @@ def test_size_by_dict():
     for ind, val in zip('abcdez', [2, 5, 9, 11, 13, 0]):
         sizes_dict[ind] = val
 
-    path_func = oe.paths.compute_size_by_dict
+    path_func = oe.helpers.compute_size_by_dict
 
     assert np.allclose(1, path_func('', sizes_dict))
     assert np.allclose(2, path_func('a', sizes_dict))
@@ -112,6 +112,7 @@ def test_memory_paths():
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
     path_ret = oe.contract_path(expression, *views, path="greedy", memory_limit=-1)
+    print(path_ret[0])
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 1, 2, 3)])
 
 

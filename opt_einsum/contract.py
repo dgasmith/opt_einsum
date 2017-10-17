@@ -5,6 +5,7 @@ Contains the primary optimization and contraction routines
 import numpy as np
 
 from . import blas
+from . import helpers
 from . import paths
 from . import parser
 
@@ -144,7 +145,7 @@ def contract_path(*operands, **kwargs):
     # Compute size of each input array plus the output array
     size_list = []
     for term in input_list + [output_subscript]:
-        size_list.append(paths.compute_size_by_dict(term, dimension_dict))
+        size_list.append(helpers.compute_size_by_dict(term, dimension_dict))
     out_size = max(size_list)
 
     if memory_limit is None:
@@ -160,7 +161,7 @@ def contract_path(*operands, **kwargs):
 
     # Compute naive cost
     # This isnt quite right, need to look into exactly how einsum does this
-    naive_cost = paths.compute_size_by_dict(indices, dimension_dict)
+    naive_cost = helpers.compute_size_by_dict(indices, dimension_dict)
     indices_in_input = input_subscripts.replace(',', '')
     mult = max(len(input_list) - 1, 1)
     if len(indices_in_input) - len(set(indices_in_input)):
@@ -198,16 +199,16 @@ def contract_path(*operands, **kwargs):
         # Make sure we remove inds from right to left
         contract_inds = tuple(sorted(list(contract_inds), reverse=True))
 
-        contract = paths.find_contraction(contract_inds, input_sets, output_set)
+        contract = helpers.find_contraction(contract_inds, input_sets, output_set)
         out_inds, input_sets, idx_removed, idx_contract = contract
 
         # Compute cost, scale, and size
-        cost = paths.compute_size_by_dict(idx_contract, dimension_dict)
+        cost = helpers.compute_size_by_dict(idx_contract, dimension_dict)
         if idx_removed:
             cost *= 2
         cost_list.append(cost)
         scale_list.append(len(idx_contract))
-        size_list.append(paths.compute_size_by_dict(out_inds, dimension_dict))
+        size_list.append(helpers.compute_size_by_dict(out_inds, dimension_dict))
 
         tmp_inputs = []
         for x in contract_inds:
@@ -363,27 +364,49 @@ def contract(*operands, **kwargs):
     operands, contraction_list = contract_path(
         *operands, path=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas)
 
+    handle_out = False
+
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
-        inds, idx_rm, einsum_str, remaining, do_blas = contraction
+        inds, idx_rm, einsum_str, remaining, blas = contraction
         tmp_operands = []
         for x in inds:
             tmp_operands.append(operands.pop(x))
 
-        if do_blas:
-            #print(einsum_str, do_blas)
-            input_str, results_str = einsum_str.split('->')
-            input_str = input_str.split(',')
-            new_view = blas.tensor_blas(tmp_operands[0], input_str[0], tmp_operands[1], input_str[1], results_str,
-                                        idx_rm)
+        # Do we need to deal with the output?
+        if specified_out and ((num + 1) == len(contraction_list)):
+            handle_out = True
 
-            # If out was specified, poor way of doing this at the moment
-            if specified_out and ((num + 1) == len(contraction_list)):
-                out_array[:] = new_view
+        # Call tensordot
+        if blas:
 
+            # Checks have already been handled
+            input_str, results_index = einsum_str.split('->')
+            input_left, input_right = input_str.split(',')
+
+            tensor_result = input_left + input_right
+            for s in idx_rm:
+                tensor_result = tensor_result.replace(s, "")
+
+            # Find indices to contract over
+            left_pos, right_pos = [], []
+            for s in idx_rm:
+                left_pos.append(input_left.find(s))
+                right_pos.append(input_right.find(s))
+
+            # Contract!
+            new_view = np.tensordot(*tmp_operands, axes=(tuple(left_pos), tuple(right_pos)))
+
+            # Build a new view if needed
+            if (tensor_result != results_index) or handle_out:
+                if handle_out:
+                    einsum_kwargs["out"] = out_array
+                new_view = np.einsum(tensor_result + '->' + results_index, new_view, **einsum_kwargs)
+
+        # Call einsum
         else:
             # If out was specified
-            if specified_out and ((num + 1) == len(contraction_list)):
+            if handle_out:
                 einsum_kwargs["out"] = out_array
 
             # Do the contraction

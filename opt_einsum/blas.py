@@ -1,6 +1,10 @@
+"""
+Determines if a contraction can use BLAS or not
+"""
+
 import numpy as np
 
-from . import paths
+from . import helpers
 
 
 def can_blas(inputs, result, idx_removed):
@@ -169,9 +173,9 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
 
     # Tensordot guarantees a copy for ndim > 2, should avoid skip if possible
     rs = len(idx_removed)
-    dim_left = paths.compute_size_by_dict(keep_left, dimension_dict)
-    dim_right = paths.compute_size_by_dict(keep_right, dimension_dict)
-    dim_removed = paths.compute_size_by_dict(idx_removed, dimension_dict)
+    dim_left = helpers.compute_size_by_dict(keep_left, dimension_dict)
+    dim_right = helpers.compute_size_by_dict(keep_right, dimension_dict)
+    dim_removed = helpers.compute_size_by_dict(idx_removed, dimension_dict)
     tensor_result = input_left + input_right
     for s in idx_removed:
         tensor_result = tensor_result.replace(s, "")
