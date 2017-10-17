@@ -122,6 +122,13 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
     if len(input_sets) == 1:
         return [(0, )]
 
+    # Build up a naive cost
+    contract = helpers.find_contraction(range(len(input_sets)), input_sets, output_set)
+    idx_result, new_input_sets, idx_removed, idx_contract = contract
+    naive_cost = helpers.flop_count(idx_contract, idx_removed, len(input_sets), idx_dict)
+
+    path_cost = 0
+
     path = []
     for iteration in range(len(input_sets) - 1):
         iteration_results = []
@@ -147,6 +154,10 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
             cost = helpers.flop_count(idx_contract, idx_removed, len(positions), idx_dict)
             sort = (-removed_size, cost)
 
+            # Sieve based on total cost as well
+            if (path_cost + cost) > naive_cost:
+                continue
+
             # Add contraction to possible choices
             iteration_results.append([sort, positions, new_input_sets])
 
@@ -159,5 +170,6 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
         best = min(iteration_results, key=lambda x: x[0])
         path.append(best[1])
         input_sets = best[2]
+        path_cost += best[0][1]
 
     return path

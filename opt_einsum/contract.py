@@ -20,7 +20,7 @@ def contract_path(*operands, **kwargs):
         Specifies the subscripts for summation.
     *operands : list of array_like
         These are the arrays for the operation.
-    path_type : bool or list, optional (default: ``greedy``)
+    path : bool or list, optional (default: ``greedy``)
         Choose the type of path.
 
         - if a list is given uses this as the path.
@@ -179,8 +179,6 @@ def contract_path(*operands, **kwargs):
         # If no rank reduction leave it to einsum
         path = [tuple(range(len(input_list)))]
     elif path_type in ["greedy", "opportunistic"]:
-        # Maximum memory should be at most out_size for this algorithm
-        memory_arg = min(memory_arg, out_size)
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type == "optimal":
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
@@ -299,8 +297,6 @@ def contract(*operands, **kwargs):
         Give the upper bound of the largest intermediate tensor contract will build.
         By default (None) will size the ``memory_limit`` as the largest input tensor.
         Users can also specify ``-1`` to allow arbitrarily large tensors to be built.
-        Please note that for the `greedy` algorithm the ``memory_limit`` is capped at
-        the size of the largest input tensor due to algorithmic issues.
 
     Returns
     -------

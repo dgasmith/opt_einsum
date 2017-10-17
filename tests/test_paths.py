@@ -134,16 +134,15 @@ def test_memory_paths():
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
     path_ret = oe.contract_path(expression, *views, path="greedy", memory_limit=-1)
-    print(path_ret[0])
-    assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 1, 2, 3)])
+    assert check_path(path_ret[0], [(2, 4), (3, 4), (2, 3), (1, 2), (0, 1)])
 
 
-@pytest.mark.parameterize("alg,expression,order", path_edge_tests)
-def path_edge_cases(alg, expression, order):
+@pytest.mark.parametrize("alg,expression,order", path_edge_tests)
+def test_path_edge_cases(alg, expression, order):
     views = oe.helpers.build_views(expression)
 
     # Test tiny memory limit
-    path_ret = oe.contract_path(expression, *views, path=alg, memory_limit=5)
+    path_ret = oe.contract_path(expression, *views, path=alg)
     assert check_path(path_ret[0], order)
 
 
@@ -152,8 +151,21 @@ def test_optimal_edge_cases():
     # Edge test5
     expression = 'a,ac,ab,ad,cd,bd,bc->'
     edge_test4 = oe.helpers.build_views(expression, dimension_dict={"a": 20, "b": 20, "c": 20, "d": 20})
-    path, path_str = np.einsum_path(expression, *edge_test4, optimize='greedy')
-    check_path(path, ['einsum_path', (0, 1), (0, 1, 2, 3, 4, 5)])
+    path, path_str = oe.contract_path(expression, *edge_test4, path='greedy')
+    assert check_path(path, [(0, 1), (0, 1, 2, 3, 4, 5)])
 
-    path, path_str = np.einsum_path(expression, *edge_test4, optimize='optimal')
-    check_path(path, ['einsum_path', (0, 1), (0, 1, 2, 3, 4, 5)])
+    path, path_str = oe.contract_path(expression, *edge_test4, path='optimal')
+    assert check_path(path, [(0, 1), (0, 1, 2, 3, 4, 5)])
+
+
+def test_greedy_edge_cases():
+
+    expression = "abc,cfd,dbe,efa"
+    dim_dict = {k: 20 for k in expression.replace(",", "")}
+    tensors = oe.helpers.build_views(expression, dimension_dict=dim_dict)
+
+    path, path_str = oe.contract_path(expression, *tensors, path='greedy')
+    assert check_path(path, [(0, 1, 2, 3)])
+
+    path, path_str = oe.contract_path(expression, *tensors, path='greedy', memory_limit=-1)
+    assert check_path(path, [(0, 1), (0, 2), (0, 1)])
