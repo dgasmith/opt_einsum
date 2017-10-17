@@ -65,7 +65,7 @@ def compute_size_by_dict(indices, idx_dict):
 
     Examples
     --------
-    >>> helpers.compute_size_by_dict('abbc', {'a': 2, 'b':3, 'c':5})
+    >>> compute_size_by_dict('abbc', {'a': 2, 'b':3, 'c':5})
     90
 
     """
@@ -79,7 +79,7 @@ def find_contraction(positions, input_sets, output_set):
     """
     Finds the contraction for a given set of input and output sets.
 
-    Paramaters
+    Parameters
     ----------
     positions : iterable
         Integer positions of terms used in the contraction.
@@ -107,14 +107,14 @@ def find_contraction(positions, input_sets, output_set):
     >>> pos = (0, 1)
     >>> isets = [set('ab'), set('bc')]
     >>> oset = set('ac')
-    >>> helpers.find_contraction(pos, isets, oset)
+    >>> find_contraction(pos, isets, oset)
     ({'a', 'c'}, [{'a', 'c'}], {'b'}, {'a', 'b', 'c'})
 
     # A more complex case with additional terms in the contraction
     >>> pos = (0, 2)
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('ac')
-    >>> helpers.find_contraction(pos, isets, oset)
+    >>> find_contraction(pos, isets, oset)
     ({'a', 'c'}, [{'a', 'c'}, {'a', 'c'}], {'b', 'd'}, {'a', 'b', 'c', 'd'})
     """
 
@@ -133,3 +133,42 @@ def find_contraction(positions, input_sets, output_set):
     remaining.append(new_result)
 
     return new_result, remaining, idx_removed, idx_contract
+
+
+def flop_count(idx_contraction, inner, num_terms, size_dictionary):
+    """
+    Computes the number of FLOPS in the contraction.
+
+    Parameters
+    ----------
+    idx_contraction : iterable
+        The indices involved in the contraction
+    inner : bool
+        Does this contraction require an inner product?
+    num_terms : int
+        The number of terms in a contraction
+    size_dictionary : dict
+        The size of each of the indices in idx_contraction
+
+    Returns
+    -------
+    flop_count : int
+        The total number of FLOPS required for the contraction.
+
+    Examples
+    --------
+
+    >>> flop_count('abc', False, 1, {'a': 2, 'b':3, 'c':5})
+    90
+
+    >>> flop_count('abc', True, 2, {'a': 2, 'b':3, 'c':5})
+    270
+
+    """
+
+    overall_size = compute_size_by_dict(idx_contraction, size_dictionary)
+    op_factor = max(1, num_terms - 1)
+    if inner:
+        op_factor += 1
+
+    return overall_size * op_factor

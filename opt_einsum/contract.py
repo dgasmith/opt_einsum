@@ -161,12 +161,10 @@ def contract_path(*operands, **kwargs):
 
     # Compute naive cost
     # This isnt quite right, need to look into exactly how einsum does this
-    naive_cost = helpers.compute_size_by_dict(indices, dimension_dict)
-    indices_in_input = input_subscripts.replace(',', '')
-    mult = max(len(input_list) - 1, 1)
-    if len(indices_in_input) - len(set(indices_in_input)):
-        mult *= 2
-    naive_cost *= mult
+    # indices_in_input = input_subscripts.replace(',', '')
+    # inne
+    inner_product = (sum(len(x) for x in input_sets) - len(indices)) > 0
+    naive_cost = helpers.flop_count(indices, inner_product, len(input_list), dimension_dict)
 
     # Compute the path
     if not isinstance(path_type, str):
@@ -203,9 +201,7 @@ def contract_path(*operands, **kwargs):
         out_inds, input_sets, idx_removed, idx_contract = contract
 
         # Compute cost, scale, and size
-        cost = helpers.compute_size_by_dict(idx_contract, dimension_dict)
-        if idx_removed:
-            cost *= 2
+        cost = helpers.flop_count(idx_contract, idx_removed, len(contract_inds), dimension_dict)
         cost_list.append(cost)
         scale_list.append(len(idx_contract))
         size_list.append(helpers.compute_size_by_dict(out_inds, dimension_dict))
@@ -347,7 +343,7 @@ def contract(*operands, **kwargs):
         return np.einsum(*operands, **einsum_kwargs)
 
     # Make sure all keywords are valid
-    valid_contract_kwargs = ['path', 'memory_limit', 'use_blas'] + valid_einsum_kwargs
+    valid_contract_kwargs = ['memory_limit', 'use_blas'] + valid_einsum_kwargs
     unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
     if len(unknown_kwargs):
         raise TypeError("Did not understand the following kwargs: %s" % unknown_kwargs)
