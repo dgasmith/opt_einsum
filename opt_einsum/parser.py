@@ -1,3 +1,7 @@
+"""
+A functionally equivalent parser of the numpy.einsum input parser
+"""
+
 import numpy as np
 
 einsum_symbols = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -63,8 +67,7 @@ def parse_einsum_input(operands):
                 elif isinstance(s, int):
                     subscripts += einsum_symbols[s]
                 else:
-                    raise TypeError("For this input type lists must contain "
-                                    "either int or Ellipsis")
+                    raise TypeError("For this input type lists must contain " "either int or Ellipsis")
             if num != last:
                 subscripts += ","
 
@@ -76,8 +79,7 @@ def parse_einsum_input(operands):
                 elif isinstance(s, int):
                     subscripts += einsum_symbols[s]
                 else:
-                    raise TypeError("For this input type lists must contain "
-                                    "either int or Ellipsis")
+                    raise TypeError("For this input type lists must contain " "either int or Ellipsis")
     # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):
         invalid = (subscripts.count("-") > 1) or (subscripts.count(">") > 1)
@@ -122,7 +124,7 @@ def parse_einsum_input(operands):
                     split_subscripts[num] = sub.replace('...', ellipse_inds[-ellipse_count:])
 
         subscripts = ",".join(split_subscripts)
-        
+
         # Figure out output ellipses
         if longest == 0:
             out_ellipse = ""
@@ -136,7 +138,7 @@ def parse_einsum_input(operands):
             output_subscript = ""
             tmp_subscripts = subscripts.replace(",", "")
             for s in sorted(set(tmp_subscripts)):
-                if s not in (einsum_symbols):
+                if s not in einsum_symbols:
                     raise ValueError("Character %s is not a valid symbol." % s)
                 if tmp_subscripts.count(s) == 1:
                     output_subscript += s
@@ -165,7 +167,6 @@ def parse_einsum_input(operands):
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(',')) != len(operands):
-        raise ValueError("Number of einsum subscripts must be equal to the "
-                         "number of operands.")
+        raise ValueError("Number of einsum subscripts must be equal to the " "number of operands.")
 
-    return (input_subscripts, output_subscript, operands)
+    return input_subscripts, output_subscript, operands

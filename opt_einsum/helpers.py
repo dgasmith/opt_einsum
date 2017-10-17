@@ -1,10 +1,15 @@
+"""
+Contains helper functions for opt_einsum testing scripts
+"""
+
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
 chars = 'abcdefghijklmopq'
 sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3])
-default_dim_dict = {c : s for c, s in zip(chars, sizes)}
+default_dim_dict = {c: s for c, s in zip(chars, sizes)}
+
 
 def build_views(string, dimension_dict=default_dim_dict):
     """

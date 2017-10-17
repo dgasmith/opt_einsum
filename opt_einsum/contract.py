@@ -1,7 +1,13 @@
+"""
+Contains the primary optimization and contraction routines
+"""
+
+import numpy as np
+
+from . import blas
 from . import paths
 from . import parser
-from . import blas
-import numpy as np
+
 
 def contract_path(*operands, **kwargs):
     """
@@ -124,16 +130,14 @@ def contract_path(*operands, **kwargs):
     for tnum, term in enumerate(input_list):
         sh = operands[tnum].shape
 
-        if (len(sh) != len(term)):
+        if len(sh) != len(term):
             raise ValueError("Einstein sum subscript %s does not contain the "
-                             "correct number of indices for operand %d.",
-                             input_subscripts[tnum], tnum)
+                             "correct number of indices for operand %d.", input_subscripts[tnum], tnum)
         for cnum, char in enumerate(term):
             dim = sh[cnum]
             if char in dimension_dict.keys():
                 if dimension_dict[char] != dim:
-                    raise ValueError("Size of label '%s' for operand %d does "
-                                     "not match previous terms.", char, tnum)
+                    raise ValueError("Size of label '%s' for operand %d does " "not match previous terms.", char, tnum)
             else:
                 dimension_dict[char] = dim
 
@@ -146,7 +150,7 @@ def contract_path(*operands, **kwargs):
     if memory_limit is None:
         memory_arg = out_size
     else:
-        if (memory_limit < 1):
+        if memory_limit < 1:
             if memory_limit == -1:
                 memory_arg = int(1e20)
             else:
@@ -159,7 +163,7 @@ def contract_path(*operands, **kwargs):
     naive_cost = paths.compute_size_by_dict(indices, dimension_dict)
     indices_in_input = input_subscripts.replace(',', '')
     mult = max(len(input_list) - 1, 1)
-    if (len(indices_in_input) - len(set(indices_in_input))):
+    if len(indices_in_input) - len(set(indices_in_input)):
         mult *= 2
     naive_cost *= mult
 
@@ -168,14 +172,14 @@ def contract_path(*operands, **kwargs):
         path = path_type
     elif len(input_list) == 1:
         # Nothing to be optimized
-        path = [(0,)]
+        path = [(0, )]
     elif len(input_list) == 2:
         # Nothing to be optimized
         path = [(0, 1)]
-    elif (indices == output_set):
+    elif indices == output_set:
         # If no rank reduction leave it to einsum
         path = [tuple(range(len(input_list)))]
-    elif (path_type in ["greedy", "opportunistic"]):
+    elif path_type in ["greedy", "opportunistic"]:
         # Maximum memory should be at most out_size for this algorithm
         memory_arg = min(memory_arg, out_size)
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
@@ -230,13 +234,13 @@ def contract_path(*operands, **kwargs):
     opt_cost = sum(cost_list)
 
     if einsum_call_arg:
-        return (operands, contraction_list)
+        return operands, contraction_list
 
     # Return the path along with a nice string representation
     overall_contraction = input_subscripts + "->" + output_subscript
     header = ("scaling", "BLAS", "current", "remaining")
 
-    path_print  = "  Complete contraction:  %s\n" % overall_contraction
+    path_print = "  Complete contraction:  %s\n" % overall_contraction
     path_print += "         Naive scaling:  %d\n" % len(indices)
     path_print += "     Optimized scaling:  %d\n" % max(scale_list)
     path_print += "      Naive FLOP count:  %.3e\n" % naive_cost
@@ -253,7 +257,7 @@ def contract_path(*operands, **kwargs):
         path_run = (scale_list[n], do_blas, einsum_str, remaining_str)
         path_print += "\n%4d %9s %24s %40s" % path_run
 
-    return (path, path_print)
+    return path, path_print
 
 
 # Rewrite einsum to handle different cases
@@ -338,7 +342,7 @@ def contract(*operands, **kwargs):
     einsum_kwargs = {k: v for (k, v) in kwargs.items() if k in valid_einsum_kwargs}
 
     # If no optimization, run pure einsum
-    if (optimize_arg is False):
+    if optimize_arg is False:
         return np.einsum(*operands, **einsum_kwargs)
 
     # Make sure all keywords are valid
@@ -353,14 +357,11 @@ def contract(*operands, **kwargs):
     if out_array is not None:
         specified_out = True
 
-
     # Build the contraction list and operand
     memory_limit = kwargs.pop('memory_limit', None)
 
-    operands, contraction_list = contract_path(*operands, path=optimize_arg,
-                                               memory_limit=memory_limit,
-                                               einsum_call=True,
-                                               use_blas=use_blas)
+    operands, contraction_list = contract_path(
+        *operands, path=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas)
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
@@ -373,8 +374,8 @@ def contract(*operands, **kwargs):
             #print(einsum_str, do_blas)
             input_str, results_str = einsum_str.split('->')
             input_str = input_str.split(',')
-            new_view = blas.tensor_blas(tmp_operands[0], input_str[0], tmp_operands[1],
-                                        input_str[1], results_str, idx_rm)
+            new_view = blas.tensor_blas(tmp_operands[0], input_str[0], tmp_operands[1], input_str[1], results_str,
+                                        idx_rm)
 
             # If out was specified, poor way of doing this at the moment
             if specified_out and ((num + 1) == len(contraction_list)):

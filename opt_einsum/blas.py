@@ -1,4 +1,5 @@
 import numpy as np
+
 from . import paths
 
 
@@ -212,8 +213,8 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
 
     # Make sure the resulting shape is correct
     tensor_shape = tuple(dimension_dict[x] for x in tensor_result)
-    if (new_view.shape != tensor_shape):
-        if (len(tensor_result) > 0):
+    if new_view.shape != tensor_shape:
+        if len(tensor_result) > 0:
             new_view.shape = tensor_shape
         else:
             new_view = np.squeeze(new_view)

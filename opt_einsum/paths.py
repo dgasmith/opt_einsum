@@ -1,5 +1,6 @@
-# All possible opt_einsum paths live here
-
+"""
+Contains the path technology behind opt_einsum in addition to several path helpers
+"""
 
 def compute_size_by_dict(indices, idx_dict):
     """
@@ -87,7 +88,7 @@ def find_contraction(positions, input_sets, output_set):
     idx_removed = (idx_contract - new_result)
     remaining.append(new_result)
 
-    return (new_result, remaining, idx_removed, idx_contract)
+    return new_result, remaining, idx_removed, idx_contract
 
 
 def optimal(input_sets, output_set, idx_dict, memory_limit):
