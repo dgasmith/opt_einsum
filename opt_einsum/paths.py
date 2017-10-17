@@ -59,15 +59,10 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
                 if new_size > memory_limit:
                     continue
 
-                # Find cost
-                new_cost = helpers.compute_size_by_dict(idx_contract, idx_dict)
-                if idx_removed:
-                    new_cost *= 2
-
                 # Build (total_cost, positions, indices_remaining)
-                new_cost += cost
+                total_cost = cost + helpers.flop_count(idx_contract, idx_removed, len(con), idx_dict)
                 new_pos = positions + [con]
-                iter_results.append((new_cost, new_pos, new_input_sets))
+                iter_results.append((total_cost, new_pos, new_input_sets))
 
         # Update combinatorial list, if we did not find anything return best
         # path + remaining contractions
@@ -149,7 +144,7 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
 
             # Build sort tuple
             removed_size = helpers.compute_size_by_dict(idx_removed, idx_dict)
-            cost = helpers.compute_size_by_dict(idx_contract, idx_dict)
+            cost = helpers.flop_count(idx_contract, idx_removed, len(positions), idx_dict)
             sort = (-removed_size, cost)
 
             # Add contraction to possible choices
