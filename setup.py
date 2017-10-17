@@ -24,7 +24,6 @@ if __name__ == "__main__":
                 'pytest',
                 'pytest-cov',
                 'pytest-pep8',
-                'tox',
             ],
         },
 
@@ -32,7 +31,6 @@ if __name__ == "__main__":
             'pytest',
             'pytest-cov',
             'pytest-pep8',
-            'tox',
         ],
 
         classifiers=[
