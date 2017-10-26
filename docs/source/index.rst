@@ -91,6 +91,13 @@ We can then view more details about the optimized contraction order:
 
 .. toctree::
    :maxdepth: 2
+   :caption: Getting Started
+
+   install
+   examples
+
+.. toctree::
+   :maxdepth: 2
    :caption: Path Information:
 
    path_finding

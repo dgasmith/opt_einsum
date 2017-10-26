@@ -3,6 +3,7 @@ Examining the Path
 ==================
 
 Now, lets consider the following expression found in a perturbation theory (one of ~5,000 such expressions):
+
 .. code:: python
 
     bdik,acaj,ikab,ajac,ikbd
