@@ -87,3 +87,12 @@ We can then view more details about the optimized contraction order:
        5      GEMM            jklp,qj->klpq                         rk,sl,klpq->pqrs
        5      GEMM            klpq,rk->lpqr                            sl,lpqr->pqrs
        5      GEMM            lpqr,sl->pqrs                               pqrs->pqrs
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Path Information:
+
+   path_finding
+   optimal_path
+   greedy_path
