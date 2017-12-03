@@ -259,7 +259,7 @@ def contract_path(*operands, **kwargs):
 def contract(*operands, **kwargs):
     """
     contract(subscripts, *operands, out=None, dtype=None, order='K',
-           casting='safe', use_blas=False, optimize=True, memory_limit=None)
+           casting='safe', use_blas=True, optimize=True, memory_limit=None)
 
     Evaluates the Einstein summation convention on the operands. A drop in
     replacment for NumPy's einsum function that optimizes the order of contraction
@@ -323,40 +323,50 @@ def contract(*operands, **kwargs):
     See opt_einsum.contract_path or numpy.einsum
 
     """
-
-    # Grab non-einsum kwargs
     optimize_arg = kwargs.pop('optimize', True)
     if optimize_arg is True:
         optimize_arg = 'greedy'
 
-    use_blas = kwargs.pop('use_blas', True)
-
     valid_einsum_kwargs = ['out', 'dtype', 'order', 'casting']
-    einsum_kwargs = {k: v for (k, v) in kwargs.items() if k in valid_einsum_kwargs}
+    einsum_kwargs = {k: v for (k, v) in kwargs.items()
+                     if k in valid_einsum_kwargs}
 
     # If no optimization, run pure einsum
     if optimize_arg is False:
         return np.einsum(*operands, **einsum_kwargs)
 
-    # Make sure all keywords are valid
-    valid_contract_kwargs = ['memory_limit', 'use_blas'] + valid_einsum_kwargs
-    unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
-    if len(unknown_kwargs):
-        raise TypeError("Did not understand the following kwargs: %s" % unknown_kwargs)
+    # Grab non-einsum kwargs
+    use_blas = kwargs.pop('use_blas', True)
+    memory_limit = kwargs.pop('memory_limit', None)
+    gen_expression = kwargs.pop('gen_expression', False)
 
-    # Special handeling if out is specified
-    specified_out = False
-    out_array = einsum_kwargs.pop('out', None)
-    if out_array is not None:
-        specified_out = True
+    # Make sure remaining keywords are valid for einsum
+    unknown_kwargs = [k for (k, v) in kwargs.items()
+                      if k not in valid_einsum_kwargs]
+    if len(unknown_kwargs):
+        raise TypeError("Did not understand the following kwargs: "
+                        "%s" % unknown_kwargs)
 
     # Build the contraction list and operand
-    memory_limit = kwargs.pop('memory_limit', None)
-
     operands, contraction_list = contract_path(
-        *operands, path=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas)
+        *operands, path=optimize_arg, memory_limit=memory_limit,
+        einsum_call=True, use_blas=use_blas)
 
-    handle_out = False
+    # check if performing contraction or just building expression
+    if gen_expression:
+        return ContractExpression(contraction_list, **einsum_kwargs)
+
+    return _core_contract(operands, contraction_list, **einsum_kwargs)
+
+
+def _core_contract(operands, contraction_list, **einsum_kwargs):
+    """Inner loop used to perform an actual contraction given the output
+    from a ``contract_path(..., einsum_call=True)`` call.
+    """
+
+    # Special handeling if out is specified
+    out_array = einsum_kwargs.pop('out', None)
+    specified_out = out_array is not None
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
@@ -366,8 +376,7 @@ def contract(*operands, **kwargs):
             tmp_operands.append(operands.pop(x))
 
         # Do we need to deal with the output?
-        if specified_out and ((num + 1) == len(contraction_list)):
-            handle_out = True
+        handle_out = specified_out and ((num + 1) == len(contraction_list))
 
         # Call tensordot
         if blas:
@@ -387,13 +396,15 @@ def contract(*operands, **kwargs):
                 right_pos.append(input_right.find(s))
 
             # Contract!
-            new_view = np.tensordot(*tmp_operands, axes=(tuple(left_pos), tuple(right_pos)))
+            new_view = np.tensordot(*tmp_operands,
+                                    axes=(tuple(left_pos), tuple(right_pos)))
 
             # Build a new view if needed
             if (tensor_result != results_index) or handle_out:
                 if handle_out:
                     einsum_kwargs["out"] = out_array
-                new_view = np.einsum(tensor_result + '->' + results_index, new_view, **einsum_kwargs)
+                new_view = np.einsum(tensor_result + '->' + results_index,
+                                     new_view, **einsum_kwargs)
 
         # Call einsum
         else:
@@ -412,3 +423,39 @@ def contract(*operands, **kwargs):
         return out_array
     else:
         return operands[0]
+
+
+class ContractExpression:
+    """Helper class for storing an explicit ``contraction_list`` which can
+    then be repeatedly called solely with the array arguments.
+    """
+
+    def __init__(self, contraction_list, **einsum_kwargs):
+        self.einsum_kwargs = einsum_kwargs
+        self.contraction_list = contraction_list
+
+    def __call__(self, *arrays, out=None):
+        return _core_contract(list(arrays), self.contraction_list,
+                              out=out, **self.einsum_kwargs)
+
+
+class _ShapeOnly(np.ndarray):
+
+    def __init__(self, shape):
+        self.shape = shape
+
+
+def contract_expression(subscripts, *shapes, **kwargs):
+    """
+    """
+    if not kwargs.get('optimize', True):
+        raise ValueError("Can only generate expressions "
+                         "for optimized contractions.")
+
+    if kwargs.get('out', None) is not None:
+        raise ValueError("`out` should only be specified when calling a "
+                         "`ContractExpression`, not when building it.")
+
+    dummy_arrays = [_ShapeOnly(s) for s in shapes]
+
+    return contract(subscripts, *dummy_arrays, gen_expression=True, **kwargs)
