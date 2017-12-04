@@ -440,13 +440,50 @@ class ContractExpression:
 
 
 class _ShapeOnly(np.ndarray):
+    """Dummy ``numpy.ndarray`` which has a shape only - for generating
+    contract expressions.
+    """
 
     def __init__(self, shape):
         self.shape = shape
 
 
 def contract_expression(subscripts, *shapes, **kwargs):
-    """
+    """Generate an reusable expression for a given contraction with
+    specific shapes, which can for example be cached.
+
+    Parameters
+    ----------
+    subscripts : str
+        Specifies the subscripts for summation.
+    shapes : sequence of integer tuples
+        Shapes of the arrays to optimize the contraction for.
+    kwargs :
+        Passed on to ``contract_path`` or ``einsum``. See ``contract``.
+
+    Returns
+    -------
+    expr : ContractExpression
+        Callable with signature ``expr(*arrays)`` where the array's shapes
+        should match ``shapes``.
+
+    Notes
+    -----
+    - The `out` keyword argument should be supplied to the generated expression
+      rather than this function.
+    - The generated expression will work with any arrays which have
+      the same rank (number of dimensions) as the original shapes, however, if
+      the actual sizes are different, the expression may no longer be optimal.
+
+    Examples
+    --------
+
+    >>> expr = contract_expression("ab,bc->ac", (3, 4), (4, 5))
+    >>> a, b = np.random.rand(3, 4), np.random.rand(4, 5)
+    >>> c = expr(a, b)
+    >>> np.allclose(c, a @ b)
+    True
+
     """
     if not kwargs.get('optimize', True):
         raise ValueError("Can only generate expressions "

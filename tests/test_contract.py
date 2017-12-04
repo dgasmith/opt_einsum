@@ -164,14 +164,15 @@ def test_contract_expression_checks():
     with pytest.raises(ValueError):
         contract_expression("ab,bc->ac", (2, 3), (3, 4), out=out)
 
-    # check error when wrong arrays supplied to expression
+    # check still get errors when wrong ranks supplied to expression
     expr = contract_expression("ab,bc->ac", (2, 3), (3, 4))
+
+    with pytest.raises(IndexError):
+        expr(np.random.rand(2, 3))
     with pytest.raises(ValueError):
         expr(np.random.rand(2, 3, 4), np.random.rand(3, 4))
-
     with pytest.raises(ValueError):
         expr(np.random.rand(2, 4), np.random.rand(3, 4, 5))
-
     with pytest.raises(ValueError):
         expr(np.random.rand(2, 3), np.random.rand(3, 4),
              out=np.random.rand(2, 4, 6))
