@@ -176,3 +176,7 @@ def test_contract_expression_checks():
     with pytest.raises(ValueError):
         expr(np.random.rand(2, 3), np.random.rand(3, 4),
              out=np.random.rand(2, 4, 6))
+
+    # should only be able to specify out
+    with pytest.raises(ValueError):
+        expr(np.random.rand(2, 3), np.random.rand(3, 4), order='F')

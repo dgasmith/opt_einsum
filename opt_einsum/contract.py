@@ -434,7 +434,14 @@ class ContractExpression:
         self.einsum_kwargs = einsum_kwargs
         self.contraction_list = contraction_list
 
-    def __call__(self, *arrays, out=None):
+    def __call__(self, *arrays, **kwargs):
+
+        out = kwargs.pop('out', None)
+        if kwargs:
+            raise ValueError("The only valid keyword argument to a "
+                             "`ContractExpression` call is `out=`. "
+                             "Got: %s." % kwargs)
+
         return _core_contract(list(arrays), self.contraction_list,
                               out=out, **self.einsum_kwargs)
 
