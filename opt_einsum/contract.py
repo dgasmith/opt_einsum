@@ -347,6 +347,9 @@ def contract(*operands, **kwargs):
         raise TypeError("Did not understand the following kwargs: "
                         "%s" % unknown_kwargs)
 
+    if gen_expression:
+        full_str = operands[0]
+
     # Build the contraction list and operand
     operands, contraction_list = contract_path(
         *operands, path=optimize_arg, memory_limit=memory_limit,
@@ -354,7 +357,7 @@ def contract(*operands, **kwargs):
 
     # check if performing contraction or just building expression
     if gen_expression:
-        return ContractExpression(contraction_list, **einsum_kwargs)
+        return ContractExpression(full_str, contraction_list, **einsum_kwargs)
 
     return _core_contract(operands, contraction_list, **einsum_kwargs)
 
@@ -430,20 +433,48 @@ class ContractExpression:
     then be repeatedly called solely with the array arguments.
     """
 
-    def __init__(self, contraction_list, **einsum_kwargs):
+    def __init__(self, contraction, contraction_list, **einsum_kwargs):
+        self.contraction = contraction
+        self._clist = contraction_list
         self.einsum_kwargs = einsum_kwargs
-        self.contraction_list = contraction_list
+        self.num_args = len(contraction.split('->')[0].split(','))
 
     def __call__(self, *arrays, **kwargs):
+        if len(arrays) != self.num_args:
+            raise ValueError(
+                "This `ContractExpression` takes exactly %s array arguments "
+                "but received %s." % (self.num_args, len(arrays)))
 
         out = kwargs.pop('out', None)
         if kwargs:
-            raise ValueError("The only valid keyword argument to a "
-                             "`ContractExpression` call is `out=`. "
-                             "Got: %s." % kwargs)
+            raise ValueError(
+                "The only valid keyword argument to a `ContractExpression` "
+                "call is `out=`. Got: %s." % kwargs)
 
-        return _core_contract(list(arrays), self.contraction_list,
-                              out=out, **self.einsum_kwargs)
+        try:
+            return _core_contract(list(arrays), self._clist, out=out,
+                                  **self.einsum_kwargs)
+        except ValueError as err:
+            original_msg = "".join(err.args) if err.args else ""
+            msg = ("Internal error while evaluating `ContractExpression`. Note"
+                   " that few checks are performed - the number and rank of "
+                   "the array arguments must match the original expression. "
+                   "The internal error was: '%s'" % original_msg,)
+            err.args = msg
+            raise
+
+    def __repr__(self):
+        return ("ContractExpression('%s', contraction_list=%s, einsum_kwargs="
+                "%s)" % (self.contraction, self._clist, self.einsum_kwargs))
+
+    def __str__(self):
+        s = "<ContractExpression> for '%s':" % self.contraction
+        for i, c in enumerate(self._clist):
+            s += "\n  %i.  " % (i + 1)
+            s += "'%s'" % c[2] + (" [%s]" % c[-1] if c[-1] else "")
+        if self.einsum_kwargs:
+            s += "\neinsum_kwargs=%s" % self.einsum_kwargs
+        return s
 
 
 class _ShapeOnly(np.ndarray):

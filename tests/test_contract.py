@@ -149,6 +149,10 @@ def test_contract_expressions(string, optimize, use_blas, out_spec):
 
     assert np.allclose(out, expected)
 
+    # check representations
+    assert string in expr.__repr__()
+    assert string in expr.__str__()
+
 
 def test_contract_expression_checks():
     # check optimize needed
@@ -167,16 +171,29 @@ def test_contract_expression_checks():
     # check still get errors when wrong ranks supplied to expression
     expr = contract_expression("ab,bc->ac", (2, 3), (3, 4))
 
-    with pytest.raises(IndexError):
+    # too few arguments
+    with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3))
-    with pytest.raises(ValueError):
+    assert "`ContractExpression` takes exactly 2" in str(err)
+
+    # too many arguments
+    with pytest.raises(ValueError) as err:
+        expr(np.random.rand(2, 3), np.random.rand(2, 3), np.random.rand(2, 3))
+    assert "`ContractExpression` takes exactly 2" in str(err)
+
+    # wrong shapes
+    with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3, 4), np.random.rand(3, 4))
-    with pytest.raises(ValueError):
+    assert "Internal error while evaluating `ContractExpression`" in str(err)
+    with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 4), np.random.rand(3, 4, 5))
-    with pytest.raises(ValueError):
+    assert "Internal error while evaluating `ContractExpression`" in str(err)
+    with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3), np.random.rand(3, 4),
              out=np.random.rand(2, 4, 6))
+    assert "Internal error while evaluating `ContractExpression`" in str(err)
 
     # should only be able to specify out
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3), np.random.rand(3, 4), order='F')
+    assert "only valid keyword argument to a `ContractExpression`" in str(err)
