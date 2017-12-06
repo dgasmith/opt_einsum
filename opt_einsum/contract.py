@@ -328,8 +328,7 @@ def contract(*operands, **kwargs):
         optimize_arg = 'greedy'
 
     valid_einsum_kwargs = ['out', 'dtype', 'order', 'casting']
-    einsum_kwargs = {k: v for (k, v) in kwargs.items()
-                     if k in valid_einsum_kwargs}
+    einsum_kwargs = {k: v for (k, v) in kwargs.items() if k in valid_einsum_kwargs}
 
     # If no optimization, run pure einsum
     if optimize_arg is False:
@@ -341,19 +340,16 @@ def contract(*operands, **kwargs):
     gen_expression = kwargs.pop('gen_expression', False)
 
     # Make sure remaining keywords are valid for einsum
-    unknown_kwargs = [k for (k, v) in kwargs.items()
-                      if k not in valid_einsum_kwargs]
+    unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_einsum_kwargs]
     if len(unknown_kwargs):
-        raise TypeError("Did not understand the following kwargs: "
-                        "%s" % unknown_kwargs)
+        raise TypeError("Did not understand the following kwargs: %s" % unknown_kwargs)
 
     if gen_expression:
         full_str = operands[0]
 
     # Build the contraction list and operand
     operands, contraction_list = contract_path(
-        *operands, path=optimize_arg, memory_limit=memory_limit,
-        einsum_call=True, use_blas=use_blas)
+        *operands, path=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas)
 
     # check if performing contraction or just building expression
     if gen_expression:
@@ -399,15 +395,13 @@ def _core_contract(operands, contraction_list, **einsum_kwargs):
                 right_pos.append(input_right.find(s))
 
             # Contract!
-            new_view = np.tensordot(*tmp_operands,
-                                    axes=(tuple(left_pos), tuple(right_pos)))
+            new_view = np.tensordot(*tmp_operands, axes=(tuple(left_pos), tuple(right_pos)))
 
             # Build a new view if needed
             if (tensor_result != results_index) or handle_out:
                 if handle_out:
                     einsum_kwargs["out"] = out_array
-                new_view = np.einsum(tensor_result + '->' + results_index,
-                                     new_view, **einsum_kwargs)
+                new_view = np.einsum(tensor_result + '->' + results_index, new_view, **einsum_kwargs)
 
         # Call einsum
         else:
@@ -435,41 +429,37 @@ class ContractExpression:
 
     def __init__(self, contraction, contraction_list, **einsum_kwargs):
         self.contraction = contraction
-        self._clist = contraction_list
+        self.contraction_list = contraction_list
         self.einsum_kwargs = einsum_kwargs
         self.num_args = len(contraction.split('->')[0].split(','))
 
     def __call__(self, *arrays, **kwargs):
         if len(arrays) != self.num_args:
-            raise ValueError(
-                "This `ContractExpression` takes exactly %s array arguments "
-                "but received %s." % (self.num_args, len(arrays)))
+            raise ValueError("This `ContractExpression` takes exactly %s array arguments "
+                             "but received %s." % (self.num_args, len(arrays)))
 
         out = kwargs.pop('out', None)
         if kwargs:
-            raise ValueError(
-                "The only valid keyword argument to a `ContractExpression` "
-                "call is `out=`. Got: %s." % kwargs)
+            raise ValueError("The only valid keyword argument to a `ContractExpression` "
+                             "call is `out=`. Got: %s." % kwargs)
 
         try:
-            return _core_contract(list(arrays), self._clist, out=out,
-                                  **self.einsum_kwargs)
+            return _core_contract(list(arrays), self.contraction_list, out=out, **self.einsum_kwargs)
         except ValueError as err:
             original_msg = "".join(err.args) if err.args else ""
-            msg = ("Internal error while evaluating `ContractExpression`. Note"
-                   " that few checks are performed - the number and rank of "
-                   "the array arguments must match the original expression. "
-                   "The internal error was: '%s'" % original_msg,)
+            msg = ("Internal error while evaluating `ContractExpression`. Note that few checks are performed"
+                   " - the number and rank of the array arguments must match the original expression. "
+                   "The internal error was: '%s'" % original_msg, )
             err.args = msg
             raise
 
     def __repr__(self):
         return ("ContractExpression('%s', contraction_list=%s, einsum_kwargs="
-                "%s)" % (self.contraction, self._clist, self.einsum_kwargs))
+                "%s)" % (self.contraction, self.contraction_list, self.einsum_kwargs))
 
     def __str__(self):
         s = "<ContractExpression> for '%s':" % self.contraction
-        for i, c in enumerate(self._clist):
+        for i, c in enumerate(self.contraction_list):
             s += "\n  %i.  " % (i + 1)
             s += "'%s'" % c[2] + (" [%s]" % c[-1] if c[-1] else "")
         if self.einsum_kwargs:
@@ -524,12 +514,10 @@ def contract_expression(subscripts, *shapes, **kwargs):
 
     """
     if not kwargs.get('optimize', True):
-        raise ValueError("Can only generate expressions "
-                         "for optimized contractions.")
+        raise ValueError("Can only generate expressions for optimized contractions.")
 
     if kwargs.get('out', None) is not None:
-        raise ValueError("`out` should only be specified when calling a "
-                         "`ContractExpression`, not when building it.")
+        raise ValueError("`out` should only be specified when calling a `ContractExpression`, not when building it.")
 
     dummy_arrays = [_ShapeOnly(s) for s in shapes]
 
