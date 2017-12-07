@@ -5,7 +5,7 @@ Tets a series of opt_einsum contraction paths to ensure the results are the same
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
-from opt_einsum import contract, contract_path, helpers
+from opt_einsum import contract, contract_path, helpers, contract_expression
 import pytest
 
 tests = [
@@ -127,3 +127,73 @@ def test_printing():
 
     ein = contract_path(string, *views)
     assert len(ein[1]) == 729
+
+
+@pytest.mark.parametrize("string", tests)
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal'])
+@pytest.mark.parametrize("use_blas", [False, True])
+@pytest.mark.parametrize("out_spec", [False, True])
+def test_contract_expressions(string, optimize, use_blas, out_spec):
+    views = helpers.build_views(string)
+    shapes = [view.shape for view in views]
+    expected = contract(string, *views, optimize=False, use_blas=False)
+
+    expr = contract_expression(
+        string, *shapes, optimize=optimize, use_blas=use_blas)
+
+    if out_spec and ("->" in string) and (string[-2:] != "->"):
+        out, = helpers.build_views(string.split('->')[1])
+        expr(*views, out=out)
+    else:
+        out = expr(*views)
+
+    assert np.allclose(out, expected)
+
+    # check representations
+    assert string in expr.__repr__()
+    assert string in expr.__str__()
+
+
+def test_contract_expression_checks():
+    # check optimize needed
+    with pytest.raises(ValueError):
+        contract_expression("ab,bc->ac", (2, 3), (3, 4), optimize=False)
+
+    # check sizes are still checked
+    with pytest.raises(ValueError):
+        contract_expression("ab,bc->ac", (2, 3), (3, 4), (42, 42))
+
+    # check if out given
+    out = np.empty((2, 4))
+    with pytest.raises(ValueError):
+        contract_expression("ab,bc->ac", (2, 3), (3, 4), out=out)
+
+    # check still get errors when wrong ranks supplied to expression
+    expr = contract_expression("ab,bc->ac", (2, 3), (3, 4))
+
+    # too few arguments
+    with pytest.raises(ValueError) as err:
+        expr(np.random.rand(2, 3))
+    assert "`ContractExpression` takes exactly 2" in str(err)
+
+    # too many arguments
+    with pytest.raises(ValueError) as err:
+        expr(np.random.rand(2, 3), np.random.rand(2, 3), np.random.rand(2, 3))
+    assert "`ContractExpression` takes exactly 2" in str(err)
+
+    # wrong shapes
+    with pytest.raises(ValueError) as err:
+        expr(np.random.rand(2, 3, 4), np.random.rand(3, 4))
+    assert "Internal error while evaluating `ContractExpression`" in str(err)
+    with pytest.raises(ValueError) as err:
+        expr(np.random.rand(2, 4), np.random.rand(3, 4, 5))
+    assert "Internal error while evaluating `ContractExpression`" in str(err)
+    with pytest.raises(ValueError) as err:
+        expr(np.random.rand(2, 3), np.random.rand(3, 4),
+             out=np.random.rand(2, 4, 6))
+    assert "Internal error while evaluating `ContractExpression`" in str(err)
+
+    # should only be able to specify out
+    with pytest.raises(ValueError) as err:
+        expr(np.random.rand(2, 3), np.random.rand(3, 4), order='F')
+    assert "only valid keyword argument to a `ContractExpression`" in str(err)

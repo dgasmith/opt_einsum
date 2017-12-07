@@ -259,7 +259,7 @@ def contract_path(*operands, **kwargs):
 def contract(*operands, **kwargs):
     """
     contract(subscripts, *operands, out=None, dtype=None, order='K',
-           casting='safe', use_blas=False, optimize=True, memory_limit=None)
+           casting='safe', use_blas=True, optimize=True, memory_limit=None)
 
     Evaluates the Einstein summation convention on the operands. A drop in
     replacment for NumPy's einsum function that optimizes the order of contraction
@@ -323,13 +323,9 @@ def contract(*operands, **kwargs):
     See opt_einsum.contract_path or numpy.einsum
 
     """
-
-    # Grab non-einsum kwargs
     optimize_arg = kwargs.pop('optimize', True)
     if optimize_arg is True:
         optimize_arg = 'greedy'
-
-    use_blas = kwargs.pop('use_blas', True)
 
     valid_einsum_kwargs = ['out', 'dtype', 'order', 'casting']
     einsum_kwargs = {k: v for (k, v) in kwargs.items() if k in valid_einsum_kwargs}
@@ -338,25 +334,38 @@ def contract(*operands, **kwargs):
     if optimize_arg is False:
         return np.einsum(*operands, **einsum_kwargs)
 
-    # Make sure all keywords are valid
-    valid_contract_kwargs = ['memory_limit', 'use_blas'] + valid_einsum_kwargs
-    unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
+    # Grab non-einsum kwargs
+    use_blas = kwargs.pop('use_blas', True)
+    memory_limit = kwargs.pop('memory_limit', None)
+    gen_expression = kwargs.pop('gen_expression', False)
+
+    # Make sure remaining keywords are valid for einsum
+    unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_einsum_kwargs]
     if len(unknown_kwargs):
         raise TypeError("Did not understand the following kwargs: %s" % unknown_kwargs)
 
-    # Special handeling if out is specified
-    specified_out = False
-    out_array = einsum_kwargs.pop('out', None)
-    if out_array is not None:
-        specified_out = True
+    if gen_expression:
+        full_str = operands[0]
 
     # Build the contraction list and operand
-    memory_limit = kwargs.pop('memory_limit', None)
-
     operands, contraction_list = contract_path(
         *operands, path=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas)
 
-    handle_out = False
+    # check if performing contraction or just building expression
+    if gen_expression:
+        return ContractExpression(full_str, contraction_list, **einsum_kwargs)
+
+    return _core_contract(operands, contraction_list, **einsum_kwargs)
+
+
+def _core_contract(operands, contraction_list, **einsum_kwargs):
+    """Inner loop used to perform an actual contraction given the output
+    from a ``contract_path(..., einsum_call=True)`` call.
+    """
+
+    # Special handeling if out is specified
+    out_array = einsum_kwargs.pop('out', None)
+    specified_out = out_array is not None
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
@@ -366,8 +375,7 @@ def contract(*operands, **kwargs):
             tmp_operands.append(operands.pop(x))
 
         # Do we need to deal with the output?
-        if specified_out and ((num + 1) == len(contraction_list)):
-            handle_out = True
+        handle_out = specified_out and ((num + 1) == len(contraction_list))
 
         # Call tensordot
         if blas:
@@ -412,3 +420,104 @@ def contract(*operands, **kwargs):
         return out_array
     else:
         return operands[0]
+
+
+class ContractExpression:
+    """Helper class for storing an explicit ``contraction_list`` which can
+    then be repeatedly called solely with the array arguments.
+    """
+
+    def __init__(self, contraction, contraction_list, **einsum_kwargs):
+        self.contraction = contraction
+        self.contraction_list = contraction_list
+        self.einsum_kwargs = einsum_kwargs
+        self.num_args = len(contraction.split('->')[0].split(','))
+
+    def __call__(self, *arrays, **kwargs):
+        if len(arrays) != self.num_args:
+            raise ValueError("This `ContractExpression` takes exactly %s array arguments "
+                             "but received %s." % (self.num_args, len(arrays)))
+
+        out = kwargs.pop('out', None)
+        if kwargs:
+            raise ValueError("The only valid keyword argument to a `ContractExpression` "
+                             "call is `out=`. Got: %s." % kwargs)
+
+        try:
+            return _core_contract(list(arrays), self.contraction_list, out=out, **self.einsum_kwargs)
+        except ValueError as err:
+            original_msg = "".join(err.args) if err.args else ""
+            msg = ("Internal error while evaluating `ContractExpression`. Note that few checks are performed"
+                   " - the number and rank of the array arguments must match the original expression. "
+                   "The internal error was: '%s'" % original_msg, )
+            err.args = msg
+            raise
+
+    def __repr__(self):
+        return "ContractExpression('%s')" % self.contraction
+
+    def __str__(self):
+        s = "<ContractExpression> for '%s':" % self.contraction
+        for i, c in enumerate(self.contraction_list):
+            s += "\n  %i.  " % (i + 1)
+            s += "'%s'" % c[2] + (" [%s]" % c[-1] if c[-1] else "")
+        if self.einsum_kwargs:
+            s += "\neinsum_kwargs=%s" % self.einsum_kwargs
+        return s
+
+
+class _ShapeOnly(np.ndarray):
+    """Dummy ``numpy.ndarray`` which has a shape only - for generating
+    contract expressions.
+    """
+
+    def __init__(self, shape):
+        self.shape = shape
+
+
+def contract_expression(subscripts, *shapes, **kwargs):
+    """Generate an reusable expression for a given contraction with
+    specific shapes, which can for example be cached.
+
+    Parameters
+    ----------
+    subscripts : str
+        Specifies the subscripts for summation.
+    shapes : sequence of integer tuples
+        Shapes of the arrays to optimize the contraction for.
+    kwargs :
+        Passed on to ``contract_path`` or ``einsum``. See ``contract``.
+
+    Returns
+    -------
+    expr : ContractExpression
+        Callable with signature ``expr(*arrays)`` where the array's shapes
+        should match ``shapes``.
+
+    Notes
+    -----
+    - The `out` keyword argument should be supplied to the generated expression
+      rather than this function.
+    - The generated expression will work with any arrays which have
+      the same rank (number of dimensions) as the original shapes, however, if
+      the actual sizes are different, the expression may no longer be optimal.
+
+    Examples
+    --------
+
+    >>> expr = contract_expression("ab,bc->ac", (3, 4), (4, 5))
+    >>> a, b = np.random.rand(3, 4), np.random.rand(4, 5)
+    >>> c = expr(a, b)
+    >>> np.allclose(c, a @ b)
+    True
+
+    """
+    if not kwargs.get('optimize', True):
+        raise ValueError("Can only generate expressions for optimized contractions.")
+
+    if kwargs.get('out', None) is not None:
+        raise ValueError("`out` should only be specified when calling a `ContractExpression`, not when building it.")
+
+    dummy_arrays = [_ShapeOnly(s) for s in shapes]
+
+    return contract(subscripts, *dummy_arrays, gen_expression=True, **kwargs)
