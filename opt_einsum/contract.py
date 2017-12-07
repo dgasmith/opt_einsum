@@ -454,8 +454,7 @@ class ContractExpression:
             raise
 
     def __repr__(self):
-        return ("ContractExpression('%s', contraction_list=%s, einsum_kwargs="
-                "%s)" % (self.contraction, self.contraction_list, self.einsum_kwargs))
+        return "ContractExpression('%s')" % self.contraction
 
     def __str__(self):
         s = "<ContractExpression> for '%s':" % self.contraction
