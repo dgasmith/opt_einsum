@@ -255,6 +255,26 @@ def contract_path(*operands, **kwargs):
     return path, path_print
 
 
+def _np_einsum(*operands, **kwargs):
+    """Numpy einsum, but with pre-parse for valid characters if string given.
+    """
+    if not isinstance(operands[0], str):
+        return np.einsum(*operands, **kwargs)
+
+    einsum_str, operands = operands[0], operands[1:]
+
+    # Do we need to temporarily map indices into [a-z,A-Z] range?
+    if not parser.has_valid_einsum_chars_only(einsum_str):
+
+        # Explicitly find output str first so as to maintain order
+        if '->' not in einsum_str:
+            einsum_str += '->' + parser.find_output_str(einsum_str)
+
+        einsum_str = parser.convert_to_valid_einsum_chars(einsum_str)
+
+    return np.einsum(einsum_str, *operands, **kwargs)
+
+
 # Rewrite einsum to handle different cases
 def contract(*operands, **kwargs):
     """
@@ -332,7 +352,7 @@ def contract(*operands, **kwargs):
 
     # If no optimization, run pure einsum
     if optimize_arg is False:
-        return np.einsum(*operands, **einsum_kwargs)
+        return _np_einsum(*operands, **einsum_kwargs)
 
     # Grab non-einsum kwargs
     use_blas = kwargs.pop('use_blas', True)
@@ -401,7 +421,7 @@ def _core_contract(operands, contraction_list, **einsum_kwargs):
             if (tensor_result != results_index) or handle_out:
                 if handle_out:
                     einsum_kwargs["out"] = out_array
-                new_view = np.einsum(tensor_result + '->' + results_index, new_view, **einsum_kwargs)
+                new_view = _np_einsum(tensor_result + '->' + results_index, new_view, **einsum_kwargs)
 
         # Call einsum
         else:
@@ -410,7 +430,7 @@ def _core_contract(operands, contraction_list, **einsum_kwargs):
                 einsum_kwargs["out"] = out_array
 
             # Do the contraction
-            new_view = np.einsum(einsum_str, *tmp_operands, **einsum_kwargs)
+            new_view = _np_einsum(einsum_str, *tmp_operands, **einsum_kwargs)
 
         # Append new items and derefernce what we can
         operands.append(new_view)
@@ -446,7 +466,7 @@ class ContractExpression:
         try:
             return _core_contract(list(arrays), self.contraction_list, out=out, **self.einsum_kwargs)
         except ValueError as err:
-            original_msg = "".join(err.args) if err.args else ""
+            original_msg = str(err.args) if err.args else ""
             msg = ("Internal error while evaluating `ContractExpression`. Note that few checks are performed"
                    " - the number and rank of the array arguments must match the original expression. "
                    "The internal error was: '%s'" % original_msg, )

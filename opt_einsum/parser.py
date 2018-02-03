@@ -3,9 +3,59 @@ A functionally equivalent parser of the numpy.einsum input parser
 """
 
 import numpy as np
+import sys
 
-einsum_symbols = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+einsum_symbols = str(einsum_symbols_base)
+
+# boost the number of symbols using unicode if python3
+if sys.version_info[0] >= 3:
+    einsum_symbols += ''.join(map(chr, range(193, 688)))
+    einsum_symbols += ''.join(map(chr, range(913, 1367)))
+
 einsum_symbols_set = set(einsum_symbols)
+
+
+def is_valid_einsum_char(x):
+    """Check if the character ``x`` is valid for numpy einsum.
+    """
+    return (x in einsum_symbols_base) or (x in ',->.')
+
+
+def has_valid_einsum_chars_only(einsum_str):
+    """Check if ``einsum_str`` contains only valid characters for numpy einsum.
+    """
+    return all(map(is_valid_einsum_char, einsum_str))
+
+
+def convert_to_valid_einsum_chars(einsum_str):
+    """Convert the str ``einsum_str`` to contain only the alphabetic characters
+    valid for numpy einsum.
+    """
+    # partition into valid and invalid sets
+    valid, invalid = set(), set()
+    for x in einsum_str:
+        (valid if is_valid_einsum_char(x) else invalid).add(x)
+
+    # get replacements for invalid chars that are not already used
+    available = (x for x in einsum_symbols if x not in valid)
+
+    # map invalid to available and replace in the inputs
+    replacer = dict(zip(invalid, available))
+    return "".join(replacer.get(x, x) for x in einsum_str)
+
+
+def find_output_str(subscripts):
+    """Find the output string for the inputs ``susbcripts``.
+    """
+    tmp_subscripts = subscripts.replace(",", "")
+    output_subscript = ""
+    for s in sorted(set(tmp_subscripts)):
+        if s not in einsum_symbols_set:
+            raise ValueError("Character %s is not a valid symbol." % s)
+        if tmp_subscripts.count(s) == 1:
+            output_subscript += s
+    return output_subscript
 
 
 def parse_einsum_input(operands):
@@ -45,7 +95,7 @@ def parse_einsum_input(operands):
         for s in subscripts:
             if s in '.,->':
                 continue
-            if s not in einsum_symbols:
+            if s not in einsum_symbols_set:
                 raise ValueError("Character %s is not a valid symbol." % s)
 
     else:
@@ -135,13 +185,7 @@ def parse_einsum_input(operands):
             subscripts += "->" + output_sub.replace("...", out_ellipse)
         else:
             # Special care for outputless ellipses
-            output_subscript = ""
-            tmp_subscripts = subscripts.replace(",", "")
-            for s in sorted(set(tmp_subscripts)):
-                if s not in einsum_symbols:
-                    raise ValueError("Character %s is not a valid symbol." % s)
-                if tmp_subscripts.count(s) == 1:
-                    output_subscript += s
+            output_subscript = find_output_str(subscripts)
             normal_inds = ''.join(sorted(set(output_subscript) - set(out_ellipse)))
 
             subscripts += "->" + out_ellipse + normal_inds
@@ -150,15 +194,7 @@ def parse_einsum_input(operands):
     if "->" in subscripts:
         input_subscripts, output_subscript = subscripts.split("->")
     else:
-        input_subscripts = subscripts
-        # Build output subscripts
-        tmp_subscripts = subscripts.replace(",", "")
-        output_subscript = ""
-        for s in sorted(set(tmp_subscripts)):
-            if s not in einsum_symbols:
-                raise ValueError("Character %s is not a valid symbol." % s)
-            if tmp_subscripts.count(s) == 1:
-                output_subscript += s
+        input_subscripts, output_subscript = subscripts, find_output_str(subscripts)
 
     # Make sure output subscripts are in the input
     for char in output_subscript:
