@@ -169,3 +169,9 @@ def test_greedy_edge_cases():
 
     path, path_str = oe.contract_path(expression, *tensors, path='greedy', memory_limit=-1)
     assert check_path(path, [(0, 1), (0, 2), (0, 1)])
+
+
+def test_can_optimize_outer_products():
+    a, b, c = [np.random.randn(10, 10) for _ in range(3)]
+    d = np.random.randn(10, 2)
+    assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, path='greedy')[0] == [(2, 3), (0, 2), (0, 1)]

@@ -1,7 +1,7 @@
 """
 Contains the path technology behind opt_einsum in addition to several path helpers
 """
-
+from itertools import combinations
 from . import helpers
 
 
@@ -41,10 +41,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
         iter_results = []
 
         # Compute all unique pairs
-        comb_iter = []
-        for x in range(len(input_sets) - iteration):
-            for y in range(x + 1, len(input_sets) - iteration):
-                comb_iter.append((x, y))
+        comb_iter = tuple(combinations(range(len(input_sets) - iteration), 2))
 
         for curr in full_results:
             cost, positions, remaining = curr
@@ -82,6 +79,30 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
 
     path = min(full_results, key=lambda x: x[0])[1]
     return path
+
+
+def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
+                                memory_limit, path_cost, naive_cost):
+    # Find the contraction
+    contract = helpers.find_contraction(positions, input_sets, output_set)
+    idx_result, new_input_sets, idx_removed, idx_contract = contract
+
+    # Sieve the results based on memory_limit
+    if helpers.compute_size_by_dict(idx_result, idx_dict) > memory_limit:
+        return None
+
+    # Build sort tuple
+    removed_size = helpers.compute_size_by_dict(idx_removed, idx_dict)
+    cost = helpers.flop_count(idx_contract, idx_removed,
+                              len(positions), idx_dict)
+    sort = (-removed_size, cost)
+
+    # Sieve based on total cost as well
+    if (path_cost + cost) > naive_cost:
+        return None
+
+    # Add contraction to possible choices
+    return [sort, positions, new_input_sets]
 
 
 def greedy(input_sets, output_set, idx_dict, memory_limit):
@@ -132,39 +153,34 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
     path = []
     for iteration in range(len(input_sets) - 1):
         iteration_results = []
-        comb_iter = []
+        outer_positions = []
 
-        # Compute all unique pairs
-        for x in range(len(input_sets)):
-            for y in range(x + 1, len(input_sets)):
-                comb_iter.append((x, y))
+        for positions in combinations(range(len(input_sets)), 2):
 
-        for positions in comb_iter:
-
-            # Find the contraction
-            contract = helpers.find_contraction(positions, input_sets, output_set)
-            idx_result, new_input_sets, idx_removed, idx_contract = contract
-
-            # Sieve the results based on memory_limit
-            if helpers.compute_size_by_dict(idx_result, idx_dict) > memory_limit:
+            # always initially ignore outer products, but save if no inners can be found
+            if input_sets[positions[0]].isdisjoint(input_sets[positions[1]]):
+                outer_positions.append(positions)
                 continue
 
-            # Build sort tuple
-            removed_size = helpers.compute_size_by_dict(idx_removed, idx_dict)
-            cost = helpers.flop_count(idx_contract, idx_removed, len(positions), idx_dict)
-            sort = (-removed_size, cost)
+            result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
+                                                 memory_limit, path_cost, naive_cost)
+            if result is not None:
+                iteration_results.append(result)
 
-            # Sieve based on total cost as well
-            if (path_cost + cost) > naive_cost:
-                continue
-
-            # Add contraction to possible choices
-            iteration_results.append([sort, positions, new_input_sets])
-
-        # If we did not find a new contraction contract remaining
+        # If we did not find a new inner contraction remaining
         if len(iteration_results) == 0:
-            path.append(tuple(range(len(input_sets))))
-            break
+
+            # then check the outer products
+            for positions in outer_positions:
+                result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
+                                                     memory_limit, path_cost, naive_cost)
+                if result is not None:
+                    iteration_results.append(result)
+
+            # If we still did not find any remaining contraction
+            if len(iteration_results) == 0:
+                path.append(tuple(range(len(input_sets))))
+                break
 
         # Sort based on first index
         best = min(iteration_results, key=lambda x: x[0])

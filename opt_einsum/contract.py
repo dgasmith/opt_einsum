@@ -118,7 +118,6 @@ def contract_path(*operands, **kwargs):
 
     # Python side parsing
     input_subscripts, output_subscript, operands = parser.parse_einsum_input(operands)
-    subscripts = input_subscripts + '->' + output_subscript
 
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
@@ -155,7 +154,7 @@ def contract_path(*operands, **kwargs):
             if memory_limit == -1:
                 memory_arg = int(1e20)
             else:
-                raise ValidationError("Memory limit must be larger than 0, or -1")
+                raise ValueError("Memory limit must be larger than 0, or -1")
         else:
             memory_arg = int(memory_limit)
 
