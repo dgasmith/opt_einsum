@@ -105,6 +105,32 @@ def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
     return [sort, positions, new_input_sets]
 
 
+def _update_other_results(results, best, input_sets):
+    """Update the positions and provisional input_sets of ``results`` based on
+    performing the contraction result ``best``.
+    """
+    best_con = best[1]
+    bx, by = best_con
+    mod_results = []
+
+    for cost, (x, y), con_sets in results:
+
+        # ignore results involving tensors just contracted
+        if x in best_con or y in best_con:
+            continue
+
+        # update the input_sets
+        del con_sets[by - int(by > x) - int(by > y)]
+        del con_sets[bx - int(bx > x) - int(bx > y)]
+        con_sets.insert(-1, best[2][-1])
+
+        # update the position indices
+        mod_con = x - int(x > bx) - int(x > by), y - int(y > bx) - int(y > by)
+        mod_results.append((cost, mod_con, con_sets))
+
+    return mod_results
+
+
 def greedy(input_sets, output_set, idx_dict, memory_limit):
     """
     Finds the path by contracting the best pair until the input list is
@@ -148,18 +174,17 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
     idx_result, new_input_sets, idx_removed, idx_contract = contract
     naive_cost = helpers.flop_count(idx_contract, idx_removed, len(input_sets), idx_dict)
 
+    comb_iter = combinations(range(len(input_sets)), 2)
+    iteration_results = []
+
     path_cost = 0
-
     path = []
+
     for iteration in range(len(input_sets) - 1):
-        iteration_results = []
-        outer_positions = []
+        for positions in comb_iter:
 
-        for positions in combinations(range(len(input_sets)), 2):
-
-            # always initially ignore outer products, but save if no inners can be found
+            # always initially ignore outer products
             if input_sets[positions[0]].isdisjoint(input_sets[positions[1]]):
-                outer_positions.append(positions)
                 continue
 
             result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
@@ -170,22 +195,31 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
         # If we did not find a new inner contraction remaining
         if len(iteration_results) == 0:
 
-            # then check the outer products
-            for positions in outer_positions:
+            # Then check the outer products
+            for positions in combinations(range(len(input_sets)), 2):
                 result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
                                                      memory_limit, path_cost, naive_cost)
                 if result is not None:
                     iteration_results.append(result)
 
-            # If we still did not find any remaining contraction
+            # If we still did not find any remaining contraction, contract everything
             if len(iteration_results) == 0:
                 path.append(tuple(range(len(input_sets))))
                 break
 
         # Sort based on first index
         best = min(iteration_results, key=lambda x: x[0])
-        path.append(best[1])
+
+        # Now propagate as many results as possible to next iteration
+        iteration_results = _update_other_results(iteration_results, best, input_sets)
+
+        # Next iteration only compute contractions with the new tensor
         input_sets = best[2]
+        new_tensor_pos = len(input_sets) - 1
+        comb_iter = ((i, new_tensor_pos) for i in range(new_tensor_pos))
+
+        # Update path and total cost
+        path.append(best[1])
         path_cost += best[0][1]
 
     return path
