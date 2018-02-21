@@ -83,6 +83,36 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
 
 def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
                                 memory_limit, path_cost, naive_cost):
+    """Compute the cost (removed size + flops) and resultant indices for
+    performing the contraction specified by ``positions``.
+
+    Parameters
+    ----------
+    positions : tuple of int
+        The locations of the proposed tensors to contract.
+    input_sets : list of sets
+        The indices found on each tensors.
+    output_set : set
+        The output indices of the expression.
+    idx_dict : dict
+        Mapping of each index to its size.
+    memory_limit : int
+        The total allowed size for an intermediary tensor.
+    path_cost : int
+        The contraction cost so far.
+    naive_cost : int
+        The cost of the unoptimized expression.
+
+    Returns
+    -------
+    cost : (int, int)
+        A tuple containing the size of any indices removed, and the flop cost.
+    positions : tuple of int
+        The locations of the proposed tensors to contract.
+    new_input_sets : list of sets
+        The resulting new list of indices if this proposed contraction is performed.
+
+    """
     # Find the contraction
     contract = helpers.find_contraction(positions, input_sets, output_set)
     idx_result, new_input_sets, idx_removed, idx_contract = contract
@@ -105,9 +135,22 @@ def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
     return [sort, positions, new_input_sets]
 
 
-def _update_other_results(results, best, input_sets):
+def _update_other_results(results, best):
     """Update the positions and provisional input_sets of ``results`` based on
-    performing the contraction result ``best``.
+    performing the contraction result ``best``. Remove any involving the tensors
+    contracted.
+
+    Parameters
+    ----------
+    results :
+        List of contraction results produced by ``_parse_possible_contraction``.
+    best :
+        The best contraction of ``results`` i.e. the one that will be performed.
+
+    Returns
+    -------
+    mod_results :
+        The list of modifed results, updated with outcome of ``best`` contraction.
     """
     best_con = best[1]
     bx, by = best_con
@@ -211,7 +254,7 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
         best = min(iteration_results, key=lambda x: x[0])
 
         # Now propagate as many results as possible to next iteration
-        iteration_results = _update_other_results(iteration_results, best, input_sets)
+        iteration_results = _update_other_results(iteration_results, best)
 
         # Next iteration only compute contractions with the new tensor
         input_sets = best[2]
