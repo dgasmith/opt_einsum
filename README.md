@@ -13,6 +13,7 @@ Optimized Einsum: A tensor contraction order optimizer
 
  - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/master/README.md#optimizing-numpys-einsum-function)
  - [Obtaining the path expression](https://github.com/dgasmith/opt_einsum/blob/master/README.md#obtaining-the-path-expression)
+ - [Reusing paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#reusing-paths-using-contract_expression)
  - [More details on paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#more-details-on-paths)
  - [Finding the optimal path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-optimal-path)
  - [Finding the opportunistic path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-opportunistic-path)

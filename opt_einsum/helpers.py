@@ -4,6 +4,7 @@ Contains helper functions for opt_einsum testing scripts
 
 from __future__ import division, absolute_import, print_function
 
+import itertools
 import numpy as np
 
 chars = 'abcdefghijklmopq'
@@ -118,15 +119,13 @@ def find_contraction(positions, input_sets, output_set):
     ({'a', 'c'}, [{'a', 'c'}, {'a', 'c'}], {'b', 'd'}, {'a', 'b', 'c', 'd'})
     """
 
+    remaining = list(input_sets)
     idx_contract = set()
-    idx_remain = output_set.copy()
-    remaining = []
-    for ind, value in enumerate(input_sets):
-        if ind in positions:
-            idx_contract |= value
-        else:
-            remaining.append(value)
-            idx_remain |= value
+
+    for i in sorted(positions, reverse=True):
+        idx_contract |= remaining.pop(i)
+
+    idx_remain = set(itertools.chain(output_set, *remaining))
 
     new_result = idx_remain & idx_contract
     idx_removed = (idx_contract - new_result)
