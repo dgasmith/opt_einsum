@@ -118,13 +118,14 @@ def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
     idx_result, new_input_sets, idx_removed, idx_contract = contract
 
     # Sieve the results based on memory_limit
-    if helpers.compute_size_by_dict(idx_result, idx_dict) > memory_limit:
+    new_size = helpers.compute_size_by_dict(idx_result, idx_dict)
+    if new_size > memory_limit:
         return None
 
     # Build sort tuple
-    removed_size = helpers.compute_size_by_dict(idx_removed, idx_dict)
-    cost = helpers.flop_count(idx_contract, idx_removed,
-                              len(positions), idx_dict)
+    old_sizes = (helpers.compute_size_by_dict(input_sets[p], idx_dict) for p in positions)
+    removed_size = sum(old_sizes) - new_size
+    cost = helpers.flop_count(idx_contract, idx_removed, len(positions), idx_dict)
     sort = (-removed_size, cost)
 
     # Sieve based on total cost as well
