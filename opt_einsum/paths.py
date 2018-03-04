@@ -32,7 +32,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('')
     >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> _path_optimal(isets, oset, idx_sizes, 5000)
+    >>> optimal(isets, oset, idx_sizes, 5000)
     [(0, 2), (0, 1)]
     """
 
@@ -206,7 +206,7 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('')
     >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> _path_greedy(isets, oset, idx_sizes, 5000)
+    >>> greedy(isets, oset, idx_sizes, 5000)
     [(0, 2), (0, 1)]
     """
 

@@ -25,14 +25,14 @@ def contract_path(*operands, **kwargs):
 
         - if a list is given uses this as the path.
         - 'greedy' An algorithm that chooses the best pair contraction
-            at each step. Scales cubically with the number of terms in the
-            contraction.
+          at each step. Scales cubically with the number of terms in the
+          contraction.
         - 'optimal' An algorithm that tries all possible ways of
-            contracting the listed tensors. Scales exponentially with
-            the number of terms in the contraction.
+          contracting the listed tensors. Scales exponentially with
+          the number of terms in the contraction.
+
     use_blas : bool
         Use BLAS functions or not
-
     memory_limit : int, optional (default: largest input or output array size)
         Maximum number of elements allowed in intermediate arrays.
 
@@ -305,11 +305,11 @@ def contract(*operands, **kwargs):
 
         - if a list is given uses this as the path.
         - 'greedy' An algorithm that chooses the best pair contraction
-            at each step. Scales cubically with the number of terms in the
-            contraction.
+          at each step. Scales cubically with the number of terms in the
+          contraction.
         - 'optimal' An algorithm that tries all possible ways of
-            contracting the listed tensors. Scales exponentially with
-            the number of terms in the contraction.
+          contracting the listed tensors. Scales exponentially with
+          the number of terms in the contraction.
 
     memory_limit : int or None (default : None)
         The upper limit of the size of tensor created, by default this will be
@@ -339,7 +339,7 @@ def contract(*operands, **kwargs):
     Examples
     --------
 
-    See opt_einsum.contract_path or numpy.einsum
+    See :func:`opt_einsum.contract_path` or :func:`numpy.einsum`
 
     """
     optimize_arg = kwargs.pop('optimize', True)
