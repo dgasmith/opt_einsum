@@ -125,6 +125,8 @@ def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
     # Build sort tuple
     old_sizes = (helpers.compute_size_by_dict(input_sets[p], idx_dict) for p in positions)
     removed_size = sum(old_sizes) - new_size
+    # NB: removed_size used to be just the size of any removed indices i.e.:
+    #     helpers.compute_size_by_dict(idx_removed, idx_dict)
     cost = helpers.flop_count(idx_contract, idx_removed, len(positions), idx_dict)
     sort = (-removed_size, cost)
 
