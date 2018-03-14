@@ -32,7 +32,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('')
     >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> _path_optimal(isets, oset, idx_sizes, 5000)
+    >>> optimal(isets, oset, idx_sizes, 5000)
     [(0, 2), (0, 1)]
     """
 
@@ -118,13 +118,16 @@ def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
     idx_result, new_input_sets, idx_removed, idx_contract = contract
 
     # Sieve the results based on memory_limit
-    if helpers.compute_size_by_dict(idx_result, idx_dict) > memory_limit:
+    new_size = helpers.compute_size_by_dict(idx_result, idx_dict)
+    if new_size > memory_limit:
         return None
 
     # Build sort tuple
-    removed_size = helpers.compute_size_by_dict(idx_removed, idx_dict)
-    cost = helpers.flop_count(idx_contract, idx_removed,
-                              len(positions), idx_dict)
+    old_sizes = (helpers.compute_size_by_dict(input_sets[p], idx_dict) for p in positions)
+    removed_size = sum(old_sizes) - new_size
+    # NB: removed_size used to be just the size of any removed indices i.e.:
+    #     helpers.compute_size_by_dict(idx_removed, idx_dict)
+    cost = helpers.flop_count(idx_contract, idx_removed, len(positions), idx_dict)
     sort = (-removed_size, cost)
 
     # Sieve based on total cost as well
@@ -205,7 +208,7 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('')
     >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> _path_greedy(isets, oset, idx_sizes, 5000)
+    >>> greedy(isets, oset, idx_sizes, 5000)
     [(0, 2), (0, 1)]
     """
 

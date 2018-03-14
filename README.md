@@ -195,7 +195,7 @@ terms = ['a', 'a'] contraction = (0, 1)
 
 The most optimal path can be found by searching through every possible way to contract the tensors together, this includes all combinations with the new intermediate tensors as well.
 While this algorithm scales like N! and can often become more costly to compute than the unoptimized contraction itself, it provides an excellent benchmark.
-The function that computes this path in opt_einsum is called _path_optimal and works by iteratively finding every possible combination of pairs to contract in the current list of tensors.
+The function that computes this path in opt_einsum is called ``optimal`` and works by iteratively finding every possible combination of pairs to contract in the current list of tensors.
 This is iterated until all tensors are contracted together. The resulting paths are then sorted by total flop cost and the lowest one is chosen.
 This algorithm runs in about 1 second for 7 terms, 15 seconds for 8 terms, and 480 seconds for 9 terms limiting its overall usefulness for a large number of terms.
 By considering limited memory this can be sieved and can reduce the cost of computing the optimal function by an order of magnitude or more.
@@ -235,7 +235,7 @@ The final contraction cost is computed and we choose the second path from the li
 ## Finding the opportunistic path
 
 Another way to find a path is to choose the best pair to contract at every iteration so that the formula scales like N^3. 
-The "best" contraction pair is currently determined by the smallest of the tuple (-removed_size, cost) where removed size represents the product of the size of indices removed from the overall contraction and cost is the cost of the contraction.
+The "best" contraction pair is currently determined by the smallest of the tuple ``(-removed_size, cost)`` where ``removed_size`` is the size of the contracted tensors minus the size of the tensor created and ``cost`` is the cost of the contraction.
 Basically, we want to remove the largest dimensions at the least cost.
 To prevent large outer products the results are sieved by the amount of memory available.
 Overall, this turns out to work extremely well and is only slower than the optimal path in several cases, and even then only by a factor of 2-4 while only taking 1 millisecond for terms of length 10.

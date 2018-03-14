@@ -21,20 +21,20 @@ This is a single possible path to the final answer (and notably, not the most op
 .. code:: python
 
     import opt_einsum as oe
-    
+
     # Take a complex string
     einsum_string = 'bdik,acaj,ikab,ajac,ikbd->'
-    
+
     # Build random views to represent this contraction
     unique_inds = set(einsum_string.replace(',', ''))
     index_size = [10, 17, 9, 10, 13, 16, 15, 14]
     sizes_dict = {c : s for c, s in zip(set(einsum_string), index_size)}
     views = oe.helpers.build_views(einsum_string, sizes_dict)
-    
+
     path_info = oe.contract_path(einsum_string, *views)
     >>> print path_info[0]
     [(1, 3), (0, 2), (0, 2), (0, 1)]
-    
+
     ```
     ```
     >>> print path_info[1]

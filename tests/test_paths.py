@@ -31,7 +31,7 @@ path_edge_tests = [
     ['optimal', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['greedy', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['optimal', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
-    ['greedy', 'dcc,fce,ea,dbf->ab', ((0, 3), (0, 2), (0, 1))],
+    ['greedy', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
     ['optimal', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
 ]
 
@@ -134,7 +134,7 @@ def test_memory_paths():
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
     path_ret = oe.contract_path(expression, *views, path="greedy", memory_limit=-1)
-    assert check_path(path_ret[0], [(2, 4), (3, 4), (2, 3), (1, 2), (0, 1)])
+    assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
 
 @pytest.mark.parametrize("alg,expression,order", path_edge_tests)

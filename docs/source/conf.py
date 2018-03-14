@@ -19,6 +19,9 @@
 #
 import os
 import sys
+import numpy
+import opt_einsum
+
 sys.path.insert(0, os.path.abspath('..'))
 
 # -- General configuration ------------------------------------------------
@@ -32,17 +35,22 @@ sys.path.insert(0, os.path.abspath('..'))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
 ]
 
 napoleon_google_docstring = False
 napoleon_use_param = False
 napoleon_use_ivar = True
+
+autosummary_generate = True
+autodoc_default_flags = ['members']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -144,8 +152,8 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 else:
     html_context = {
         'css_files': [
-            '//media.readthedocs.org/css/sphinx_rtd_theme.css',            
-            '//media.readthedocs.org/css/readthedocs-doc-embed.css',    
+            '//media.readthedocs.org/css/sphinx_rtd_theme.css',
+            '//media.readthedocs.org/css/readthedocs-doc-embed.css',
             '_static/theme_overrides.css'
         ]
     }
@@ -187,7 +195,7 @@ else:
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -387,4 +395,10 @@ def setup(app):
 extlinks = {
     'issue': ('https://github.com/dgasmith/opt_einsum/issues/%s', 'GH#'),
     'pr': ('https://github.com/dgasmith/opt_einsum/pull/%s', 'GH#')
+}
+
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3.6/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
 }

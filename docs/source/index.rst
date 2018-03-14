@@ -2,7 +2,7 @@
 opt_einsum
 ==========
 
-Einsum is a very powerful function for contracting tensors of arbitrary
+:func:`~numpy.einsum` is a very powerful function for contracting tensors of arbitrary
 dimension and index. However, it is only optimized to contract two terms
 at a time resulting in non-optimal scaling.
 
@@ -96,10 +96,19 @@ We can then view more details about the optimized contraction order:
    install
    examples
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Path Information:
 
    path_finding
+   reusing paths
    optimal_path
    greedy_path
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Function Reference:
+
+   api
