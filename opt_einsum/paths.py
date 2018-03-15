@@ -11,7 +11,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
     on ``memory_limit`` and returns the lowest cost path. This algorithm
     scales factorial with respect to the elements in the list ``input_sets``.
 
-    Paramaters
+    Parameters
     ----------
     input_sets : list
         List of sets that represent the lhs side of the einsum subscript
@@ -187,7 +187,7 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
     ``memory_limit``. This algorithm scales cubically with respect to the number of
     elements in the list ``input_sets``.
 
-    Paramaters
+    Parameters
     ----------
     input_sets : list
         List of sets that represent the lhs side of the einsum subscript
