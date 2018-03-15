@@ -10,6 +10,7 @@ matrix:
     - python: 2.7
     - python: 3.4
     - python: 3.5
+    - python: 3.6
 
 before_install:
   - uname -a
@@ -21,6 +22,10 @@ before_install:
   - pip install pytest pytest-cov
   - pip install numpy
   - pip install codecov
+  - pip install tensorflow
+  - pip install theano
+  - pip install dask
+  - pip install sparse
   - pip install -e .
 
 script:

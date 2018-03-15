@@ -5,8 +5,8 @@ A functionally equivalent parser of the numpy.einsum input parser
 import numpy as np
 import sys
 
-einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-einsum_symbols = str(einsum_symbols_base)
+einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyz'
+einsum_symbols = einsum_symbols_base + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 # boost the number of symbols using unicode if python3
 if sys.version_info[0] >= 3:

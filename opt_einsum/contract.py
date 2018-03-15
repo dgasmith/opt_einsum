@@ -8,6 +8,7 @@ from . import blas
 from . import helpers
 from . import paths
 from . import parser
+from . import backends
 
 
 def contract_path(*operands, **kwargs):
@@ -254,11 +255,13 @@ def contract_path(*operands, **kwargs):
     return path, path_print
 
 
-def _np_einsum(*operands, **kwargs):
+def _einsum(*operands, **kwargs):
     """Numpy einsum, but with pre-parse for valid characters if string given.
     """
+    fn = backends.get_func('einsum', kwargs.pop('backend', 'numpy'))
+
     if not isinstance(operands[0], str):
-        return np.einsum(*operands, **kwargs)
+        return fn(*operands, **kwargs)
 
     einsum_str, operands = operands[0], operands[1:]
 
@@ -271,14 +274,24 @@ def _np_einsum(*operands, **kwargs):
 
         einsum_str = parser.convert_to_valid_einsum_chars(einsum_str)
 
-    return np.einsum(einsum_str, *operands, **kwargs)
+    return fn(einsum_str, *operands, **kwargs)
+
+
+def _transpose(x, axes, backend='numpy'):
+    fn = backends.get_func('transpose', backend)
+    return fn(x, axes)
+
+
+def _tensordot(x, y, axes, backend='numpy'):
+    fn = backends.get_func('tensordot', backend)
+    return fn(x, y, axes=axes)
 
 
 # Rewrite einsum to handle different cases
 def contract(*operands, **kwargs):
     """
-    contract(subscripts, *operands, out=None, dtype=None, order='K',
-           casting='safe', use_blas=True, optimize=True, memory_limit=None)
+    contract(subscripts, *operands, out=None, dtype=None, order='K', casting='safe',
+             use_blas=True, optimize=True, memory_limit=None, backend='numpy')
 
     Evaluates the Einstein summation convention on the operands. A drop in
     replacment for NumPy's einsum function that optimizes the order of contraction
@@ -316,6 +329,11 @@ def contract(*operands, **kwargs):
         Give the upper bound of the largest intermediate tensor contract will build.
         By default (None) will size the ``memory_limit`` as the largest input tensor.
         Users can also specify ``-1`` to allow arbitrarily large tensors to be built.
+    backend : str, optional (default: ``numpy``)
+        Which library to use to perform the required ``tensordot``, ``transpose``
+        and ``einsum`` calls. Should match the types of arrays supplied, See
+        :func:`contract_expression` for generating expressions which convert
+        numpy arrays to and from the backend library automatically.
 
     Returns
     -------
@@ -351,11 +369,12 @@ def contract(*operands, **kwargs):
 
     # If no optimization, run pure einsum
     if optimize_arg is False:
-        return _np_einsum(*operands, **einsum_kwargs)
+        return _einsum(*operands, **einsum_kwargs)
 
     # Grab non-einsum kwargs
     use_blas = kwargs.pop('use_blas', True)
     memory_limit = kwargs.pop('memory_limit', None)
+    backend = kwargs.pop('backend', 'numpy')
     gen_expression = kwargs.pop('gen_expression', False)
 
     # Make sure remaining keywords are valid for einsum
@@ -374,10 +393,10 @@ def contract(*operands, **kwargs):
     if gen_expression:
         return ContractExpression(full_str, contraction_list, **einsum_kwargs)
 
-    return _core_contract(operands, contraction_list, **einsum_kwargs)
+    return _core_contract(operands, contraction_list, backend=backend, **einsum_kwargs)
 
 
-def _core_contract(operands, contraction_list, **einsum_kwargs):
+def _core_contract(operands, contraction_list, backend='numpy', **einsum_kwargs):
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
@@ -385,6 +404,9 @@ def _core_contract(operands, contraction_list, **einsum_kwargs):
     # Special handeling if out is specified
     out_array = einsum_kwargs.pop('out', None)
     specified_out = out_array is not None
+
+    # try and do as much as possible without einsum if not available
+    has_einsum = backends.has_einsum(backend)
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
@@ -397,7 +419,7 @@ def _core_contract(operands, contraction_list, **einsum_kwargs):
         handle_out = specified_out and ((num + 1) == len(contraction_list))
 
         # Call tensordot
-        if blas:
+        if blas or not has_einsum:
 
             # Checks have already been handled
             input_str, results_index = einsum_str.split('->')
@@ -414,13 +436,21 @@ def _core_contract(operands, contraction_list, **einsum_kwargs):
                 right_pos.append(input_right.find(s))
 
             # Contract!
-            new_view = np.tensordot(*tmp_operands, axes=(tuple(left_pos), tuple(right_pos)))
+            new_view = _tensordot(*tmp_operands, axes=(tuple(left_pos), tuple(right_pos)), backend=backend)
 
             # Build a new view if needed
             if (tensor_result != results_index) or handle_out:
+
+                transpose = tuple(map(tensor_result.index, results_index))
+
+                try:
+                    new_view = new_view.transpose(transpose)
+                except AttributeError:
+                    # some libraries don't implement method version
+                    new_view = _transpose(new_view, axes=transpose, backend=backend)
+
                 if handle_out:
-                    einsum_kwargs["out"] = out_array
-                new_view = _np_einsum(tensor_result + '->' + results_index, new_view, **einsum_kwargs)
+                    out_array[:] = new_view
 
         # Call einsum
         else:
@@ -429,7 +459,7 @@ def _core_contract(operands, contraction_list, **einsum_kwargs):
                 einsum_kwargs["out"] = out_array
 
             # Do the contraction
-            new_view = _np_einsum(einsum_str, *tmp_operands, **einsum_kwargs)
+            new_view = _einsum(einsum_str, *tmp_operands, backend=backend, **einsum_kwargs)
 
         # Append new items and derefernce what we can
         operands.append(new_view)
@@ -452,18 +482,62 @@ class ContractExpression:
         self.einsum_kwargs = einsum_kwargs
         self.num_args = len(contraction.split('->')[0].split(','))
 
+    def _normal_contract(self, arrays, out=None, backend='numpy'):
+        """The normal, core contraction.
+        """
+        return _core_contract(list(arrays), self.contraction_list, out=out,
+                              backend=backend, **self.einsum_kwargs)
+
+    def _special_contract(self, arrays, out, backend):
+        """Special contraction. Checks for ``self._{backend}_contract``,
+        generates it if is missing, then calls it with ``arrays``.
+        """
+        special_fn = "_{}_contract".format(backend)
+
+        if not hasattr(self, special_fn):
+            setattr(self, special_fn, backends.build_expression(backend, arrays, self))
+
+        result = getattr(self, special_fn)(*arrays)
+
+        if out is not None:
+            out[:] = result
+            return out
+
+        return result
+
     def __call__(self, *arrays, **kwargs):
+        """Evaluate this expression with a set of arrays.
+
+        Parameters
+        ----------
+        arrays : seq of array
+            The arrays to supply as input to the expression.
+        out : array, optional (default: ``None``)
+            If specified, output the result into this array.
+        backend : str, optional  (default: ``numpy``)
+            Perform the contraction with this backend library. If numpy arrays
+            are supplied then try to convert them to and from the correct
+            backend array type.
+        """
+
         if len(arrays) != self.num_args:
             raise ValueError("This `ContractExpression` takes exactly %s array arguments "
                              "but received %s." % (self.num_args, len(arrays)))
 
+        backend = kwargs.pop('backend', 'numpy')
         out = kwargs.pop('out', None)
         if kwargs:
-            raise ValueError("The only valid keyword argument to a `ContractExpression` "
-                             "call is `out=`. Got: %s." % kwargs)
+            raise ValueError("The only valid keyword arguments to a `ContractExpression` "
+                             "call are `out=` or `backend=`. Got: %s." % kwargs)
 
         try:
-            return _core_contract(list(arrays), self.contraction_list, out=out, **self.einsum_kwargs)
+            # Check if the backend requires special preparation / calling
+            #   but also ignore non-numpy arrays -> assume user wants same type back
+            if backend in backends.SPECIAL_BACKENDS and isinstance(arrays[0], np.ndarray):
+                return self._special_contract(arrays, out, backend)
+
+            return self._normal_contract(arrays, out, backend)
+
         except ValueError as err:
             original_msg = str(err.args) if err.args else ""
             msg = ("Internal error while evaluating `ContractExpression`. Note that few checks are performed"
@@ -510,13 +584,16 @@ def contract_expression(subscripts, *shapes, **kwargs):
     Returns
     -------
     expr : ContractExpression
-        Callable with signature ``expr(*arrays)`` where the array's shapes
-        should match ``shapes``.
+        Callable with signature ``expr(*arrays, out=None, backend='numpy')``
+        where the array's shapes should match ``shapes``.
 
     Notes
     -----
     - The `out` keyword argument should be supplied to the generated expression
       rather than this function.
+    - The `backend` keyword argument should also be supplied to the generated
+      expression. If numpy arrays are supplied, if possible they will be
+      converted to and back from the correct backend array type.
     - The generated expression will work with any arrays which have
       the same rank (number of dimensions) as the original shapes, however, if
       the actual sizes are different, the expression may no longer be optimal.
@@ -534,8 +611,10 @@ def contract_expression(subscripts, *shapes, **kwargs):
     if not kwargs.get('optimize', True):
         raise ValueError("Can only generate expressions for optimized contractions.")
 
-    if kwargs.get('out', None) is not None:
-        raise ValueError("`out` should only be specified when calling a `ContractExpression`, not when building it.")
+    for arg in ('out', 'backend'):
+        if kwargs.get(arg, None) is not None:
+            raise ValueError("'%s' should only be specified when calling a "
+                             "`ContractExpression`, not when building it." % arg)
 
     dummy_arrays = [_ShapeOnly(s) for s in shapes]
 
