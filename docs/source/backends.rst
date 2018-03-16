@@ -29,8 +29,8 @@ General backend for any type of array
 -------------------------------------
 
 This 'duck-typing' support just requires specifying the correct ``backend``
-argument for the type of arrays supplied when calling :func:`contract`. For
-example with ``dask``:
+argument for the type of arrays supplied when calling
+:func:`~opt_einsum.contract`. For example with ``dask``:
 
 .. code-block:: python
 
