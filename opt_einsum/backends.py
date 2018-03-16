@@ -108,14 +108,14 @@ def build_theano_expression(arrays, expr):
 
 # Cupy
 
-def convert_arrays_to_cupy(arrays):
+def convert_arrays_to_cupy(arrays):  # pragma: no cover
     """Convert numpy arrays to ``cupy.ndarray`` instances.
     """
     import cupy
     return [cupy.asarray(x) for x in arrays]
 
 
-def build_cupy_expression(_, expr):
+def build_cupy_expression(_, expr):  # pragma: no cover
     """Build a cupy function based on ``arrays`` and ``expr``.
     """
     import cupy

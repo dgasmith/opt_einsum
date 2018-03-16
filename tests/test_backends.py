@@ -70,7 +70,7 @@ def test_tensorflow(string):
 
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_cupy(string):
+def test_cupy(string):  # pragma: no cover
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
