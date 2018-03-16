@@ -24,7 +24,7 @@ before_install:
   - pip install codecov
   - pip install tensorflow
   - pip install theano
-  - pip install dask
+  - pip install dask[array]
   - pip install sparse
   - pip install -e .
 
