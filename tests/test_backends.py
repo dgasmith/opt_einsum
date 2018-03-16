@@ -130,7 +130,8 @@ def test_sparse(string):
 
     # sparsify views so they don't become dense during contraction
     for view in views:
-        mask = np.random.choice([False, True], view.shape, True, [0.1, 0.9])
+        np.random.seed(42)
+        mask = np.random.choice([False, True], view.shape, True, [0.05, 0.95])
         view[mask] = 0
 
     ein = contract(string, *views, optimize=False, use_blas=False)
