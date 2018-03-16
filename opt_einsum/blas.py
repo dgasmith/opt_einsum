@@ -29,7 +29,9 @@ def can_blas(inputs, result, idx_removed):
     Notes
     -----
     We assume several operations are not efficient such as a transposed
-    DDOT, therefore 'ijk,jki->' would return False.
+    DDOT, therefore 'ijk,jki->' should prefer einsum. These return ``None``
+    rather than ``False`` to differentiate when they can still be done with
+    tensordot if required, e.g. when a backend has no einsum.
 
     Examples
     --------
@@ -40,44 +42,45 @@ def can_blas(inputs, result, idx_removed):
     False
 
     """
-
-    # Gotta remove indices
-    if len(idx_removed) == 0:
-        return False
-
     # Can only do two
     if len(inputs) != 2:
         return False
 
-    # Make sure there is overlap
-    if len(set(inputs[0]) & set(inputs[1])) == 0:
-        return False
+    input_left, input_right = inputs
+
+    for c in set(input_left + input_right):
+        # can't deal with repeated indices on same input or more than 2 total
+        nl, nr = input_left.count(c), input_right.count(c)
+        if (nl > 1) or (nr > 1) or (nl + nr > 2):
+            return False
+
+        # can't do implicit summation or dimension collapse e.g.
+        #     "ab,bc->c" (implicitly sum over 'a')
+        #     "ab,ca->ca" (take diagonal of 'a')
+        if nl + nr - 1 == int(c in result):
+            return False
+
+    # Prefer einsum if not removing indices
+    #     (N.B. tensordot outer faster for large arrays?)
+    if len(idx_removed) == 0:
+        return None
 
     # Build a few temporaries
     sets = [set(x) for x in inputs]
     keep_left = sets[0] - idx_removed
     keep_right = sets[1] - idx_removed
-    input_left = inputs[0]
-    input_right = inputs[1]
     rs = len(idx_removed)
 
-    if any(len(l) != len(s) for l, s in zip(inputs, sets)):
-        return False
-
-    # Cannot handle partial inner
-    if len(keep_left & keep_right):
-        return False
-
     # DDOT
-    elif inputs[0] == inputs[1]:
+    if inputs[0] == inputs[1]:
         return 'DOT'
 
-    # DDOT doesnt make sense if you have to tranpose
+    # DDOT doesnt make sense if you have to tranpose - prefer einsum
     elif sets[0] == sets[1]:
-        return False
+        return None
 
     # GEMM no transpose
-    elif input_left[-rs:] == input_right[:rs]:
+    if input_left[-rs:] == input_right[:rs]:
         return 'GEMM'
 
     # GEMM transpose both
@@ -94,7 +97,7 @@ def can_blas(inputs, result, idx_removed):
 
     # Einsum is faster than vectordot if we have to copy
     elif (len(keep_left) == 0) or (len(keep_right) == 0):
-        return False
+        return None
 
     # Conventional tensordot
     else:
@@ -149,7 +152,6 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
     idx_removed = set(idx_removed)
     keep_left = set(input_left) - idx_removed
     keep_right = set(input_right) - idx_removed
-    #print(input_left, input_right, idx_removed)
 
     # We trust this must be called correctly
     dimension_dict = {}

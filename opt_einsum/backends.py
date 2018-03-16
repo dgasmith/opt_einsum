@@ -2,6 +2,7 @@
 Performing array conversions and operations with various backends.
 """
 
+import numpy
 import importlib
 
 
@@ -21,7 +22,12 @@ def _import_func(func, backend):
 
 
 # manually cache functions as python2 doesn't support functools.lru_cache
-_cached_funcs = {}
+#     other libs will be added to this if needed, but pre-populate with numpy
+_cached_funcs = {
+    ('tensordot', 'numpy'): numpy.tensordot,
+    ('transpose', 'numpy'): numpy.transpose,
+    ('einsum', 'numpy'): numpy.einsum,
+}
 
 
 def get_func(func, backend='numpy'):
@@ -50,6 +56,8 @@ def has_einsum(backend):
             _has_einsum[backend] = True
         except AttributeError:
             _has_einsum[backend] = False
+
+        return _has_einsum[backend]
 
 
 # Tensorflow
@@ -121,8 +129,8 @@ def build_cupy_expression(_, expr):
 
 
 # Dispatch to correct expression backend
-
-SPECIAL_BACKENDS = {
+#    these are the backends which support explicit to-and-from numpy conversion
+CONVERT_BACKENDS = {
     'tensorflow': build_tensorflow_expression,
     'theano': build_theano_expression,
     'cupy': build_cupy_expression,
@@ -133,4 +141,4 @@ def build_expression(backend, arrays, expr):
     """Build an expression, based on ``expr`` and initial arrays ``arrays``,
     that evaluates using backend ``backend``.
     """
-    return SPECIAL_BACKENDS[backend](arrays, expr)
+    return CONVERT_BACKENDS[backend](arrays, expr)

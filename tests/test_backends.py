@@ -40,6 +40,10 @@ tests = [
     'ab,bc->ca',
     'abc,bcd,dea',
     'abc,def->fedcba',
+    # test 'prefer einsum' ops
+    'ijk,ikj',
+    'i,j->ij',
+    'ijk,k->ij',
 ]
 
 
@@ -48,13 +52,14 @@ tests = [
 def test_tensorflow(string):
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
-    shps = [v.shape for v in views]
+    opt = np.empty_like(ein)
 
+    shps = [v.shape for v in views]
     expr = contract_expression(string, *shps, optimize=True)
 
     sess = tf.Session()
     with sess.as_default():
-        opt = expr(*views, backend='tensorflow')
+        expr(*views, backend='tensorflow', out=opt)
 
     assert np.allclose(ein, opt)
 

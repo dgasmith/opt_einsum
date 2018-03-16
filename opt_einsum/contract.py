@@ -256,7 +256,7 @@ def contract_path(*operands, **kwargs):
 
 
 def _einsum(*operands, **kwargs):
-    """Numpy einsum, but with pre-parse for valid characters if string given.
+    """Base einsum, but with pre-parse for valid characters if string given.
     """
     fn = backends.get_func('einsum', kwargs.pop('backend', 'numpy'))
 
@@ -278,11 +278,19 @@ def _einsum(*operands, **kwargs):
 
 
 def _transpose(x, axes, backend='numpy'):
-    fn = backends.get_func('transpose', backend)
-    return fn(x, axes)
+    """Base transpose.
+    """
+    try:
+        return x.transpose(axes)
+    except AttributeError:
+        # some libraries don't implement method version
+        fn = backends.get_func('transpose', backend)
+        return fn(x, axes)
 
 
 def _tensordot(x, y, axes, backend='numpy'):
+    """Base tensordot.
+    """
     fn = backends.get_func('tensordot', backend)
     return fn(x, y, axes=axes)
 
@@ -418,8 +426,8 @@ def _core_contract(operands, contraction_list, backend='numpy', **einsum_kwargs)
         # Do we need to deal with the output?
         handle_out = specified_out and ((num + 1) == len(contraction_list))
 
-        # Call tensordot
-        if blas or not has_einsum:
+        # Call tensordot (if blas is None, prefer einsum but only if avail)
+        if blas or (blas is None and not has_einsum):
 
             # Checks have already been handled
             input_str, results_index = einsum_str.split('->')
@@ -442,12 +450,7 @@ def _core_contract(operands, contraction_list, backend='numpy', **einsum_kwargs)
             if (tensor_result != results_index) or handle_out:
 
                 transpose = tuple(map(tensor_result.index, results_index))
-
-                try:
-                    new_view = new_view.transpose(transpose)
-                except AttributeError:
-                    # some libraries don't implement method version
-                    new_view = _transpose(new_view, axes=transpose, backend=backend)
+                new_view = _transpose(new_view, axes=transpose, backend=backend)
 
                 if handle_out:
                     out_array[:] = new_view
@@ -488,19 +491,21 @@ class ContractExpression:
         return _core_contract(list(arrays), self.contraction_list, out=out,
                               backend=backend, **self.einsum_kwargs)
 
-    def _special_contract(self, arrays, out, backend):
-        """Special contraction. Checks for ``self._{backend}_contract``,
-        generates it if is missing, then calls it with ``arrays``.
+    def _convert_contract(self, arrays, out, backend):
+        """Special contraction, i.e. contraction with a different backend
+        but converting to and from that backend. Checks for
+        ``self._{backend}_contract``, generates it if is missing, then calls it
+        with ``arrays``.
         """
-        special_fn = "_{}_contract".format(backend)
+        convert_fn = "_{}_contract".format(backend)
 
-        if not hasattr(self, special_fn):
-            setattr(self, special_fn, backends.build_expression(backend, arrays, self))
+        if not hasattr(self, convert_fn):
+            setattr(self, convert_fn, backends.build_expression(backend, arrays, self))
 
-        result = getattr(self, special_fn)(*arrays)
+        result = getattr(self, convert_fn)(*arrays)
 
         if out is not None:
-            out[:] = result
+            out[()] = result
             return out
 
         return result
@@ -533,8 +538,8 @@ class ContractExpression:
         try:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
-            if backend in backends.SPECIAL_BACKENDS and isinstance(arrays[0], np.ndarray):
-                return self._special_contract(arrays, out, backend)
+            if backend in backends.CONVERT_BACKENDS and isinstance(arrays[0], np.ndarray):
+                return self._convert_contract(arrays, out, backend)
 
             return self._normal_contract(arrays, out, backend)
 
