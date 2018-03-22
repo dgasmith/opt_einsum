@@ -29,9 +29,9 @@ def can_blas(inputs, result, idx_removed):
     Notes
     -----
     We assume several operations are not efficient such as a transposed
-    DDOT, therefore 'ijk,jki->' should prefer einsum. These return ``None``
-    rather than ``False`` to differentiate when they can still be done with
-    tensordot if required, e.g. when a backend has no einsum.
+    DDOT, therefore 'ijk,jki->' should prefer einsum. These return the blas
+    type appended with "/EINSUM" to differentiate when they can still be done
+    with tensordot if required, e.g. when a backend has no einsum.
 
     Examples
     --------
@@ -41,6 +41,8 @@ def can_blas(inputs, result, idx_removed):
     >>> _can_blas(['ijj', 'jk'], 'ik', set('j'))
     False
 
+    >>> _can_blas(['ab', 'cd'], 'abcd', set())
+    'OUTER/EINSUM'
     """
     # Can only do two
     if len(inputs) != 2:
@@ -63,7 +65,7 @@ def can_blas(inputs, result, idx_removed):
     # Prefer einsum if not removing indices
     #     (N.B. tensordot outer faster for large arrays?)
     if len(idx_removed) == 0:
-        return None
+        return 'OUTER/EINSUM'
 
     # Build a few temporaries
     sets = [set(x) for x in inputs]
@@ -77,7 +79,7 @@ def can_blas(inputs, result, idx_removed):
 
     # DDOT doesnt make sense if you have to tranpose - prefer einsum
     elif sets[0] == sets[1]:
-        return None
+        return 'DOT/EINSUM'
 
     # GEMM no transpose
     if input_left[-rs:] == input_right[:rs]:
@@ -97,7 +99,7 @@ def can_blas(inputs, result, idx_removed):
 
     # Einsum is faster than vectordot if we have to copy
     elif (len(keep_left) == 0) or (len(keep_right) == 0):
-        return None
+        return 'GEMV/EINSUM'
 
     # Conventional tensordot
     else:

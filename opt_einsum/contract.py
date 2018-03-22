@@ -243,14 +243,14 @@ def contract_path(*operands, **kwargs):
     path_print += "   Theoretical speedup:  %3.3f\n" % (naive_cost / float(opt_cost))
     path_print += "  Largest intermediate:  %.3e elements\n" % max(size_list)
     path_print += "-" * 80 + "\n"
-    path_print += "%6s %6s %24s %40s\n" % header
+    path_print += "%6s %11s %22s %37s\n" % header
     path_print += "-" * 80
 
     for n, contraction in enumerate(contraction_list):
         inds, idx_rm, einsum_str, remaining, do_blas = contraction
         remaining_str = ",".join(remaining) + "->" + output_subscript
         path_run = (scale_list[n], do_blas, einsum_str, remaining_str)
-        path_print += "\n%4d %9s %24s %40s" % path_run
+        path_print += "\n%4d %14s %22s %37s" % path_run
 
     return path, path_print
 
@@ -414,7 +414,7 @@ def _core_contract(operands, contraction_list, backend='numpy', **einsum_kwargs)
     specified_out = out_array is not None
 
     # try and do as much as possible without einsum if not available
-    has_einsum = backends.has_einsum(backend)
+    no_einsum = not backends.has_einsum(backend)
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
@@ -426,8 +426,8 @@ def _core_contract(operands, contraction_list, backend='numpy', **einsum_kwargs)
         # Do we need to deal with the output?
         handle_out = specified_out and ((num + 1) == len(contraction_list))
 
-        # Call tensordot (if blas is None, prefer einsum but only if avail)
-        if blas or (blas is None and not has_einsum):
+        # Call tensordot (check if should prefer einsum, but only if available)
+        if blas and ('EINSUM' not in blas or no_einsum):
 
             # Checks have already been handled
             input_str, results_index = einsum_str.split('->')

@@ -57,11 +57,12 @@ blas_tests = [
    ((['jli', 'ljk'], 'ik', set('lj')),     'TDOT'), # ST GEMM T N Tensor
 
    # Other
-   ((['ijk', 'ikj'], '', set('ijk')),       None),  # Transpose DOT
-   ((['i', 'j'], 'ij', set()),              None),  # Outer
-   ((['ijk', 'k'], 'ij', set()),            None),  # Index sum 2
-   ((['ijj', 'jk'], 'ik', set('j')),        False), # Double index
-   ((['ijk', 'j'], 'ij', set()),            False), # Index sum 1
+   ((['ijk', 'ikj'], '', set('ijk')),       'DOT/EINSUM'  ),  # Transpose DOT
+   ((['i', 'j'], 'ij', set()),              'OUTER/EINSUM'),  # Outer
+   ((['ijk', 'ik'], 'j', set('ik')),        'GEMV/EINSUM' ),  # Matrix-vector
+   ((['ijj', 'jk'], 'ik', set('j')),        False         ),  # Double index
+   ((['ijk', 'j'], 'ij', set()),            False         ),  # Index sum 1
+   ((['ij', 'ij'], 'ij', set()),            False         ),  # Index sum 2
 ]
 
 @pytest.mark.parametrize("inp,benchmark", blas_tests)
