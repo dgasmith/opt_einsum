@@ -95,6 +95,7 @@ We can then view more details about the optimized contraction order:
 
    install
    examples
+   backends
 
 
 .. toctree::

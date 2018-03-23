@@ -241,4 +241,4 @@ def test_contract_expression_checks():
     # should only be able to specify out
     with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3), np.random.rand(3, 4), order='F')
-    assert "only valid keyword argument to a `ContractExpression`" in str(err)
+    assert "only valid keyword arguments to a `ContractExpression`" in str(err)

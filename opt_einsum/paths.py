@@ -11,7 +11,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
     on ``memory_limit`` and returns the lowest cost path. This algorithm
     scales factorial with respect to the elements in the list ``input_sets``.
 
-    Paramaters
+    Parameters
     ----------
     input_sets : list
         List of sets that represent the lhs side of the einsum subscript
@@ -181,13 +181,14 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
     """
     Finds the path by contracting the best pair until the input list is
     exhausted. The best pair is found by minimizing the tuple
-    ``(-prod(indices_removed), cost)``.  What this amounts to is prioritizing
-    matrix multiplication or inner product operations, then Hadamard like
+    ``(-removed_size, cost)``.  What this amounts to is prioritizing
+    inner product operations, matrix multiplication, then Hadamard like
     operations, and finally outer operations. Outer products are limited by
-    ``memory_limit``. This algorithm scales cubically with respect to the number of
-    elements in the list ``input_sets``.
+    ``memory_limit`` and are ignored until no other operations are
+    available. This algorithm scales quadratically with respect to the
+    number of elements in the list ``input_sets``.
 
-    Paramaters
+    Parameters
     ----------
     input_sets : list
         List of sets that represent the lhs side of the einsum subscript
