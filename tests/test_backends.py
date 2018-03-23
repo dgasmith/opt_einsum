@@ -122,6 +122,11 @@ def test_dask(string):
 
     assert np.allclose(ein, np.array(da_opt))
 
+    # try raw contract
+    da_opt = contract(string, *da_views, backend='dask')
+    assert isinstance(da_opt, da.Array)
+    assert np.allclose(ein, np.array(da_opt))
+
 
 @pytest.mark.skipif(not found_sparse, reason="Sparse not installed.")
 @pytest.mark.parametrize("string", tests)
@@ -145,4 +150,9 @@ def test_sparse(string):
     # check type is maintained when not using numpy arrays
     assert isinstance(sparse_opt, sparse.COO)
 
+    assert np.allclose(ein, sparse_opt.todense())
+
+    # try raw contract
+    sparse_opt = contract(string, *sparse_views, backend='sparse')
+    assert isinstance(sparse_opt, sparse.COO)
     assert np.allclose(ein, sparse_opt.todense())

@@ -58,6 +58,15 @@ def find_output_str(subscripts):
     return output_subscript
 
 
+def possibly_convert_to_numpy(x):
+    """Convert things without a 'shape' to ndarrays, but leave everything else.
+    """
+    if not hasattr(x, 'shape'):
+        return np.asanyarray(x)
+    else:
+        return x
+
+
 def parse_einsum_input(operands):
     """
     A reproduction of einsum c side einsum parsing in python.
@@ -89,7 +98,7 @@ def parse_einsum_input(operands):
 
     if isinstance(operands[0], str):
         subscripts = operands[0].replace(" ", "")
-        operands = [np.asanyarray(v) for v in operands[1:]]
+        operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
 
         # Ensure all characters are valid
         for s in subscripts:
@@ -107,7 +116,7 @@ def parse_einsum_input(operands):
             subscript_list.append(tmp_operands.pop(0))
 
         output_list = tmp_operands[-1] if len(tmp_operands) else None
-        operands = [np.asanyarray(v) for v in operand_list]
+        operands = [possibly_convert_to_numpy(x) for x in operand_list]
         subscripts = ""
         last = len(subscript_list) - 1
         for num, sub in enumerate(subscript_list):
