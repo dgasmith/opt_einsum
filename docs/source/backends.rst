@@ -91,7 +91,7 @@ For example with **theano**:
 
     >>> import numpy as np
     >>> # GPU advantage mainly for low precision numbers
-    >>> xs = xs = [np.random.randn(*shp).astype(np.float32) for shp in shapes]
+    >>> xs = [np.random.randn(*shp).astype(np.float32) for shp in shapes]
     >>> expr(*xs, backend='theano')  # might see some fluff on first run
     ...
     array([[ 129.28352  , -128.00702  , -164.62917  , -335.11682  ],
