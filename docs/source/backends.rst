@@ -30,7 +30,25 @@ General backend for any type of array
 
 This 'duck-typing' support just requires specifying the correct ``backend``
 argument for the type of arrays supplied when calling
-:func:`~opt_einsum.contract`. For example with ``dask``:
+:func:`~opt_einsum.contract`. For example, if you had a library installed
+called ``'foo'`` which provided an :class:`~numpy.ndarray` like object with a
+``.shape`` attribute as well as ``foo.tensordot`` and ``foo.transpose`` then
+you could contract then with something like::
+
+.. code-block:: python
+
+    contract(einsum_str, *foo_arrays, backend='foo')
+
+Behind the scenes :mod:`opt_einsum` will find the contraction path, perform
+pairwise contractions using e.g. ``foo.tensordot`` and finally return whatever
+type those functions return.
+
+
+Dask
+----
+
+`dask <https://dask.pydata.org/>`_ is an example of a library which satisfies
+these requirements. For example:
 
 .. code-block:: python
 
@@ -59,6 +77,27 @@ attribute, and ``opt_einsum`` can find ``dask.array.tensordot`` and
 ``dask.array.transpose``.
 
 
+Sparse
+------
+
+The `sparse <https://sparse.pydata.org/>`_ library also fits the bill and is
+supported. An example::
+
+.. code-block:: python
+
+    >>> import opt_einsum as oe
+    >>> import sparse as sp
+    >>> shapes = (3, 200), (200, 300), (300, 4)
+    >>> sxs = [sp.random(shp) for shp in shapes]
+    [<COO: shape=(3, 200), dtype=float64, nnz=6, sorted=False, duplicates=True>,
+     <COO: shape=(200, 300), dtype=float64, nnz=600, sorted=False, duplicates=True>,
+     <COO: shape=(300, 4), dtype=float64, nnz=12, sorted=False, duplicates=True>]
+
+    >>> sy = oe.contract("ab,bc,cd", *sxs, backend='sparse')
+    <COO: shape=(3, 4), dtype=float64, nnz=0, sorted=False, duplicates=False>
+
+
+
 
 Special Backends for numpy arrays - GPU etc.
 ----------------------------------------------
@@ -79,7 +118,9 @@ compiling the expression, this functionality is encapsulated in generating a
 :func:`~opt_einsum.contract_expression`, which can then be called using numpy
 arrays whilst specifiying ``backend='tensorflow'`` etc.
 
-For example with **theano**:
+
+Theano
+------
 
 .. code-block:: python
 

@@ -1,5 +1,5 @@
 =============
-Reusing paths
+Reusing Paths
 =============
 
 If you expect to repeatedly use a particular contraction it can make things simpler and more efficient to not compute the path each time. Instead, supplying :func:`~opt_einsum.contract_expression` with the contraction string and the shapes of the tensors generates a :class:`~opt_einsum.contract.ContractExpression` which can then be repeatedly called with any matching set of arrays. For example:

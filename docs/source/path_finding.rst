@@ -64,7 +64,7 @@ By contracting terms in the correct order we can see that this expression can be
 
 
 =====================
-More details on paths
+More Details on Paths
 =====================
 
 Finding the optimal order of contraction is not an easy problem and formally scales factorially with respect to the number of terms in the expression. First, lets discuss what a path looks like in opt_einsum:
