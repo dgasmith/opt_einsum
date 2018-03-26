@@ -94,7 +94,6 @@ We can then view more details about the optimized contraction order:
    :caption: Getting Started
 
    install
-   examples
    backends
 
 
@@ -103,10 +102,16 @@ We can then view more details about the optimized contraction order:
    :caption: Path Information:
 
    path_finding
-   reusing paths
+   reusing_paths
    optimal_path
    greedy_path
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Examples
+
+   ex_large_expr_with_greedy
+   ex_dask_reusing_intermediaries
 
 .. toctree::
    :maxdepth: 1
