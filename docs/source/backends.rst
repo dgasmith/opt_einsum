@@ -20,20 +20,20 @@ attribute of each array supplied.
 It can perform the underlying tensor contractions with various
 libraries. In fact, any library that provides a :func:`~numpy.tensordot` and
 :func:`~numpy.transpose` implementation can perform most normal contractions.
-While more special functionality such as taking diagonals is reliant on a
+While more special functionality such as axes reduction is reliant on a
 :func:`~numpy.einsum` implementation.
 
 
 
-General backend for any type of array
--------------------------------------
+General backend for any ndarray
+-------------------------------
 
 This 'duck-typing' support just requires specifying the correct ``backend``
 argument for the type of arrays supplied when calling
 :func:`~opt_einsum.contract`. For example, if you had a library installed
 called ``'foo'`` which provided an :class:`~numpy.ndarray` like object with a
 ``.shape`` attribute as well as ``foo.tensordot`` and ``foo.transpose`` then
-you could contract then with something like::
+you could contract then with something like:
 
 .. code-block:: python
 
@@ -99,8 +99,8 @@ supported. An example::
 
 
 
-Special Backends for numpy arrays - GPU etc.
-----------------------------------------------
+Special (GPU) backends for numpy arrays
+---------------------------------------
 
 A special case is if you want to supply numpy arrays and get numpy arrays back,
 but use a different backend, such as performing a contraction on a GPU.
@@ -108,9 +108,9 @@ Unless the specified backend works on numpy arrays this requires converting to
 and from the backend array type. Currently ``opt_einsum`` can handle this
 automatically for:
 
-    - ``tensorflow``
-    - ``theano``
-    - ``cupy``
+    - `tensorflow <https://www.tensorflow.org/>`_
+    - `theano <http://deeplearning.net/software/theano/>`_
+    - `cupy <https://cupy.chainer.org/>`_
 
 which all offer GPU support. Since ``tensorflow`` and ``theano`` both require
 compiling the expression, this functionality is encapsulated in generating a
@@ -121,6 +121,9 @@ arrays whilst specifiying ``backend='tensorflow'`` etc.
 
 Theano
 ------
+
+If ``theano`` is installed, using it as backend is as simple as specifiying
+``backend='theano'``:
 
 .. code-block:: python
 
@@ -140,6 +143,14 @@ Theano
            [   5.2838974,   36.441578 ,   81.62851  ,  703.1576   ]],
           dtype=float32)
 
+Note that you can still supply ``theano.tensor.TensorType`` directly to
+``opt_einsum`` (with ``backend='theano'``), and it will return the
+relevant ``theano`` type.
+
+
+Tensorflow
+----------
+
 To run the expression with **tensorflow**, you need to register a default
 session:
 
@@ -156,6 +167,6 @@ session:
            [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],
           dtype=float32)
 
-Note that one could still supply this expression with, for example, a
+Note that you can still supply this expression with, for example, a
 ``tensorflow.placeholder`` using ``backend='tensorflow'``, and then no
 conversion would take place, instead you'd get a ``tensorflow.Tensor`` back.

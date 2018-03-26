@@ -1,8 +1,8 @@
 Reusing Intermediaries with Dask
 --------------------------------
 
-`dask <https://dask.pydata.org/>`_ provides a computational framework where
-arrays and the computations on them are build up into a 'task graph' before
+`Dask <https://dask.pydata.org/>`_ provides a computational framework where
+arrays and the computations on them are built up into a 'task graph' before
 computation. Since :mod:`opt_einsum` is compatible with ``dask`` arrays this
 means that mutiple contractions can be built into the same task graph, which
 then automatically reuses any shared arrays and contractions.
@@ -44,11 +44,9 @@ Normally we would just compute these separately:
 But if we use dask arrays we can combine the two operations, so let's set those
 up:
 
-
 .. code-block:: python
 
     >>> import dask.array as da
-    >>> from dask import delayed
     >>> da_arrays = {s: da.from_array(np_arrays[s], chunks=1000, name=s) for s in inputs}
     >>> da_arrays
     {'ab': dask.array<ab, shape=(10, 10), dtype=float64, chunksize=(10, 10)>,
@@ -62,7 +60,6 @@ up:
 
 Note ``chunks`` is a required argument relating to how the arrays are stored (see `array-creation <http://dask.pydata.org/en/latest/array-creation.html>`_). Now we can perform the contraction:
 
-
 .. code-block:: python
 
     >>> # these won't be immediately evaluated
@@ -70,6 +67,7 @@ Note ``chunks`` is a required argument relating to how the arrays are stored (se
     >>> dy2 = oe.contract(contraction2, *da_ops2, backend='dask')
 
     >>> # wrap them in delayed to combine them into the same computation
+    >>> from dask import delayed
     >>> dy = delayed([dy1, dy2])
     >>> dy
     Delayed('list-3af82335-b75e-47d6-b800-68490fc865fd')
