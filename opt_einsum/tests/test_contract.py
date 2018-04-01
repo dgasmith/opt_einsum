@@ -2,12 +2,12 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
-from __future__ import division, absolute_import, print_function
 import sys
 
 import numpy as np
-from opt_einsum import contract, contract_path, helpers, contract_expression
 import pytest
+
+from opt_einsum import contract, contract_path, helpers, contract_expression
 
 tests = [
     # Test hadamard-like products

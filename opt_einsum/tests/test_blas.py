@@ -2,8 +2,6 @@
 Tests thte BLAS capability for the opt_einsum module.
 """
 
-from __future__ import division, absolute_import, print_function
-
 import numpy as np
 import pytest
 

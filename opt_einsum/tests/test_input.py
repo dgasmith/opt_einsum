@@ -2,11 +2,11 @@
 Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 """
 
-from __future__ import division, absolute_import, print_function
-
 import numpy as np
-from opt_einsum import contract, contract_path
 import pytest
+
+from opt_einsum import contract
+
 
 def build_views(string):
     chars = 'abcdefghij'

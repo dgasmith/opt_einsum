@@ -2,8 +2,9 @@
 A functionally equivalent parser of the numpy.einsum input parser
 """
 
-import numpy as np
 import sys
+
+import numpy as np
 
 einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyz'
 einsum_symbols = einsum_symbols_base + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
