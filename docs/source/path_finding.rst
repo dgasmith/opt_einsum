@@ -2,7 +2,7 @@
 Examining the Path
 ==================
 
-Now, lets consider the following expression found in a perturbation theory (one of ~5,000 such expressions):
+As an example, consider the following expression found in a perturbation theory (one of ~5,000 such expressions):
 
 .. code:: python
 
@@ -32,12 +32,12 @@ This is a single possible path to the final answer (and notably, not the most op
     views = oe.helpers.build_views(einsum_string, sizes_dict)
 
     path_info = oe.contract_path(einsum_string, *views)
-    >>> print path_info[0]
+    >>> print(path_info[0])
     [(1, 3), (0, 2), (0, 2), (0, 1)]
 
     ```
     ```
-    >>> print path_info[1]
+    >>> print(path_info[1])
       Complete contraction:  bdik,acaj,ikab,ajac,ikbd->
              Naive scaling:  7
          Optimized scaling:  4
@@ -60,14 +60,14 @@ This is a single possible path to the final answer (and notably, not the most op
     >>> np.allclose(einsum_result, contract_result)
     True
 
-By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and small dimensions, opt_einsum is roughly 900 times faster than pure einsum for this expression.
+By contracting terms in the correct order we can see that this expression can be computed with N^4 scaling. Even with the overhead of finding the best order or 'path' and small dimensions, opt_einsum is roughly 5000 times faster than pure einsum for this expression.
 
 
-=====================
-More Details on Paths
-=====================
+Details of Path structure
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Finding the optimal order of contraction is not an easy problem and formally scales factorially with respect to the number of terms in the expression. First, lets discuss what a path looks like in opt_einsum:
+Finding the optimal order of contraction is a NP-hard problem and the factorial scaling quickly becomes intractable.
+Let us look at the structure of a canonical ``einsum`` path found in NumPy and its optimized variant:
 
 .. code:: python
 
@@ -75,10 +75,9 @@ Finding the optimal order of contraction is not an easy problem and formally sca
     opt_path = [(1, 3), (0, 2), (0, 2), (0, 1)]
 
 In opt_einsum each element of the list represents a single contraction.
-For example the einsum_path would effectively compute the result in a way identical to that of einsum itself, while the
-opt_path would perform four contractions that form an identical result.
-This opt_path represents the path taken in our above example.
-The first contraction (1,3) contracts the first and third terms together to produce a new term which is then appended to the list of terms, this is continued until all terms are contracted.
+In the above example the einsum_path would effectively compute the result as a single contraction identical to that of ``einsum``, while the
+opt_path would perform four contractions in order to reduce the overall scaling.
+The first tuple in the opt_path ``(1,3)`` contracts the second and fourth terms together to produce a new term which is then appended to the list of terms, this is continued until all terms are contracted.
 An example should illuminate this:
 
 .. code:: python

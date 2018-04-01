@@ -12,7 +12,7 @@ If you expect to repeatedly use a particular contraction it can make things simp
       1.  'dbe,cd->bce' [GEMM]
       2.  'bce,abc->ea' [GEMM]
 
-Now we can call this expression with 3 arrays that match the original shapes without having to compute the path again:
+The ``ContractExpression`` can be called with 3 arrays that match the original shapes without having to recompute the path:
 
 .. code:: python
 
