@@ -1,9 +1,11 @@
 import setuptools
+import versioneer
 
 if __name__ == "__main__":
     setuptools.setup(
         name='opt_einsum',
-        version="1.0.1",
+        version=versioneer.get_version(),
+        cmdclass=versioneer.get_cmdclass(),
         description='Optimizing numpys einsum function',
         author='Daniel Smith',
         author_email='dgasmith@icloud.com',
