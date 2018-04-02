@@ -20,6 +20,7 @@ before_install:
   - python -V
   - pip install --upgrade pip setuptools
   - pip install pytest pytest-cov codecov
+  - pip install numpy
   - pip install codecov
   - pip install tensorflow
   - pip install theano
