@@ -4,11 +4,11 @@ Contains the primary optimization and contraction routines
 
 import numpy as np
 
+from . import backends
 from . import blas
 from . import helpers
-from . import paths
 from . import parser
-from . import backends
+from . import paths
 
 
 def contract_path(*operands, **kwargs):
@@ -128,19 +128,32 @@ def contract_path(*operands, **kwargs):
 
     # Get length of each unique dimension and ensure all dimensions are correct
     dimension_dict = {}
+    broadcast_indices = [[] for x in range(len(input_list))]
     for tnum, term in enumerate(input_list):
         sh = operands[tnum].shape
 
         if len(sh) != len(term):
             raise ValueError("Einstein sum subscript %s does not contain the "
-                             "correct number of indices for operand %d.", input_subscripts[tnum], tnum)
+                             "correct number of indices for operand %d." % (input_subscripts[tnum], tnum))
         for cnum, char in enumerate(term):
             dim = sh[cnum]
+
+            # Build out broadcast indices
+            if dim == 1:
+                broadcast_indices[tnum].append(char)
+
             if char in dimension_dict.keys():
-                if dimension_dict[char] != dim:
-                    raise ValueError("Size of label '%s' for operand %d does " "not match previous terms.", char, tnum)
+                # For broadcasting cases we always want the largest dim size
+                if dimension_dict[char] == 1:
+                    dimension_dict[char] = dim
+                elif dim not in (1, dimension_dict[char]):
+                    raise ValueError("Size of label '%s' for operand %d (%d) "
+                                     "does not match previous terms (%d)." % (char, tnum, dimension_dict[char], dim))
             else:
                 dimension_dict[char] = dim
+
+    # Convert broadcast inds to sets
+    broadcast_indices = [set(x) for x in broadcast_indices]
 
     # Compute size of each input array plus the output array
     size_list = []
@@ -183,7 +196,7 @@ def contract_path(*operands, **kwargs):
     elif path_type == "optimal":
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
     else:
-        raise KeyError("Path name %s not found", path_type)
+        raise KeyError("Path name %s not found" % path_type)
 
     cost_list = []
     scale_list = []
@@ -195,8 +208,8 @@ def contract_path(*operands, **kwargs):
         # Make sure we remove inds from right to left
         contract_inds = tuple(sorted(list(contract_inds), reverse=True))
 
-        contract = helpers.find_contraction(contract_inds, input_sets, output_set)
-        out_inds, input_sets, idx_removed, idx_contract = contract
+        contract_tuple = helpers.find_contraction(contract_inds, input_sets, output_set)
+        out_inds, input_sets, idx_removed, idx_contract = contract_tuple
 
         # Compute cost, scale, and size
         cost = helpers.flop_count(idx_contract, idx_removed, len(contract_inds), dimension_dict)
@@ -204,11 +217,16 @@ def contract_path(*operands, **kwargs):
         scale_list.append(len(idx_contract))
         size_list.append(helpers.compute_size_by_dict(out_inds, dimension_dict))
 
+        bcast = set()
         tmp_inputs = []
         for x in contract_inds:
             tmp_inputs.append(input_list.pop(x))
+            bcast |= broadcast_indices.pop(x)
 
-        if use_blas:
+        new_bcast_inds = bcast - idx_removed
+
+        # If were broadcasting, nix blas
+        if use_blas and not len(idx_removed & bcast):
             do_blas = blas.can_blas(tmp_inputs, out_inds, idx_removed)
         else:
             do_blas = False
@@ -221,6 +239,7 @@ def contract_path(*operands, **kwargs):
             idx_result = "".join([x[1] for x in sorted(sort_result)])
 
         input_list.append(idx_result)
+        broadcast_indices.append(new_bcast_inds)
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
 
         contraction = (contract_inds, idx_removed, einsum_str, input_list[:], do_blas)
@@ -418,7 +437,7 @@ def _core_contract(operands, contraction_list, backend='numpy', **einsum_kwargs)
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
-        inds, idx_rm, einsum_str, remaining, blas = contraction
+        inds, idx_rm, einsum_str, remaining, blas_flag = contraction
         tmp_operands = []
         for x in inds:
             tmp_operands.append(operands.pop(x))
@@ -427,7 +446,7 @@ def _core_contract(operands, contraction_list, backend='numpy', **einsum_kwargs)
         handle_out = specified_out and ((num + 1) == len(contraction_list))
 
         # Call tensordot (check if should prefer einsum, but only if available)
-        if blas and ('EINSUM' not in blas or no_einsum):
+        if blas_flag and ('EINSUM' not in blas_flag or no_einsum):
 
             # Checks have already been handled
             input_str, results_index = einsum_str.split('->')

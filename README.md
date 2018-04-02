@@ -9,16 +9,13 @@
 ##### News: Opt_einsum will be in NumPy 1.12 and BLAS features in NumPy 1.14! Call opt_einsum as `np.einsum(..., optimize=True)`. This repostiory will continue to provide a testing ground for new features. 
 
 Optimized Einsum: A tensor contraction order optimizer
-==========
+======================================================
+
+Optimized einsum can greatly reduce the overall time `np.einsum` takes by optimizing the expressions contraction order and dispatching many operations to canonical BLAS routines. See the [documention](http://optimized-einsum.readthedocs.io) for more information.
 
  - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/master/README.md#optimizing-numpys-einsum-function)
  - [Obtaining the path expression](https://github.com/dgasmith/opt_einsum/blob/master/README.md#obtaining-the-path-expression)
  - [Reusing paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#reusing-paths-using-contract_expression)
- - [More details on paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#more-details-on-paths)
- - [Finding the optimal path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-optimal-path)
- - [Finding the opportunistic path](https://github.com/dgasmith/opt_einsum/blob/master/README.md#finding-the-opportunistic-path)
- - [Testing](https://github.com/dgasmith/opt_einsum/blob/master/README.md#testing)
- - [Outstanding issues](https://github.com/dgasmith/opt_einsum/blob/master/README.md#outstanding-issues)
  - [Installation](https://github.com/dgasmith/opt_einsum/blob/master/README.md#installation)
 
 ## Optimizing numpy's einsum function
@@ -47,7 +44,7 @@ def optimized(I, C):
     return K
 ```
 
-The einsum function does not consider building intermediate arrays; therefore, helping einsum out by building these intermediate arrays can result in a considerable cost savings even for small N (N=10):
+The `np.einsum` function does not consider building intermediate arrays; therefore, helping einsum out by building these intermediate arrays can result in a considerable cost savings even for small N (N=10):
 
 ```python
 np.allclose(naive(I, C), optimized(I, C))
@@ -160,110 +157,6 @@ array([[ 3.08331541,  4.13708916],
 
 Note that few checks are performed when calling the expression, and while it will work for a set of arrays with the same ranks as the original shapes but differing sizes, it might no longer be optimal.
 
-
-## More details on paths
-
-Finding the optimal order of contraction is not an easy problem and formally scales factorially with respect to the number of terms in the expression. First, lets discuss what a path looks like in opt_einsum:
-```python
-einsum_path = [(0, 1, 2, 3, 4)]
-opt_path = [(1, 3), (0, 2), (0, 2), (0, 1)]
-```
-In opt_einsum each element of the list represents a single contraction.
-For example the einsum_path would effectively compute the result in a way identical to that of einsum itself, while the
-opt_path would perform four contractions that form an identical result.
-This opt_path represents the path taken in our above example.
-The first contraction (1,3) contracts the first and third terms together to produce a new term which is then appended to the list of terms, this is continued until all terms are contracted.
-An example should illuminate this:
-
-```
----------------------------------------------------------------------------------
-scaling   GEMM                   current                                remaining
----------------------------------------------------------------------------------
-terms = ['bdik', 'acaj', 'ikab', 'ajac', 'ikbd'] contraction = (1, 3)
-  3     False              ajac,acaj->a                       bdik,ikab,ikbd,a->
-terms = ['bdik', 'ikab', 'ikbd', 'a'] contraction = (0, 2)
-  4     False            ikbd,bdik->bik                             ikab,a,bik->
-terms = ['ikab', 'a', 'bik'] contraction = (0, 2)
-  4     False              bik,ikab->a                                    a,a->
-terms = ['a', 'a'] contraction = (0, 1)
-  1       DOT                    a,a->                                       ->
-```
-
-
-
-## Finding the optimal path
-
-The most optimal path can be found by searching through every possible way to contract the tensors together, this includes all combinations with the new intermediate tensors as well.
-While this algorithm scales like N! and can often become more costly to compute than the unoptimized contraction itself, it provides an excellent benchmark.
-The function that computes this path in opt_einsum is called ``optimal`` and works by iteratively finding every possible combination of pairs to contract in the current list of tensors.
-This is iterated until all tensors are contracted together. The resulting paths are then sorted by total flop cost and the lowest one is chosen.
-This algorithm runs in about 1 second for 7 terms, 15 seconds for 8 terms, and 480 seconds for 9 terms limiting its overall usefulness for a large number of terms.
-By considering limited memory this can be sieved and can reduce the cost of computing the optimal function by an order of magnitude or more.
-
-Lets look at an example:
-```
-Contraction:  abc,dc,ac->bd
-```
-
-Build a list with tuples that have the following form:
-```python
-iteration 0:
- "(cost, path,  list of input sets remaining)"
-[ (0,    [],    [set(['a', 'c', 'b']), set(['d', 'c']), set(['a', 'c'])] ]
-```
-
-Since this is iteration zero, we have the initial list of input sets.
-We can consider three possible combinations where we contract list positions (0, 1), (0, 2), or (1, 2) together:
-```python
-iteration 1:
-[ (9504, [(0, 1)], [set(['a', 'c']), set(['a', 'c', 'b', 'd'])  ]),
-  (1584, [(0, 2)], [set(['c', 'd']), set(['c', 'b'])            ]),
-  (864,  [(1, 2)], [set(['a', 'c', 'b']), set(['a', 'c', 'd'])  ])]
-```
-We have now run through the three possible combinations, computed the cost of the contraction up to this point, and appended the resulting indices from the contraction to the list.
-As all contractions only have two remaining input sets the only possible contraction is (0, 1):
-```python
-iteration 2:
-[ (28512, [(0, 1), (0, 1)], [set(['b', 'd'])  ]),
-  (3168,  [(0, 2), (0, 1)], [set(['b', 'd'])  ]),
-  (19872, [(1, 2), (0, 1)], [set(['b', 'd'])  ])]
-```
-The final contraction cost is computed and we choose the second path from the list as the overall cost is the lowest.
-
-
-
-## Finding the opportunistic path
-
-Another way to find a path is to choose the best pair to contract at every iteration so that the formula scales like N^2. 
-The "best" contraction pair is currently determined by the smallest of the tuple ``(-removed_size, cost)`` where ``removed_size`` is the size of the contracted tensors minus the size of the tensor created and ``cost`` is the cost of the contraction.
-Basically, we want to remove the largest dimensions at the least cost.
-To prevent large outer products the results are sieved by the amount of memory available.
-Overall, this turns out to work extremely well and is only slower than the optimal path in several cases, and even then only by a factor of 2-4 while only taking 1 millisecond for terms of length 10.
-To me, while still not perfect, it represents a "good enough" algorithm for general production.
-It is fast enough that at worst case the overhead penalty is approximately 20 microseconds and is much faster for every other einsum test case I can build or generate randomly.
-
-Since :mod:`opt_einsum` can handle up to a thousand unique indices (which could be increased),
-this greedy approach is also efficient enough to find the contraction path for expressions with hundreds of tensors in less than a second.
-
-
-## Testing
-
-Testing this function thoroughly is absolutely crucial; the testing scripts do required python pandas in addition to numpy. Testing is broken down into several tasks:
-
- - test_random: builds expressions of random term length where each term is of a random number of indices and contracts them together and finally compares to the einsum result.
- - test_set: runs through the current set of tests in test_helper.py.
- - test_singular: runs a single test from the test_helper set with debug and path printing. 
- - test_path: compares the optimal and opportunistic paths.
-    
-## Outstanding issues
-
-
- - path_optimal is poorly programmed. A dynamic programming approach would help greatly.
- - Comparing path_optimal and path_opportunistic shows that path_opportunistic can occasionally be faster. This is due to the fact that the input and output index order can have dramatic effects on performance for einsum.
- - The "improved" tensordot code is becoming fairly unwieldy. At this point only about ~40% of the dot-like expressions are handed off to tensordot.  
- - I make a lot of assumptions about tensordot as I am testing against vendor BLAS (intel MKL on haswell or opteron architecture).  
- - More memory options should be available. For example should we consider cumulative memory? (Feedback on the numpy mailing suggest this is not a great concern) 
- - Are we handling view dereferencing correctly? Views really should be garbage collected as soon as possible.
 
 ## Installation
 

@@ -98,7 +98,7 @@ We can then view more details about the optimized contraction order:
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Path Information:
 
    path_finding

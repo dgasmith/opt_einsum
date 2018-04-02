@@ -2,6 +2,7 @@
 Contains the path technology behind opt_einsum in addition to several path helpers
 """
 from itertools import combinations
+
 from . import helpers
 
 
@@ -196,7 +197,7 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
         Set that represents the rhs side of the overall einsum subscript
     idx_dict : dictionary
         Dictionary of index sizes
-    memory_limit_limit : int
+    memory_limit : int
         The maximum number of elements in a temporary array
 
     Returns

@@ -2,9 +2,9 @@
 Performing array conversions and operations with various backends.
 """
 
-import numpy
 import importlib
 
+import numpy
 
 # known non top-level imports
 _aliases = {'dask': 'dask.array', 'theano': 'theano.tensor'}

@@ -3,11 +3,10 @@ Tests the accuracy of the opt_einsum paths in addition to unit tests for
 the various path helper functions.
 """
 
-from __future__ import division, absolute_import, print_function
-
 import numpy as np
-import opt_einsum as oe
 import pytest
+
+import opt_einsum as oe
 
 explicit_path_tests = {
     'GEMM1': ([set('abd'), set('ac'), set('bdc')], set(''), {

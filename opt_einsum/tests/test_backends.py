@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 from opt_einsum import contract, helpers, contract_expression, backends
 

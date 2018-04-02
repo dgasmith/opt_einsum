@@ -2,12 +2,12 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
-from __future__ import division, absolute_import, print_function
 import sys
 
 import numpy as np
-from opt_einsum import contract, contract_path, helpers, contract_expression
 import pytest
+
+from opt_einsum import contract, contract_path, helpers, contract_expression
 
 tests = [
     # Test hadamard-like products
@@ -242,3 +242,54 @@ def test_contract_expression_checks():
     with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3), np.random.rand(3, 4), order='F')
     assert "only valid keyword arguments to a `ContractExpression`" in str(err)
+
+
+def test_broadcasting_contraction():
+
+    a = np.random.rand(1, 5, 4)
+    b = np.random.rand(4, 6)
+    c = np.random.rand(5, 6)
+    d = np.random.rand(10)
+
+    ein_scalar = contract('ijk,kl,jl', a, b, c, optimize=False)
+    opt_scalar = contract('ijk,kl,jl', a, b, c, optimize=True)
+    assert np.allclose(ein_scalar, opt_scalar)    
+
+    result = ein_scalar * d
+
+    ein = contract('ijk,kl,jl,i->i', a, b, c, d, optimize=False)
+    opt = contract('ijk,kl,jl,i->i', a, b, c, d, optimize=True)
+
+    assert np.allclose(ein, result)
+    assert np.allclose(opt, result)
+
+def test_broadcasting_contraction2():
+
+    a = np.random.rand(1, 1, 5, 4)
+    b = np.random.rand(4, 6)
+    c = np.random.rand(5, 6)
+    d = np.random.rand(7, 7)
+
+    ein_scalar = contract('abjk,kl,jl', a, b, c, optimize=False)
+    opt_scalar = contract('abjk,kl,jl', a, b, c, optimize=True)
+    assert np.allclose(ein_scalar, opt_scalar)    
+
+    result = ein_scalar * d
+
+    ein = contract('abjk,kl,jl,ab->ab', a, b, c, d, optimize=False)
+    opt = contract('abjk,kl,jl,ab->ab', a, b, c, d, optimize=True)
+
+    assert np.allclose(ein, result)
+    assert np.allclose(opt, result)
+
+def test_broadcasting_contraction3():
+
+    a = np.random.rand(1, 5, 4)
+    b = np.random.rand(4, 1, 6)
+    c = np.random.rand(5, 6)
+    d = np.random.rand(7, 7)
+
+    ein = contract('ajk,kbl,jl,ab->ab', a, b, c, d, optimize=False)
+    opt = contract('ajk,kbl,jl,ab->ab', a, b, c, d, optimize=True)
+
+    assert np.allclose(ein, opt)

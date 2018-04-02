@@ -19,7 +19,7 @@ before_install:
   - ulimit -a
   - python -V
   - pip install --upgrade pip setuptools
-  - pip install pytest pytest-cov
+  - pip install pytest pytest-cov codecov
   - pip install numpy
   - pip install codecov
   - pip install tensorflow
@@ -27,6 +27,9 @@ before_install:
   - pip install dask[array]
   - pip install sparse
   - pip install -e .
+  - if [ `python -c "import numpy; print(numpy.version.version)"` == "1.14.0" ]; then
+        pip install numpy --upgrade;
+    fi
 
 script:
   - py.test -v --cov=./
