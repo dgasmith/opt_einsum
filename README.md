@@ -11,6 +11,8 @@
 Optimized Einsum: A tensor contraction order optimizer
 ======================================================
 
+Optimized einsum can greatly reduce the overall time `np.einsum` takes by optimizing the expressions contraction order and dispatching many operations to canonical BLAS routines. See the [documention](http://optimized-einsum.readthedocs.io) for more information.
+
  - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/master/README.md#optimizing-numpys-einsum-function)
  - [Obtaining the path expression](https://github.com/dgasmith/opt_einsum/blob/master/README.md#obtaining-the-path-expression)
  - [Reusing paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#reusing-paths-using-contract_expression)
@@ -42,7 +44,7 @@ def optimized(I, C):
     return K
 ```
 
-The einsum function does not consider building intermediate arrays; therefore, helping einsum out by building these intermediate arrays can result in a considerable cost savings even for small N (N=10):
+The `np.einsum` function does not consider building intermediate arrays; therefore, helping einsum out by building these intermediate arrays can result in a considerable cost savings even for small N (N=10):
 
 ```python
 np.allclose(naive(I, C), optimized(I, C))
