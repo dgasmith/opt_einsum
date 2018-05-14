@@ -1,0 +1,99 @@
+---
+title: 'opt_einsum: A Python package for optimizing contraction order for einsum-like expressions`
+tags:
+  - array
+  - tensors
+  - optimization
+  - phylogenetics
+  - natural selection
+  - molecular evolution
+authors:
+ - name: Daniel G. A. Smith
+   orcid: 0000-0001-8626-0900
+   affiliation: "1"
+ - name: Johnnie Gray
+   orcid: 0000-000x-xxxx-xxxx
+   affiliation: "2"
+affiliations:
+ - name: The Molecular Science Software Institute, Blacksburg, VA 24060
+   index: 1
+date: 14 May 2018
+bibliography: paper.bib
+---
+
+# Summary
+
+``einsum`` is a powerful swiss army knife for arbitrary tensor contractions
+found in the popular ``numpy`` [@NumPy] repository.  However, this function is
+not able to break large expressions into multiple smaller pieces. For example,
+consider the following index transformation: M_{pqrs} = C_{pi} C_{qj} I_{ijkl}
+C_{rk} C_{sl} with two different algorithms:
+
+```python
+import numpy as np
+
+dim = 10
+I = np.random.rand(dim, dim, dim, dim)
+C = np.random.rand(dim, dim)
+
+def naive(I, C):
+    # N^8 scaling
+    return np.einsum('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
+
+def optimized(I, C):
+    # N^5 scaling
+    K = np.einsum('pi,ijkl->pjkl', C, I)
+    K = np.einsum('qj,pjkl->pqkl', C, K)
+    K = np.einsum('rk,pqkl->pqrl', C, K)
+    K = np.einsum('sl,pqrl->pqrs', C, K)
+    return K
+```
+
+By building intermediate arrays the overall scaling of contraction is
+dramatically reduced and considerable cost savings even for small N (N=10) can
+be seen:
+
+```python
+>> np.allclose(naive(I, C), optimized(I, C))
+True
+
+%timeit naive(I, C)
+1 loops, best of 3: 829 ms per loop
+
+%timeit optimized(I, C)
+1000 loops, best of 3: 445 µs per loop
+```python
+
+This index transformation is a well known contraction that leads to
+straightforward intermediates. This contraction can be further complicated by
+considering that the shape of the C matrices need not be the same, in this case
+the ordering in which the indices are transformed matters greatly. The
+opt_einsum package handles this logic automatically and is a drop in
+replacement for the ``np.einsum`` function:
+
+```python
+from opt_einsum import contract
+
+dim = 30
+I = np.random.rand(dim, dim, dim, dim)
+C = np.random.rand(dim, dim)
+
+%timeit optimized(I, C)
+10 loops, best of 3: 65.8 ms per loop
+
+%timeit contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
+100 loops, best of 3: 16.2 ms per loop
+```
+
+The above will automatically find the optimal contraction order, in this case
+identical to that of the optimized function above, and compute the products for
+you. In this case, it uses `np.dot` under the hood to exploit any vendor
+BLAS functionality that your NumPy build has.
+
+In addition, backends other than NumPy can be used to either exploit GPU
+computation via Tensorflow [@Tensorflow] or distributed compute capabilities
+via Dask [@Dask]. The core components of ``opt_einsum`` have been contributed
+back to the ``numpy` library and can be found in all ``numpy.einsum`` function
+calls in version 1.12 or later.
+
+# References
