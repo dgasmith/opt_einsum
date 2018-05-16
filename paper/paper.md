@@ -12,11 +12,14 @@ authors:
    orcid: 0000-0001-8626-0900
    affiliation: "1"
  - name: Johnnie Gray
-   orcid: 0000-000x-xxxx-xxxx
+   orcid: 0000-0001-9461-3024
    affiliation: "2"
+
 affiliations:
  - name: The Molecular Science Software Institute, Blacksburg, VA 24060
    index: 1
+ - name: University College London, London, UK
+   index: 2
 date: 14 May 2018
 bibliography: paper.bib
 ---
