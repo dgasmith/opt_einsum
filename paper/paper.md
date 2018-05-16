@@ -26,11 +26,22 @@ bibliography: paper.bib
 
 # Summary
 
-``einsum`` is a powerful swiss army knife for arbitrary tensor contractions
-found in the popular ``numpy`` [@NumPy] repository.  However, this function is
-not able to break large expressions into multiple smaller pieces. For example,
-consider the following index transformation: M_{pqrs} = C_{pi} C_{qj} I_{ijkl}
-C_{rk} C_{sl} with two different algorithms:
+``einsum`` is a powerful Swiss army knife for arbitrary tensor contractions
+found in the popular ``numpy`` [@NumPy] repository.  While these expressions
+can be used to form most mathematical expressions found in NumPy, the
+optimization of these expressions becomes increasingly important as the number
+of tensors increases due to finding optimal contraction order greatly effects
+the overall performance. Expressions with many tensors are particularly
+prevalent in many-body theories such as quantum chemistry, particle physics,
+and nuclear physics in addition to other fields such as machine learning.
+At the extreme case, matrix product state theory can have thousands of tensors
+meaning that the computation cannot procede in a naive fashion. ``opt_einsum``
+is particularly suited for these kinds of cases.
+
+However, this function is The ``einsum`` function considers expressions as a
+single unit and is not able to factor these expressions into multiple smaller
+pieces. For example, consider the following index transformation: M_{pqrs} =
+C_{pi} C_{qj} I_{ijkl} C_{rk} C_{sl} with two different algorithms:
 
 ```python
 import numpy as np
