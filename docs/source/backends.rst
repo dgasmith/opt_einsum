@@ -23,6 +23,12 @@ libraries. In fact, any library that provides a :func:`~numpy.tensordot` and
 While more special functionality such as axes reduction is reliant on a
 :func:`~numpy.einsum` implementation.
 
+.. note::
+
+    For a contraction to be possible without using a backend einsum, it must 
+    satisfy the following rule: in the full expression (so *including* output 
+    indices) each index must appear twice. In other words, each dimension 
+    must be contracted with one other dimension, or left alone.
 
 
 General backend for any ndarray
@@ -81,7 +87,7 @@ Sparse
 ------
 
 The `sparse <https://sparse.pydata.org/>`_ library also fits the bill and is
-supported. An example::
+supported. An example:
 
 .. code-block:: python
 
