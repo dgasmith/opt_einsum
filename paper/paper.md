@@ -75,7 +75,7 @@ True
 
 %timeit optimized(I, C)
 1000 loops, best of 3: 445 µs per loop
-```python
+```
 
 This index transformation is a well known contraction that leads to
 straightforward intermediates. This contraction can be further complicated by
@@ -106,7 +106,7 @@ functionality that the NumPy build may have.
 In addition, backends other than NumPy can be used to either exploit GPU
 computation via Tensorflow [@Tensorflow] or distributed compute capabilities
 via Dask [@Dask]. The core components of ``opt_einsum`` have been contributed
-back to the ``numpy` library and can be found in all ``numpy.einsum`` function
+back to the ``numpy`` library and can be found in all ``numpy.einsum`` function
 calls in version 1.12 or later using the ``optimize`` keyword
 (https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.einsum.html). 
 
