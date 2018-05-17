@@ -26,22 +26,22 @@ bibliography: paper.bib
 
 # Summary
 
-``einsum`` is a powerful Swiss army knife for arbitrary tensor contractions
-found in the popular ``numpy`` [@NumPy] repository.  While these expressions
-can be used to form most mathematical expressions found in NumPy, the
-optimization of these expressions becomes increasingly important as the number
-of tensors increases due to finding optimal contraction order greatly effects
-the overall performance. Expressions with many tensors are particularly
-prevalent in many-body theories such as quantum chemistry, particle physics,
-and nuclear physics in addition to other fields such as machine learning.
-At the extreme case, matrix product state theory can have thousands of tensors
-meaning that the computation cannot procede in a naive fashion. ``opt_einsum``
-is particularly suited for these kinds of cases.
+``einsum`` is a powerful Swiss army knife for arbitrary tensor contractions and
+general linear algebra found in the popular ``numpy`` [@NumPy] package.  While
+these expressions can be used to form most mathematical operations found in
+NumPy, the optimization of these expressions becomes increasingly important as
+naive implementations increase the overall scaling of these expressions
+resulting in a dramatic increase in overall execution time.  Expressions with
+many tensors are particularly prevalent in many-body theories such as quantum
+chemistry, particle physics, and nuclear physics in addition to other fields
+such as machine learning.  At the extreme case, matrix product state theory can
+have thousands of tensors meaning that the computation cannot procede in a
+naive fashion.
 
-However, this function is The ``einsum`` function considers expressions as a
-single unit and is not able to factor these expressions into multiple smaller
-pieces. For example, consider the following index transformation: M_{pqrs} =
-C_{pi} C_{qj} I_{ijkl} C_{rk} C_{sl} with two different algorithms:
+The canonical NumPy ``einsum`` function considers expressions as a single unit
+and is not able to factor these expressions into multiple smaller pieces. For
+example, consider the following index transformation: ``M_{pqrs} = C_{pi} C_{qj}
+I_{ijkl} C_{rk} C_{sl}`` with two different algorithms:
 
 ```python
 import numpy as np
@@ -63,9 +63,8 @@ def optimized(I, C):
     return K
 ```
 
-By building intermediate arrays the overall scaling of contraction is
-dramatically reduced and considerable cost savings even for small N (N=10) can
-be seen:
+By building intermediate arrays the overall scaling of the contraction is
+reduced and considerable cost savings even for small N (N=10) can be seen:
 
 ```python
 >> np.allclose(naive(I, C), optimized(I, C))
@@ -99,16 +98,22 @@ C = np.random.rand(dim, dim)
 100 loops, best of 3: 16.2 ms per loop
 ```
 
-The above will automatically find the optimal contraction order, in this case
-identical to that of the optimized function above, and compute the products for
-you. In this case, it uses `np.dot` under the hood to exploit any vendor
-BLAS functionality that your NumPy build has.
+The above will automatically finds the optimal contraction order, in this case
+identical to that of the optimized function above, and computes the products.
+In this case, it uses `np.dot` internally to exploit any vendor BLAS
+functionality that the NumPy build may have.
 
 In addition, backends other than NumPy can be used to either exploit GPU
 computation via Tensorflow [@Tensorflow] or distributed compute capabilities
 via Dask [@Dask]. The core components of ``opt_einsum`` have been contributed
 back to the ``numpy` library and can be found in all ``numpy.einsum`` function
-calls in version 1.12 or later.
+calls in version 1.12 or later using the ``optimize`` keyword
+(https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.einsum.html). 
+
+The software is on GitHub (https://github.com/dgasmith/opt_einsum/tree/v2.0.0)
+and can be downloaded via pip or conda-forge. Further discussion of features
+and uses can be found at the documentation
+(http://optimized-einsum.readthedocs.io/en/latest/).
 
 # Acknowledgements
 
