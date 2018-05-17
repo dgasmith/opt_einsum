@@ -13,6 +13,12 @@ Consider two different algorithms:
 
 .. code:: python
 
+    import numpy as np
+
+    dim = 10
+    I = np.random.rand(dim, dim, dim, dim)
+    C = np.random.rand(dim, dim)
+
     def naive(I, C):
         # N^8 scaling
         return np.einsum('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
@@ -35,10 +41,10 @@ in a considerable cost savings even for small N (N=10):
     True
 
     %timeit naive(I, C)
-    1 loops, best of 3: 1.18 s per loop
+    1 loops, best of 3: 829 ms per loop
 
     %timeit optimized(I, C)
-    1000 loops, best of 3: 612 µs per loop
+    1000 loops, best of 3: 445 µs per loop
 
 The index transformation is a well known contraction that leads to
 straightforward intermediates. This contraction can be further
@@ -54,7 +60,15 @@ and can handle all of the logic for you:
 
     from opt_einsum import contract
 
-    contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
+    dim = 30
+    I = np.random.rand(dim, dim, dim, dim)
+    C = np.random.rand(dim, dim)
+
+    %timeit optimized(I, C)
+    10 loops, best of 3: 65.8 ms per loop
+
+    %timeit contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
+    100 loops, best of 3: 16.2 ms per loop
 
 The above will automatically find the optimal contraction order, in this case
 identical to that of the optimized function above, and compute the products for
