@@ -110,4 +110,9 @@ via Dask [@Dask]. The core components of ``opt_einsum`` have been contributed
 back to the ``numpy` library and can be found in all ``numpy.einsum`` function
 calls in version 1.12 or later.
 
+# Acknowledgements
+
+We acknowledge additional contributions from Fabian-Robert Stöter, Robert T.
+McGibbon, and Nils Werner to this project.
+
 # References
