@@ -6,7 +6,7 @@
 [![Documentation Status](https://readthedocs.org/projects/optimized-einsum/badge/?version=latest)](http://optimized-einsum.readthedocs.io/en/latest/?badge=latest)
 
 
-##### News: Opt_einsum will be in NumPy 1.12 and BLAS features in NumPy 1.14! Call opt_einsum as `np.einsum(..., optimize=True)`. This repostiory will continue to provide a testing ground for new features. 
+##### News: Opt_einsum will be in NumPy 1.12 and BLAS features in NumPy 1.14! Call opt_einsum as `np.einsum(..., optimize=True)`. This repostiory contains more advanced features such as Dask or Tensorflow backends as well as continued testing ground for newer features in this ecosystem. 
 
 Optimized Einsum: A tensor contraction order optimizer
 ======================================================
