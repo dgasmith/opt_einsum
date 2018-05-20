@@ -1,5 +1,5 @@
 ---
-title: 'opt_einsum: A Python package for optimizing contraction order for einsum-like expressions`
+title: `opt_einsum`: A Python package for optimizing contraction order for einsum-like expressions`
 tags:
   - array
   - tensors
