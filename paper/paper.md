@@ -64,7 +64,7 @@ def optimized(I, C):
 ```
 
 By building intermediate arrays the overall scaling of the contraction is
-reduced and considerable cost savings even for small N (N=10) can be seen:
+reduced and considerable cost savings even for small ``N`` (``N=10``) can be seen:
 
 ```python
 >> np.allclose(naive(I, C), optimized(I, C))
@@ -100,7 +100,7 @@ C = np.random.rand(dim, dim)
 
 The above will automatically finds the optimal contraction order, in this case
 identical to that of the optimized function above, and computes the products.
-In this case, it uses `np.dot` internally to exploit any vendor BLAS
+In this case, it uses ``np.dot`` internally to exploit any vendor BLAS
 functionality that the NumPy build may have.
 
 In addition, backends other than NumPy can be used to either exploit GPU
