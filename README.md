@@ -13,12 +13,7 @@ Optimized Einsum: A tensor contraction order optimizer
 
 Optimized einsum can greatly reduce the overall time `np.einsum` takes by optimizing the expressions contraction order and dispatching many operations to canonical BLAS routines. See the [documention](http://optimized-einsum.readthedocs.io) for more information.
 
- - [Optimizing numpy's einsum function](https://github.com/dgasmith/opt_einsum/blob/master/README.md#optimizing-numpys-einsum-function)
- - [Obtaining the path expression](https://github.com/dgasmith/opt_einsum/blob/master/README.md#obtaining-the-path-expression)
- - [Reusing paths](https://github.com/dgasmith/opt_einsum/blob/master/README.md#reusing-paths-using-contract_expression)
- - [Installation](https://github.com/dgasmith/opt_einsum/blob/master/README.md#installation)
-
-## Optimizing numpy's einsum function
+## Quick tutorial
 Einsum is a very powerful function for contracting tensors of arbitrary dimension and index.
 However, it is only optimized to contract two terms at a time resulting in non-optimal scaling.
 
