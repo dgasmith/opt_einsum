@@ -1,7 +1,7 @@
 """
 Contains the path technology behind opt_einsum in addition to several path helpers
 """
-from itertools import combinations
+import itertools
 
 from . import helpers
 
@@ -42,7 +42,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
         iter_results = []
 
         # Compute all unique pairs
-        comb_iter = tuple(combinations(range(len(input_sets) - iteration), 2))
+        comb_iter = tuple(itertools.combinations(range(len(input_sets) - iteration), 2))
 
         for curr in full_results:
             cost, positions, remaining = curr
@@ -82,8 +82,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
     return path
 
 
-def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
-                                memory_limit, path_cost, naive_cost):
+def _parse_possible_contraction(positions, input_sets, output_set, idx_dict, memory_limit, path_cost, naive_cost):
     """Compute the cost (removed size + flops) and resultant indices for
     performing the contraction specified by ``positions``.
 
@@ -114,6 +113,7 @@ def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
         The resulting new list of indices if this proposed contraction is performed.
 
     """
+
     # Find the contraction
     contract = helpers.find_contraction(positions, input_sets, output_set)
     idx_result, new_input_sets, idx_removed, idx_contract = contract
@@ -126,6 +126,7 @@ def _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
     # Build sort tuple
     old_sizes = (helpers.compute_size_by_dict(input_sets[p], idx_dict) for p in positions)
     removed_size = sum(old_sizes) - new_size
+
     # NB: removed_size used to be just the size of any removed indices i.e.:
     #     helpers.compute_size_by_dict(idx_removed, idx_dict)
     cost = helpers.flop_count(idx_contract, idx_removed, len(positions), idx_dict)
@@ -156,22 +157,23 @@ def _update_other_results(results, best):
     mod_results :
         The list of modifed results, updated with outcome of ``best`` contraction.
     """
+
     best_con = best[1]
     bx, by = best_con
     mod_results = []
 
     for cost, (x, y), con_sets in results:
 
-        # ignore results involving tensors just contracted
+        # Ignore results involving tensors just contracted
         if x in best_con or y in best_con:
             continue
 
-        # update the input_sets
+        # Update the input_sets
         del con_sets[by - int(by > x) - int(by > y)]
         del con_sets[bx - int(bx > x) - int(bx > y)]
         con_sets.insert(-1, best[2][-1])
 
-        # update the position indices
+        # Update the position indices
         mod_con = x - int(x > bx) - int(x > by), y - int(y > bx) - int(y > by)
         mod_results.append((cost, mod_con, con_sets))
 
@@ -216,41 +218,45 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
 
     if len(input_sets) == 1:
         return [(0, )]
+    elif len(input_sets) == 2:
+        return [(0, 1)]
 
     # Build up a naive cost
     contract = helpers.find_contraction(range(len(input_sets)), input_sets, output_set)
     idx_result, new_input_sets, idx_removed, idx_contract = contract
     naive_cost = helpers.flop_count(idx_contract, idx_removed, len(input_sets), idx_dict)
 
-    comb_iter = combinations(range(len(input_sets)), 2)
+    comb_iter = itertools.combinations(range(len(input_sets)), 2)
     iteration_results = []
 
     path_cost = 0
     path = []
 
     for iteration in range(len(input_sets) - 1):
+
+        # Iterate over all pairs on first step, only previously found pairs on subsequent steps
         for positions in comb_iter:
 
-            # always initially ignore outer products
+            # Always initially ignore outer products
             if input_sets[positions[0]].isdisjoint(input_sets[positions[1]]):
                 continue
 
-            result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
-                                                 memory_limit, path_cost, naive_cost)
+            result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict, memory_limit, path_cost,
+                                                 naive_cost)
             if result is not None:
                 iteration_results.append(result)
 
-        # If we did not find a new inner contraction remaining
+        # If we do not have a inner contraction, rescan pairs including outer products
         if len(iteration_results) == 0:
 
             # Then check the outer products
-            for positions in combinations(range(len(input_sets)), 2):
-                result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict,
-                                                     memory_limit, path_cost, naive_cost)
+            for positions in itertools.combinations(range(len(input_sets)), 2):
+                result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict, memory_limit,
+                                                     path_cost, naive_cost)
                 if result is not None:
                     iteration_results.append(result)
 
-            # If we still did not find any remaining contraction, contract everything
+            # If we still did not find any remaining contractions, default back to einsum like behavior
             if len(iteration_results) == 0:
                 path.append(tuple(range(len(input_sets))))
                 break
@@ -258,10 +264,11 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
         # Sort based on first index
         best = min(iteration_results, key=lambda x: x[0])
 
-        # Now propagate as many results as possible to next iteration
+        # Now propagate as many unused contractions as possible to next iteration
         iteration_results = _update_other_results(iteration_results, best)
 
         # Next iteration only compute contractions with the new tensor
+        # All other contractions have been accounted for
         input_sets = best[2]
         new_tensor_pos = len(input_sets) - 1
         comb_iter = ((i, new_tensor_pos) for i in range(new_tensor_pos))
