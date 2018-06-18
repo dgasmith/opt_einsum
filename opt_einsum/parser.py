@@ -68,6 +68,21 @@ def possibly_convert_to_numpy(x):
         return x
 
 
+def gen_unused_symbols(used, n):
+    """Generate ``n`` symbols that are not already in ``used``:
+    """
+    cnt = 0
+    for s in einsum_symbols:
+        if s in used:
+            continue
+
+        yield s
+
+        cnt += 1
+        if cnt == n:
+            break
+
+
 def parse_einsum_input(operands):
     """
     A reproduction of einsum c side einsum parsing in python.
@@ -149,8 +164,7 @@ def parse_einsum_input(operands):
     # Parse ellipses
     if "." in subscripts:
         used = subscripts.replace(".", "").replace(",", "").replace("->", "")
-        unused = list(einsum_symbols_set - set(used))
-        ellipse_inds = "".join(unused)
+        ellipse_inds = "".join(gen_unused_symbols(used, max(len(x.shape) for x in operands)))
         longest = 0
 
         # Do we have an output to account for?
