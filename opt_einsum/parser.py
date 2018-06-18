@@ -13,6 +13,7 @@ einsum_symbols = einsum_symbols_base + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 if sys.version_info[0] >= 3:
     einsum_symbols += ''.join(map(chr, range(193, 688)))
     einsum_symbols += ''.join(map(chr, range(913, 1367)))
+    einsum_symbols += ''.join(map(chr, range(13312, 19893)))
 
 einsum_symbols_set = set(einsum_symbols)
 
@@ -75,9 +76,7 @@ def gen_unused_symbols(used, n):
     for s in einsum_symbols:
         if s in used:
             continue
-
         yield s
-
         cnt += 1
         if cnt == n:
             break

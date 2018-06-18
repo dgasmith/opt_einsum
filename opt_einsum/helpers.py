@@ -2,7 +2,6 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-import itertools
 import numpy as np
 
 chars = 'abcdefghijklmopq'
@@ -123,7 +122,7 @@ def find_contraction(positions, input_sets, output_set):
     for i in sorted(positions, reverse=True):
         idx_contract |= remaining.pop(i)
 
-    idx_remain = set(itertools.chain(output_set, *remaining))
+    idx_remain = output_set.union(*remaining)
 
     new_result = idx_remain & idx_contract
     idx_removed = (idx_contract - new_result)
