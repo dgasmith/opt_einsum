@@ -74,3 +74,12 @@ Please see the [documentation](http://optimized-einsum.readthedocs.io/en/latest/
 ## Installation
 
 `opt_einsum` can either be installed via `pip install opt_einsum` or from conda `conda install opt_einsum -c conda-forge`. See the installation [documenation](http://optimized-einsum.readthedocs.io/en/latest/install.html) for further methods.
+
+
+## Contributing
+
+All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
+
+A detailed overview on how to contribute can be found in the [contributing guide](https://github.com/dgasmith/opt_einsum/blob/master/.github/CONTRIBUTING.md).
+
+
