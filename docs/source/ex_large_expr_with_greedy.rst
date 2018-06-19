@@ -42,7 +42,7 @@ Let's set up the required einsum string:
     ...     #   |
     ...     # --O--
     ...     j = 3 * i
-    ...     ul, ur, m, ll, lr = (oe.parser.einsum_symbols[i]
+    ...     ul, ur, m, ll, lr = (oe.parser.symbol(i)
     ...                          for i in (j - 1, j + 2, j, j - 2, j + 1))
     >>>     einsum_str += "{}{}{},{}{}{},".format(m, ul, ur, m, ll, lr)
 
@@ -52,7 +52,7 @@ Let's set up the required einsum string:
     ... # --O
     >>> i = n - 1
     >>> j = 3 * i
-    >>> ul, m, ll, =  (oe.parser.einsum_symbols[i] for i in (j - 1, j, j - 2))
+    >>> ul, m, ll, =  (oe.parser.symbol(i) for i in (j - 1, j, j - 2))
     >>> einsum_str += "{}{},{}{}".format(m, ul, m, ll)
 
 Generate the shapes:
