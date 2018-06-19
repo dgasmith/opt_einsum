@@ -20,9 +20,20 @@ def has_valid_einsum_chars_only(einsum_str):
     return all(map(is_valid_einsum_char, einsum_str))
 
 
-def symbol(i):
+def get_symbol(i):
     """Get the symbol corresponding to int ``i`` - runs through the usual 52
     letters before resorting to unicode characters, starting at ``chr(192)``.
+
+    Examples
+    --------
+    >>> get_symbol(2)
+    'c'
+
+    >>> oe.get_symbol(200)
+    'Ŕ'
+
+    >>> oe.get_symbol(20000)
+    '京'
     """
     if i < 52:
         return einsum_symbols_base[i]
@@ -34,7 +45,7 @@ def gen_unused_symbols(used, n):
     """
     i = cnt = 0
     while cnt < n:
-        s = symbol(i)
+        s = get_symbol(i)
         i += 1
         if s in used:
             continue
@@ -129,7 +140,7 @@ def parse_einsum_input(operands):
                 if s is Ellipsis:
                     subscripts += "..."
                 elif isinstance(s, int):
-                    subscripts += symbol(s)
+                    subscripts += get_symbol(s)
                 else:
                     raise TypeError("For this input type lists must contain " "either int or Ellipsis")
             if num != last:
@@ -141,7 +152,7 @@ def parse_einsum_input(operands):
                 if s is Ellipsis:
                     subscripts += "..."
                 elif isinstance(s, int):
-                    subscripts += symbol(s)
+                    subscripts += get_symbol(s)
                 else:
                     raise TypeError("For this input type lists must contain " "either int or Ellipsis")
     # Check for proper "->"

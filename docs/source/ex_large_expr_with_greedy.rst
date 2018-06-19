@@ -17,7 +17,8 @@ that looks like::
 
 The meaning of this is not that important other than its a large, useful
 contraction. For ``n=100`` it involves 200 different tensors and about 300
-unique indices.
+unique indices. With this many indices it can be useful to generate them with
+the function :func:`~opt_einsum.parser.get_symbol`.
 
 Let's set up the required einsum string:
 
@@ -42,7 +43,7 @@ Let's set up the required einsum string:
     ...     #   |
     ...     # --O--
     ...     j = 3 * i
-    ...     ul, ur, m, ll, lr = (oe.parser.symbol(i)
+    ...     ul, ur, m, ll, lr = (oe.get_symbol(i)
     ...                          for i in (j - 1, j + 2, j, j - 2, j + 1))
     >>>     einsum_str += "{}{}{},{}{}{},".format(m, ul, ur, m, ll, lr)
 
@@ -52,7 +53,7 @@ Let's set up the required einsum string:
     ... # --O
     >>> i = n - 1
     >>> j = 3 * i
-    >>> ul, m, ll, =  (oe.parser.symbol(i) for i in (j - 1, j, j - 2))
+    >>> ul, m, ll, =  (oe.get_symbol(i) for i in (j - 1, j, j - 2))
     >>> einsum_str += "{}{},{}{}".format(m, ul, m, ll)
 
 Generate the shapes:
