@@ -1,20 +1,13 @@
+#!/usr/bin/env python
+# coding: utf-8
 """
 A functionally equivalent parser of the numpy.einsum input parser
 """
 
-import sys
-
 import numpy as np
 
-einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyz'
-einsum_symbols = einsum_symbols_base + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-# boost the number of symbols using unicode if python3
-if sys.version_info[0] >= 3:
-    einsum_symbols += ''.join(map(chr, range(193, 688)))
-    einsum_symbols += ''.join(map(chr, range(913, 1367)))
-
-einsum_symbols_set = set(einsum_symbols)
+einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def is_valid_einsum_char(x):
@@ -29,6 +22,39 @@ def has_valid_einsum_chars_only(einsum_str):
     return all(map(is_valid_einsum_char, einsum_str))
 
 
+def get_symbol(i):
+    """Get the symbol corresponding to int ``i`` - runs through the usual 52
+    letters before resorting to unicode characters, starting at ``chr(192)``.
+
+    Examples
+    --------
+    >>> get_symbol(2)
+    'c'
+
+    >>> oe.get_symbol(200)
+    'Ŕ'
+
+    >>> oe.get_symbol(20000)
+    '京'
+    """
+    if i < 52:
+        return einsum_symbols_base[i]
+    return chr(i + 140)
+
+
+def gen_unused_symbols(used, n):
+    """Generate ``n`` symbols that are not already in ``used``.
+    """
+    i = cnt = 0
+    while cnt < n:
+        s = get_symbol(i)
+        i += 1
+        if s in used:
+            continue
+        yield s
+        cnt += 1
+
+
 def convert_to_valid_einsum_chars(einsum_str):
     """Convert the str ``einsum_str`` to contain only the alphabetic characters
     valid for numpy einsum.
@@ -39,7 +65,7 @@ def convert_to_valid_einsum_chars(einsum_str):
         (valid if is_valid_einsum_char(x) else invalid).add(x)
 
     # get replacements for invalid chars that are not already used
-    available = (x for x in einsum_symbols if x not in valid)
+    available = gen_unused_symbols(valid, len(invalid))
 
     # map invalid to available and replace in the inputs
     replacer = dict(zip(invalid, available))
@@ -52,8 +78,6 @@ def find_output_str(subscripts):
     tmp_subscripts = subscripts.replace(",", "")
     output_subscript = ""
     for s in sorted(set(tmp_subscripts)):
-        if s not in einsum_symbols_set:
-            raise ValueError("Character %s is not a valid symbol." % s)
         if tmp_subscripts.count(s) == 1:
             output_subscript += s
     return output_subscript
@@ -101,13 +125,6 @@ def parse_einsum_input(operands):
         subscripts = operands[0].replace(" ", "")
         operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
 
-        # Ensure all characters are valid
-        for s in subscripts:
-            if s in '.,->':
-                continue
-            if s not in einsum_symbols_set:
-                raise ValueError("Character %s is not a valid symbol." % s)
-
     else:
         tmp_operands = list(operands)
         operand_list = []
@@ -125,7 +142,7 @@ def parse_einsum_input(operands):
                 if s is Ellipsis:
                     subscripts += "..."
                 elif isinstance(s, int):
-                    subscripts += einsum_symbols[s]
+                    subscripts += get_symbol(s)
                 else:
                     raise TypeError("For this input type lists must contain " "either int or Ellipsis")
             if num != last:
@@ -137,7 +154,7 @@ def parse_einsum_input(operands):
                 if s is Ellipsis:
                     subscripts += "..."
                 elif isinstance(s, int):
-                    subscripts += einsum_symbols[s]
+                    subscripts += get_symbol(s)
                 else:
                     raise TypeError("For this input type lists must contain " "either int or Ellipsis")
     # Check for proper "->"
@@ -149,8 +166,7 @@ def parse_einsum_input(operands):
     # Parse ellipses
     if "." in subscripts:
         used = subscripts.replace(".", "").replace(",", "").replace("->", "")
-        unused = list(einsum_symbols_set - set(used))
-        ellipse_inds = "".join(unused)
+        ellipse_inds = "".join(gen_unused_symbols(used, max(len(x.shape) for x in operands)))
         longest = 0
 
         # Do we have an output to account for?

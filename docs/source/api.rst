@@ -11,3 +11,4 @@ Function Reference
     opt_einsum.contract.ContractExpression
     opt_einsum.paths.optimal
     opt_einsum.paths.greedy
+    opt_einsum.parser.get_symbol
