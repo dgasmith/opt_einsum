@@ -98,7 +98,7 @@ C = np.random.rand(dim, dim)
 100 loops, best of 3: 16.2 ms per loop
 ```
 
-The above will automatically finds the optimal contraction order, in this case
+The above automatically will find the optimal contraction order, in this case
 identical to that of the optimized function above, and computes the products.
 In this case, it uses ``np.dot`` internally to exploit any vendor BLAS
 functionality that the NumPy build may have.
