@@ -108,24 +108,33 @@ def build_theano_expression(arrays, expr):
 
 # Cupy
 
-def convert_arrays_to_cupy(arrays):  # pragma: no cover
-    """Convert numpy arrays to ``cupy.ndarray`` instances.
-    """
+def to_cupy(array):  # pragma: no cover
     import cupy
-    return [cupy.asarray(x) for x in arrays]
+
+    if isinstance(array, numpy.ndarray):
+        return cupy.asarray(array)
+
+    return array
 
 
 def build_cupy_expression(_, expr):  # pragma: no cover
     """Build a cupy function based on ``arrays`` and ``expr``.
     """
-    import cupy
 
     def cupy_contract(*arrays):
-        cupy_arrays = convert_arrays_to_cupy(arrays)
+        cupy_arrays = [to_cupy(x) for x in arrays]
         cupy_out = expr._normal_contract(cupy_arrays, backend='cupy')
-        return cupy.asnumpy(cupy_out)
+        return cupy_out.get()
 
     return cupy_contract
+
+
+def parse_constants_cupy(const_arrays, expr):  # pragma: no cover
+    """Convert constant arguments to cupy arrays, and perform any possible
+    constant contractions.
+    """
+    const_arrays = [to_cupy(x) for x in const_arrays]
+    return expr(*const_arrays, backend='cupy', parse_constants=True)
 
 
 # Dispatch to correct expression backend
@@ -137,8 +146,20 @@ CONVERT_BACKENDS = {
 }
 
 
+PARSE_CONSTS_BACKENDS = {
+    'cupy': parse_constants_cupy,
+}
+
+
 def build_expression(backend, arrays, expr):
     """Build an expression, based on ``expr`` and initial arrays ``arrays``,
     that evaluates using backend ``backend``.
     """
     return CONVERT_BACKENDS[backend](arrays, expr)
+
+
+def parse_constants(backend, arrays, expr):
+    """Convert constant arrays to the correct backend, and perform as much of
+    the contraction of ``expr`` with these as possible.
+    """
+    return PARSE_CONSTS_BACKENDS[backend](arrays, expr)

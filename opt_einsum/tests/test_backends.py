@@ -81,7 +81,7 @@ def test_cupy(string):  # pragma: no cover
     assert np.allclose(ein, opt)
 
     # test non-conversion mode
-    cupy_views = backends.convert_arrays_to_cupy(views)
+    cupy_views = [backends.to_cupy(view) for view in views]
     cupy_opt = expr(*cupy_views, backend='cupy')
     assert isinstance(cupy_opt, cupy.ndarray)
     assert np.allclose(ein, cupy.asnumpy(cupy_opt))
@@ -156,3 +156,30 @@ def test_sparse(string):
     sparse_opt = contract(string, *sparse_views, backend='sparse')
     assert isinstance(sparse_opt, sparse.COO)
     assert np.allclose(ein, sparse_opt.todense())
+
+
+@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
+def test_cupy_with_constants():
+    eq = 'ij,jk,kl->li'
+    shapes = (2, 3), (3, 4), (4, 5)
+    constants = {0, 2}
+    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = np.random.rand(*shapes[1])
+
+    res_exp = contract(eq, ops[0], var, ops[2])
+
+    expr = contract_expression(eq, *ops, constants=constants)
+
+    # check cupy
+    res_got = expr(var, backend='cupy')
+    assert 'cupy' in expr._parsed_constants
+    assert np.allclose(res_exp, res_got)
+
+    # check can call with numpy still
+    res_got2 = expr(var, backend='numpy')
+    assert np.allclose(res_exp, res_got2)
+
+    # check cupy call returns cupy still
+    res_got3 = expr(cupy.asarray(var), backend='cupy')
+    assert isinstance(res_got3, cupy.ndarray)
+    assert np.allclose(res_exp, res_got3.get())

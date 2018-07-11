@@ -429,7 +429,7 @@ def _core_contract(operands, contraction_list, backend='numpy', parse_constants=
     from a ``contract_path(..., einsum_call=True)`` call.
     """
 
-    # Special handeling if out is specified
+    # Special handling if out is specified
     out_array = einsum_kwargs.pop('out', None)
     specified_out = out_array is not None
 
@@ -503,7 +503,12 @@ def format_const_einsum_str(einsum_str, constants):
 
         >>> format_const_einsum_str('ab,bc,cd->ad', [0, 2])
         'bc,[ab,cd]->ad'
+
+    No-op if there are no constants.
     """
+    if not constants:
+        return einsum_str
+
     if "->" in einsum_str:
         lhs, rhs = einsum_str.split('->')
         arrow = "->"
@@ -523,25 +528,44 @@ class ContractExpression:
     """
 
     def __init__(self, contraction, contraction_list, constants_dict, **einsum_kwargs):
-        self.contraction = contraction
         self.contraction_list = contraction_list
         self.einsum_kwargs = einsum_kwargs
-        self.num_args = len(contraction_list[0][0]) + len(contraction_list[0][3]) - 1
-        self.constants = None
 
-        # perform as much of the contraction as possible if constants supplied
-        if constants_dict:
-            tmp_const_ops = [constants_dict.get(i, None) for i in range(self.num_args)]
-            new_ops, new_contraction_list = self(*tmp_const_ops, parse_constants=True)
-            self.contraction = format_const_einsum_str(contraction, constants_dict.keys())
-            self.num_args -= len(constants_dict)
-            self.contraction_list = new_contraction_list
-            self.constants = new_ops
+        self._full_num_args = contraction.count(',') + 1
+        self.num_args = self._full_num_args - len(constants_dict)
+
+        self.contraction = format_const_einsum_str(contraction, constants_dict.keys())
+
+        self._constants_dict = constants_dict
+        self._parsed_constants = {}
+        self._full_contraction_list = contraction_list
+
+    def parse_constants(self, backend):
+        """Convert any constant operands to the correct backend form, and
+        perform as many contractions as possible to create a new list of
+        operands, stored in ``self._parsed_constants[backend]``.
+        """
+        # prepare a list of operands, with `None` for non-consts
+        tmp_const_ops = [self._constants_dict.get(i, None) for i in range(self._full_num_args)]
+
+        # get the new list of operands with constant operations performed, and remaining contractions
+        new_ops, new_contraction_list = self(*tmp_const_ops, backend=backend, parse_constants=True)
+        self._parsed_constants[backend] = new_ops
+        self.contraction_list = new_contraction_list
+
+    def _get_parsed_constants(self, backend):
+        try:
+            return self._parsed_constants[backend]
+        except KeyError:
+            self.parse_constants(backend)
+            return self._parsed_constants[backend]
 
     def _normal_contract(self, arrays, out=None, backend='numpy', parse_constants=False):
         """The normal, core contraction.
         """
-        return _core_contract(list(arrays), self.contraction_list, out=out, backend=backend,
+        contraction_list = self._full_contraction_list if parse_constants else self.contraction_list
+
+        return _core_contract(list(arrays), contraction_list, out=out, backend=backend,
                               parse_constants=parse_constants, **self.einsum_kwargs)
 
     def _convert_contract(self, arrays, out, backend, parse_constants=False):
@@ -551,6 +575,10 @@ class ContractExpression:
         with ``arrays``.
         """
         convert_fn = "_{}_contract".format(backend)
+
+        # convert consts to correct type & find reduced contraction list
+        if parse_constants:
+            return backends.parse_constants(backend, arrays, self)
 
         if not hasattr(self, convert_fn):
             setattr(self, convert_fn, backends.build_expression(backend, arrays, self))
@@ -577,29 +605,34 @@ class ContractExpression:
             are supplied then try to convert them to and from the correct
             backend array type.
         """
-        if len(arrays) != self.num_args:
-            raise ValueError("This `ContractExpression` takes exactly %s array arguments "
-                             "but received %s." % (self.num_args, len(arrays)))
-
         out = kwargs.pop('out', None)
         backend = kwargs.pop('backend', 'numpy')
         parse_constants = kwargs.pop('parse_constants', False)
+
         if kwargs:
             raise ValueError("The only valid keyword arguments to a `ContractExpression` "
                              "call are `out=` or `backend=`. Got: %s." % kwargs)
 
-        if self.constants:
+        correct_num_args = self._full_num_args if parse_constants else self.num_args
+
+        if len(arrays) != correct_num_args:
+            raise ValueError("This `ContractExpression` takes exactly %s array arguments "
+                             "but received %s." % (self.num_args, len(arrays)))
+
+        if self._constants_dict and not parse_constants:
             # fill in the missing non-constant terms with newly supplied arrays
-            arrays = iter(arrays)
-            arrays = [next(arrays) if op is None else op for op in self.constants]
+            ops_var, ops_const = iter(arrays), self._get_parsed_constants(backend)
+            ops = [next(ops_var) if op is None else op for op in ops_const]
+        else:
+            ops = arrays
 
         try:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
             if backend in backends.CONVERT_BACKENDS and isinstance(arrays[0], np.ndarray):
-                return self._convert_contract(arrays, out, backend, parse_constants=parse_constants)
+                return self._convert_contract(ops, out, backend, parse_constants=parse_constants)
 
-            return self._normal_contract(arrays, out, backend, parse_constants=parse_constants)
+            return self._normal_contract(ops, out, backend, parse_constants=parse_constants)
 
         except ValueError as err:
             original_msg = str(err.args) if err.args else ""
@@ -689,7 +722,7 @@ def contract_expression(subscripts, *shapes, **kwargs):
     constants_dict = {i: shapes[i] for i in constants}
     kwargs['_constants_dict'] = constants_dict
 
-    # apart from constant arguements, make dummy arrays
+    # apart from constant arguments, make dummy arrays
     dummy_arrays = [s if i in constants else _ShapeOnly(s) for i, s in enumerate(shapes)]
 
     return contract(subscripts, *dummy_arrays, **kwargs)
