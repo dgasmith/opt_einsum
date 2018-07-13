@@ -6,6 +6,7 @@ from opt_einsum import contract, helpers, contract_expression, backends
 try:
     import tensorflow as tf
     found_tensorflow = True
+    sess = tf.Session()
 except ImportError:
     found_tensorflow = False
 
@@ -57,15 +58,85 @@ def test_tensorflow(string):
     shps = [v.shape for v in views]
     expr = contract_expression(string, *shps, optimize=True)
 
-    sess = tf.Session()
     with sess.as_default():
         expr(*views, backend='tensorflow', out=opt)
 
     assert np.allclose(ein, opt)
 
     # test non-conversion mode
-    tensorflow_views = backends.convert_arrays_to_tensorflow(views)
+    tensorflow_views = [backends.to_tensorflow(view) for view in views]
     expr(*tensorflow_views, backend='tensorflow')
+
+
+@pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
+def test_tensorflow_with_constants():
+    eq = 'ij,jk,kl->li'
+    shapes = (2, 3), (3, 4), (4, 5)
+    constants = {0, 2}
+    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = np.random.rand(*shapes[1])
+
+    res_exp = contract(eq, ops[0], var, ops[2])
+
+    expr = contract_expression(eq, *ops, constants=constants)
+
+    # check tensorflow
+    with sess.as_default():
+        res_got = expr(var, backend='tensorflow')
+    assert 'tensorflow' in expr._parsed_constants
+    assert np.allclose(res_exp, res_got)
+
+    # check can call with numpy still
+    res_got2 = expr(var, backend='numpy')
+    assert np.allclose(res_exp, res_got2)
+
+    # check tensorflow call returns tensorflow still
+    res_got3 = expr(backends.to_tensorflow(var), backend='tensorflow')
+    assert isinstance(res_got3, tf.Tensor)
+
+
+@pytest.mark.skipif(not found_theano, reason="Theano not installed.")
+@pytest.mark.parametrize("string", tests)
+def test_theano(string):
+    views = helpers.build_views(string)
+    ein = contract(string, *views, optimize=False, use_blas=False)
+    shps = [v.shape for v in views]
+
+    expr = contract_expression(string, *shps, optimize=True)
+
+    opt = expr(*views, backend='theano')
+    assert np.allclose(ein, opt)
+
+    # test non-conversion mode
+    theano_views = [backends.to_theano(view) for view in views]
+    theano_opt = expr(*theano_views, backend='theano')
+    assert isinstance(theano_opt, theano.tensor.TensorVariable)
+
+
+@pytest.mark.skipif(not found_theano, reason="theano not installed.")
+def test_theano_with_constants():
+    eq = 'ij,jk,kl->li'
+    shapes = (2, 3), (3, 4), (4, 5)
+    constants = {0, 2}
+    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = np.random.rand(*shapes[1])
+
+    res_exp = contract(eq, ops[0], var, ops[2])
+
+    expr = contract_expression(eq, *ops, constants=constants)
+
+    # check theano
+    res_got = expr(var, backend='theano')
+    assert 'theano' in expr._parsed_constants
+    assert np.allclose(res_exp, res_got)
+
+    # check can call with numpy still
+    res_got2 = expr(var, backend='numpy')
+    assert np.allclose(res_exp, res_got2)
+
+    # check theano call returns theano still
+    res_got3 = expr(backends.to_theano(var), backend='theano')
+    assert isinstance(res_got3, theano.tensor.TensorVariable)
 
 
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
@@ -87,22 +158,31 @@ def test_cupy(string):  # pragma: no cover
     assert np.allclose(ein, cupy.asnumpy(cupy_opt))
 
 
-@pytest.mark.skipif(not found_theano, reason="Theano not installed.")
-@pytest.mark.parametrize("string", tests)
-def test_theano(string):
-    views = helpers.build_views(string)
-    ein = contract(string, *views, optimize=False, use_blas=False)
-    shps = [v.shape for v in views]
+@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
+def test_cupy_with_constants():
+    eq = 'ij,jk,kl->li'
+    shapes = (2, 3), (3, 4), (4, 5)
+    constants = {0, 2}
+    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = np.random.rand(*shapes[1])
 
-    expr = contract_expression(string, *shps, optimize=True)
+    res_exp = contract(eq, ops[0], var, ops[2])
 
-    opt = expr(*views, backend='theano')
-    assert np.allclose(ein, opt)
+    expr = contract_expression(eq, *ops, constants=constants)
 
-    # test non-conversion mode
-    theano_views = backends.convert_arrays_to_theano(views)
-    theano_opt = expr(*theano_views, backend='theano')
-    assert isinstance(theano_opt, theano.tensor.TensorVariable)
+    # check cupy
+    res_got = expr(var, backend='cupy')
+    assert 'cupy' in expr._parsed_constants
+    assert np.allclose(res_exp, res_got)
+
+    # check can call with numpy still
+    res_got2 = expr(var, backend='numpy')
+    assert np.allclose(res_exp, res_got2)
+
+    # check cupy call returns cupy still
+    res_got3 = expr(cupy.asarray(var), backend='cupy')
+    assert isinstance(res_got3, cupy.ndarray)
+    assert np.allclose(res_exp, res_got3.get())
 
 
 @pytest.mark.skipif(not found_dask, reason="Dask not installed.")
@@ -156,30 +236,3 @@ def test_sparse(string):
     sparse_opt = contract(string, *sparse_views, backend='sparse')
     assert isinstance(sparse_opt, sparse.COO)
     assert np.allclose(ein, sparse_opt.todense())
-
-
-@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
-def test_cupy_with_constants():
-    eq = 'ij,jk,kl->li'
-    shapes = (2, 3), (3, 4), (4, 5)
-    constants = {0, 2}
-    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
-    var = np.random.rand(*shapes[1])
-
-    res_exp = contract(eq, ops[0], var, ops[2])
-
-    expr = contract_expression(eq, *ops, constants=constants)
-
-    # check cupy
-    res_got = expr(var, backend='cupy')
-    assert 'cupy' in expr._parsed_constants
-    assert np.allclose(res_exp, res_got)
-
-    # check can call with numpy still
-    res_got2 = expr(var, backend='numpy')
-    assert np.allclose(res_exp, res_got2)
-
-    # check cupy call returns cupy still
-    res_got3 = expr(cupy.asarray(var), backend='cupy')
-    assert isinstance(res_got3, cupy.ndarray)
-    assert np.allclose(res_exp, res_got3.get())
