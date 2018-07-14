@@ -530,20 +530,25 @@ class ContractExpression:
     def __init__(self, contraction, contraction_list, constants_dict, **einsum_kwargs):
         self.contraction_list = contraction_list
         self.einsum_kwargs = einsum_kwargs
+        self.contraction = format_const_einsum_str(contraction, constants_dict.keys())
 
+        # need to know _full_num_args to parse constants with, and num_args to call with
         self._full_num_args = contraction.count(',') + 1
         self.num_args = self._full_num_args - len(constants_dict)
 
-        self.contraction = format_const_einsum_str(contraction, constants_dict.keys())
+        # likewise need to know full contraction list
+        self._full_contraction_list = contraction_list
 
         self._constants_dict = constants_dict
         self._parsed_constants = {}
-        self._full_contraction_list = contraction_list
+        self._backend_expressions = {}
 
     def parse_constants(self, backend):
         """Convert any constant operands to the correct backend form, and
         perform as many contractions as possible to create a new list of
-        operands, stored in ``self._parsed_constants[backend]``.
+        operands, stored in ``self._parsed_constants[backend]``. This also
+        makes sure ``self.contraction_list`` only contains the remaining,
+        non-const operations.
         """
         # prepare a list of operands, with `None` for non-consts
         tmp_const_ops = [self._constants_dict.get(i, None) for i in range(self._full_num_args)]
@@ -554,13 +559,25 @@ class ContractExpression:
         self.contraction_list = new_contraction_list
 
     def _get_parsed_constants(self, backend):
+        """Retrieve or generate the cached list of constant operators (mixed
+        in with None representing non-consts) and the remaining contraction
+        list.
+        """
         try:
             return self._parsed_constants[backend]
         except KeyError:
             self.parse_constants(backend)
             return self._parsed_constants[backend]
 
-    def _normal_contract(self, arrays, out=None, backend='numpy', parse_constants=False):
+    def _get_backend_expression(self, arrays, backend):
+        try:
+            return self._backend_expressions[backend]
+        except KeyError:
+            fn = backends.build_expression(backend, arrays, self)
+            self._backend_expressions[backend] = fn
+            return fn
+
+    def _contract(self, arrays, out=None, backend='numpy', parse_constants=False):
         """The normal, core contraction.
         """
         contraction_list = self._full_contraction_list if parse_constants else self.contraction_list
@@ -568,22 +585,20 @@ class ContractExpression:
         return _core_contract(list(arrays), contraction_list, out=out, backend=backend,
                               parse_constants=parse_constants, **self.einsum_kwargs)
 
-    def _convert_contract(self, arrays, out, backend, parse_constants=False):
+    def _contract_with_conversion(self, arrays, out, backend, parse_constants=False):
         """Special contraction, i.e. contraction with a different backend
-        but converting to and from that backend. Checks for
-        ``self._{backend}_contract``, generates it if is missing, then calls it
+        but converting to and from that backend. Retrieves or generates a
+        cached expression using ``arrays`` as templates, then calls it
         with ``arrays``.
-        """
-        convert_fn = "_{}_contract".format(backend)
 
+        If ``parse_constants=True``, perform a partial contraction that
+        prepares the constant tensors and operations with the right backend.
+        """
         # convert consts to correct type & find reduced contraction list
         if parse_constants:
             return backends.parse_constants(backend, arrays, self)
 
-        if not hasattr(self, convert_fn):
-            setattr(self, convert_fn, backends.build_expression(backend, arrays, self))
-
-        result = getattr(self, convert_fn)(*arrays)
+        result = self._get_backend_expression(arrays, backend)(*arrays)
 
         if out is not None:
             out[()] = result
@@ -630,9 +645,9 @@ class ContractExpression:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
             if backend in backends.CONVERT_BACKENDS and isinstance(arrays[0], np.ndarray):
-                return self._convert_contract(ops, out, backend, parse_constants=parse_constants)
+                return self._contract_with_conversion(ops, out, backend, parse_constants=parse_constants)
 
-            return self._normal_contract(ops, out, backend, parse_constants=parse_constants)
+            return self._contract(ops, out, backend, parse_constants=parse_constants)
 
         except ValueError as err:
             original_msg = str(err.args) if err.args else ""
@@ -675,8 +690,12 @@ def contract_expression(subscripts, *shapes, **kwargs):
     shapes : sequence of integer tuples
         Shapes of the arrays to optimize the contraction for.
     constants : sequence of int, optional
-        The indices of any constant arguments, in which case the actual array
-        should be supplied at that position rather than just a shape.
+        The indices of any constant arguments in ``shapes``, in which case the
+        actual array should be supplied at that position rather than just a
+        shape. If these are specified, then constant parts of the contraction
+        between calls will be reused. Additionally, if a gpu-enabled backend is
+        used for example, then the constant tensors will be kept on the gpu,
+        minimizing transfers.
     kwargs :
         Passed on to ``contract_path`` or ``einsum``. See ``contract``.
 
@@ -696,15 +715,29 @@ def contract_expression(subscripts, *shapes, **kwargs):
     - The generated expression will work with any arrays which have
       the same rank (number of dimensions) as the original shapes, however, if
       the actual sizes are different, the expression may no longer be optimal.
+    - Constant operations will be computed upon first call with a particular
+      backend, then subsequently reused.
 
     Examples
     --------
 
-    >>> expr = contract_expression("ab,bc->ac", (3, 4), (4, 5))
-    >>> a, b = np.random.rand(3, 4), np.random.rand(4, 5)
-    >>> c = expr(a, b)
-    >>> np.allclose(c, a @ b)
-    True
+    Basic usage:
+
+        >>> expr = contract_expression("ab,bc->ac", (3, 4), (4, 5))
+        >>> a, b = np.random.rand(3, 4), np.random.rand(4, 5)
+        >>> c = expr(a, b)
+        >>> np.allclose(c, a @ b)
+        True
+
+    Supply ``a`` as a constant:
+
+        >>> expr = contract_expression("ab,bc->ac", a, (4, 5), constants=[0])
+        >>> expr
+        ContractExpression('bc,[ab]->ac')
+
+        >>> c = expr(b)
+        >>> np.allclose(c, a @ b)
+        True
 
     """
     if not kwargs.get('optimize', True):

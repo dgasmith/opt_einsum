@@ -82,7 +82,7 @@ def build_tensorflow_expression(arrays, expr):
     import tensorflow
 
     placeholders = [to_tensorflow(array) for array in arrays]
-    graph = expr._normal_contract(placeholders, backend='tensorflow')
+    graph = expr._contract(placeholders, backend='tensorflow')
 
     def tensorflow_contract(*arrays):
         session = tensorflow.get_default_session()
@@ -132,7 +132,7 @@ def build_theano_expression(arrays, expr):
     import theano
 
     in_vars = [to_theano(array) for array in arrays]
-    out_var = expr._normal_contract(in_vars, backend='theano')
+    out_var = expr._contract(in_vars, backend='theano')
 
     # don't supply constants to graph
     graph_ins = [x for x in in_vars if not isinstance(x, theano.tensor.TensorConstant)]
@@ -172,7 +172,7 @@ def build_cupy_expression(_, expr):  # pragma: no cover
 
     def cupy_contract(*arrays):
         cupy_arrays = [to_cupy(x) for x in arrays]
-        cupy_out = expr._normal_contract(cupy_arrays, backend='cupy')
+        cupy_out = expr._contract(cupy_arrays, backend='cupy')
         return cupy_out.get()
 
     return cupy_contract
