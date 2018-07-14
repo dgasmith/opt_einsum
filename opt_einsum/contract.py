@@ -644,7 +644,7 @@ class ContractExpression:
         try:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
-            if backend in backends.CONVERT_BACKENDS and isinstance(arrays[0], np.ndarray):
+            if backend in backends.CONVERT_BACKENDS and any(isinstance(x, np.ndarray) for x in arrays):
                 return self._contract_with_conversion(ops, out, backend, parse_constants=parse_constants)
 
             return self._contract(ops, out, backend, parse_constants=parse_constants)
