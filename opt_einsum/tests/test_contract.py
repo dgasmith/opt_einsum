@@ -110,6 +110,13 @@ def test_compare(string):
     assert np.allclose(ein, opt)
 
 
+@pytest.mark.parametrize("string", tests)
+def test_drop_in_replacement(string):
+    views = helpers.build_views(string)
+    opt = contract(string, *views)
+    assert np.allclose(opt, np.einsum(string, *views))
+
+
 @pytest.mark.skipif(sys.version_info[0] < 3, reason='requires python3')
 @pytest.mark.parametrize("string", tests)
 def test_compare_greek(string):
