@@ -515,11 +515,13 @@ def format_const_einsum_str(einsum_str, constants):
     else:
         lhs, rhs, arrow = einsum_str, "", ""
 
-    ins, const_ins = [], []
-    for i, term in enumerate(lhs.split(',')):
-        (const_ins if i in constants else ins).append(term)
+    wrapped_terms = ["[{}]".format(t) if i in constants else t for i, t in enumerate(lhs.split(','))]
 
-    return "{},[{}]{}{}".format(','.join(ins), ','.join(const_ins), arrow, rhs)
+    formatted_einsum_str = "{}{}{}".format(','.join(wrapped_terms), arrow, rhs)
+
+    # merge adjacent constants
+    formatted_einsum_str = formatted_einsum_str.replace("],[", ',')
+    return formatted_einsum_str
 
 
 class ContractExpression:
@@ -658,10 +660,14 @@ class ContractExpression:
             raise
 
     def __repr__(self):
-        return "ContractExpression('%s')" % self.contraction
+        if self._constants_dict:
+            constants_repr = ", constants={}".format(sorted(self._constants_dict))
+        else:
+            constants_repr = ""
+        return "<ContractExpression('{}'{})>".format(self.contraction, constants_repr)
 
     def __str__(self):
-        s = "<ContractExpression> for '%s':" % self.contraction
+        s = self.__repr__()
         for i, c in enumerate(self.contraction_list):
             s += "\n  %i.  " % (i + 1)
             s += "'%s'" % c[2] + (" [%s]" % c[-1] if c[-1] else "")
@@ -733,7 +739,7 @@ def contract_expression(subscripts, *shapes, **kwargs):
 
         >>> expr = contract_expression("ab,bc->ac", a, (4, 5), constants=[0])
         >>> expr
-        ContractExpression('bc,[ab]->ac')
+        <ContractExpression('bc,[ab]->ac', constants=[0])>
 
         >>> c = expr(b)
         >>> np.allclose(c, a @ b)

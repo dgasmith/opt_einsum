@@ -137,7 +137,7 @@ If ``theano`` is installed, using it as backend is as simple as specifiying
     >>> shapes = (3, 200), (200, 300), (300, 4)
     >>> expr = oe.contract_expression("ab,bc,cd", *shapes)
     >>> expr
-    ContractExpression('ab,bc,cd')
+    <ContractExpression('ab,bc,cd')>
 
     >>> import numpy as np
     >>> # GPU advantage mainly for low precision numbers

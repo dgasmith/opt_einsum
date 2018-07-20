@@ -8,7 +8,7 @@ If you expect to repeatedly use a particular contraction it can make things simp
 
     >>> my_expr = oe.contract_expression("abc,cd,dbe->ea", (2, 3, 4), (4, 5), (5, 3, 6))
     >>> print(my_expr)
-    <ContractExpression> for 'abc,cd,dbe->ea':
+    <ContractExpression('abc,cd,dbe->ea')>
       1.  'dbe,cd->bce' [GEMM]
       2.  'bce,abc->ea' [GEMM]
 
