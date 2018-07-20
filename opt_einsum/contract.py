@@ -545,7 +545,7 @@ class ContractExpression:
         self._parsed_constants = {}
         self._backend_expressions = {}
 
-    def parse_constants(self, backend):
+    def parse_constants(self, backend='numpy'):
         """Convert any constant operands to the correct backend form, and
         perform as many contractions as possible to create a new list of
         operands, stored in ``self._parsed_constants[backend]``. This also
