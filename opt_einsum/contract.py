@@ -301,7 +301,7 @@ def _transpose(x, axes, backend='numpy'):
     """
     try:
         return x.transpose(axes)
-    except AttributeError:
+    except (AttributeError, TypeError):
         # some libraries don't implement method version
         fn = backends.get_func('transpose', backend)
         return fn(x, axes)

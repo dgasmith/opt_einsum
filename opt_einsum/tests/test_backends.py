@@ -5,8 +5,10 @@ from opt_einsum import contract, helpers, contract_expression, backends
 
 try:
     import tensorflow as tf
+    # needed so tensorflow doesn't allocate all gpu mem
+    _TF_CONFIG = tf.ConfigProto()
+    _TF_CONFIG.gpu_options.allow_growth = True
     found_tensorflow = True
-    sess = tf.Session()
 except ImportError:
     found_tensorflow = False
 
@@ -36,6 +38,12 @@ try:
 except ImportError:
     found_sparse = False
 
+try:
+    import torch
+    found_torch = True
+except ImportError:
+    found_torch = False
+
 
 tests = [
     'ab,bc->ca',
@@ -58,8 +66,10 @@ def test_tensorflow(string):
     shps = [v.shape for v in views]
     expr = contract_expression(string, *shps, optimize=True)
 
+    sess = tf.Session(config=_TF_CONFIG)
     with sess.as_default():
         expr(*views, backend='tensorflow', out=opt)
+    sess.close()
 
     assert np.allclose(ein, opt)
 
@@ -81,8 +91,10 @@ def test_tensorflow_with_constants():
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check tensorflow
+    sess = tf.Session(config=_TF_CONFIG)
     with sess.as_default():
         res_got = expr(var, backend='tensorflow')
+    sess.close()
     assert 'tensorflow' in expr._evaluated_constants
     assert np.allclose(res_exp, res_got)
 
@@ -236,3 +248,50 @@ def test_sparse(string):
     sparse_opt = contract(string, *sparse_views, backend='sparse')
     assert isinstance(sparse_opt, sparse.COO)
     assert np.allclose(ein, sparse_opt.todense())
+
+
+@pytest.mark.skipif(not found_torch, reason="Torch not installed.")
+@pytest.mark.parametrize("string", tests)
+def test_torch(string):  # pragma: no cover
+    views = helpers.build_views(string)
+    ein = contract(string, *views, optimize=False, use_blas=False)
+    shps = [v.shape for v in views]
+
+    expr = contract_expression(string, *shps, optimize=True)
+
+    opt = expr(*views, backend='torch')
+    assert np.allclose(ein, opt)
+
+    # test non-conversion mode
+    torch_views = [backends.to_torch(view) for view in views]
+    torch_opt = expr(*torch_views, backend='torch')
+    assert isinstance(torch_opt, torch.Tensor)
+    assert np.allclose(ein, torch_opt.cpu().numpy())
+
+
+@pytest.mark.skipif(not found_torch, reason="torch not installed.")
+def test_torch_with_constants():
+    eq = 'ij,jk,kl->li'
+    shapes = (2, 3), (3, 4), (4, 5)
+    constants = {0, 2}
+    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = np.random.rand(*shapes[1])
+
+    res_exp = contract(eq, ops[0], var, ops[2])
+
+    expr = contract_expression(eq, *ops, constants=constants)
+
+    # check torch
+    res_got = expr(var, backend='torch')
+    assert 'torch' in expr._evaluated_constants
+    assert np.allclose(res_exp, res_got)
+
+    # check can call with numpy still
+    res_got2 = expr(var, backend='numpy')
+    assert np.allclose(res_exp, res_got2)
+
+    # check torch call returns torch still
+    res_got3 = expr(backends.to_torch(var), backend='torch')
+    assert isinstance(res_got3, torch.Tensor)
+    res_got3 = res_got3.numpy() if res_got3.device.type == 'cpu' else res_got3.cpu().numpy()
+    assert np.allclose(res_exp, res_got3)
