@@ -83,7 +83,7 @@ def test_tensorflow_with_constants():
     # check tensorflow
     with sess.as_default():
         res_got = expr(var, backend='tensorflow')
-    assert 'tensorflow' in expr._parsed_constants
+    assert 'tensorflow' in expr._evaluated_constants
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
@@ -127,7 +127,7 @@ def test_theano_with_constants():
 
     # check theano
     res_got = expr(var, backend='theano')
-    assert 'theano' in expr._parsed_constants
+    assert 'theano' in expr._evaluated_constants
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
@@ -172,7 +172,7 @@ def test_cupy_with_constants():
 
     # check cupy
     res_got = expr(var, backend='cupy')
-    assert 'cupy' in expr._parsed_constants
+    assert 'cupy' in expr._evaluated_constants
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still

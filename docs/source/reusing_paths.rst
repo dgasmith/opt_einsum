@@ -42,22 +42,26 @@ many constant contractions as possible. Take for example the equation:
 
     >>> eq = "ij,jk,kl,lm,mn->ni"
 
-where we know that only the first and last tensors will vary between calls.
+where we know that *only* the first and last tensors will vary between calls.
 We can specify this by marking the middle three as constant - we then need to
 supply the actual arrays rather than just the shapes to
 :func:`~opt_einsum.contract_expression`:
 
 .. code:: python
 
-    >>> # the shapes of the expression
-    >>> args = [(9, 5), (5, 5), (5, 5), (5, 5), (5, 8)]
+    >>> #           A       B       C       D       E
+    >>> shapes = [(9, 5), (5, 5), (5, 5), (5, 5), (5, 8)]
 
-    >>> # now replace the constants with actual arrays
+    >>> # mark the middle three arrays as constant
     >>> constants = [1, 2, 3]
-    >>> for i in constant:
-    ...     args[i] = np.random.rand(*args[i])
 
-    >>> expr = oe.contract_expression(eq, *args, constants=constants)
+    >>> # generate the constant arrays
+    >>> B, C, D = [np.random.randn(*shapes[i]) for i in constants]
+
+    >>> # supplied ops are now mix of shapes and arrays
+    >>> ops = (9, 5), B, C, D, (5, 8)
+
+    >>> expr = oe.contract_expression(eq, *ops, constants=constants)
     >>> expr
     <ContractExpression('ij,[jk,kl,lm],mn->ni', constants=[1, 2, 3])>
 
@@ -67,11 +71,13 @@ constant contractions as possible.
 
 .. code:: python
 
-    >>> out1 = expr(np.random.rand(9, 5), np.random.rand(5, 8))
-    >>> out1.shape
+    >>> A1, E1 = np.random.rand(*shapes[0]), np.random.rand(*shapes[-1])
+    >>> out1 = expr(A1, E1)
+    >>> out1.shap
     (8, 9)
 
-    >>> out2 = expr(np.random.rand(9, 5), np.random.rand(5, 8))
+    >>> A2, E2 = np.random.rand(*shapes[0]), np.random.rand(*shapes[-1])
+    >>> out2 = expr(A2, E2)
     >>> out2.shape
     (8, 9)
 
@@ -89,10 +95,40 @@ two contractions to compute the output.
 .. note::
 
     The constant part of an expression is lazily generated upon first call,
-    (with a particular backend) though it can be explicitly built with call to
-    :meth:`ContractExpression.parse_constants`.
+    (specific a particular backend) though it can be explicitly built with call
+    to :meth:`~opt_einsum.contract.ContractExpression.evaluate_constants`.
 
-Even if there are no constant contractions to perform, it can be very
-advantageous to specify constant tensors for particular backends.
+We can confirm the advantage of using expressions and constants by timing the
+following scenarios, first setting
+``A = np.random.rand(*shapes[0])`` and ``E = np.random.rand(*shapes[-1])``.
+
+- **contract from scratch:**
+
+.. code:: python
+
+    >>> %timeit oe.contract(eq, A, B, C, D, E)
+    239 µs ± 5.06 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
+
+- **contraction with an expression but no constants:**
+
+.. code:: python
+
+    >>> expr_no_consts = oe.contract_expression(eq, *shapes)
+    >>> %timeit expr_no_consts(A, B, C, D, E)
+    76.7 µs ± 2.47 µs per loop (mean ± std. dev. of 7 runs, 10000 loops each)
+
+- **contraction with an expression and constants marked:**
+
+.. code:: python
+
+    >>> %timeit expr(A, E)
+    40.8 µs ± 1.22 µs per loop (mean ± std. dev. of 7 runs, 10000 loops each)
+
+Although this gives us a rough idea, of course the efficiency savings are
+hugely dependent on the size of the contraction and number of possible constant
+contractions.
+
+We also note that even if there are *no* constant contractions to perform, it
+can be very advantageous to specify constant tensors for particular backends.
 For instance, if a GPU backend is used, the constant tensors will be kept on
 the device rather than being transfered each time.

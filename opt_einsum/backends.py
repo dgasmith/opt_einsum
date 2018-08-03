@@ -93,7 +93,7 @@ def build_tensorflow_expression(arrays, expr):
     return tensorflow_contract
 
 
-def parse_constants_tensorflow(const_arrays, expr):
+def evaluate_constants_tensorflow(const_arrays, expr):
     """Convert constant arguments to tensorflow constants, and perform any
     possible constant contractions. Requires evaluating a tensorflow graph.
     """
@@ -101,7 +101,7 @@ def parse_constants_tensorflow(const_arrays, expr):
 
     # compute the partial graph of new inputs
     const_arrays = [to_tensorflow(x, constant=True) for x in const_arrays]
-    new_ops, new_contraction_list = expr(*const_arrays, backend='tensorflow', parse_constants=True)
+    new_ops, new_contraction_list = expr(*const_arrays, backend='tensorflow', evaluate_constants=True)
 
     # evaluate the new inputs and convert to tensorflow constants
     session = tensorflow.get_default_session()
@@ -144,10 +144,10 @@ def build_theano_expression(arrays, expr):
     return theano_contract
 
 
-def parse_constants_theano(const_arrays, expr):
+def evaluate_constants_theano(const_arrays, expr):
     # compute the partial graph of new inputs
     const_arrays = [to_theano(x, constant=True) for x in const_arrays]
-    new_ops, new_contraction_list = expr(*const_arrays, backend='theano', parse_constants=True)
+    new_ops, new_contraction_list = expr(*const_arrays, backend='theano', evaluate_constants=True)
 
     # evaluate the new inputs and convert to theano shared tensors
     new_ops = [None if x is None else to_theano(x.eval(), constant=True) for x in new_ops]
@@ -178,12 +178,12 @@ def build_cupy_expression(_, expr):  # pragma: no cover
     return cupy_contract
 
 
-def parse_constants_cupy(const_arrays, expr):  # pragma: no cover
+def evaluate_constants_cupy(const_arrays, expr):  # pragma: no cover
     """Convert constant arguments to cupy arrays, and perform any possible
     constant contractions.
     """
     const_arrays = [to_cupy(x) for x in const_arrays]
-    return expr(*const_arrays, backend='cupy', parse_constants=True)
+    return expr(*const_arrays, backend='cupy', evaluate_constants=True)
 
 
 # Dispatch to correct expression backend
@@ -196,9 +196,9 @@ CONVERT_BACKENDS = {
 
 
 PARSE_CONSTS_BACKENDS = {
-    'tensorflow': parse_constants_tensorflow,
-    'theano': parse_constants_theano,
-    'cupy': parse_constants_cupy,
+    'tensorflow': evaluate_constants_tensorflow,
+    'theano': evaluate_constants_theano,
+    'cupy': evaluate_constants_cupy,
 }
 
 
@@ -209,7 +209,7 @@ def build_expression(backend, arrays, expr):
     return CONVERT_BACKENDS[backend](arrays, expr)
 
 
-def parse_constants(backend, arrays, expr):
+def evaluate_constants(backend, arrays, expr):
     """Convert constant arrays to the correct backend, and perform as much of
     the contraction of ``expr`` with these as possible.
     """

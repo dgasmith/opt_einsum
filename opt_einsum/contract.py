@@ -424,7 +424,7 @@ def contract(*operands, **kwargs):
     return _core_contract(operands, contraction_list, backend=backend, **einsum_kwargs)
 
 
-def _core_contract(operands, contraction_list, backend='numpy', parse_constants=False, **einsum_kwargs):
+def _core_contract(operands, contraction_list, backend='numpy', evaluate_constants=False, **einsum_kwargs):
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
@@ -441,7 +441,7 @@ def _core_contract(operands, contraction_list, backend='numpy', parse_constants=
         inds, idx_rm, einsum_str, remaining, blas_flag = contraction
 
         # check if we are performing the pre-pass of an expression with constants
-        if parse_constants:
+        if evaluate_constants:
             # if so, keep contracting until we find any non-constant operators, then break out
             operands_copy = list(operands)
             if any(operands_copy.pop(x) is None for x in inds):
@@ -542,13 +542,13 @@ class ContractExpression:
         self._full_contraction_list = contraction_list
 
         self._constants_dict = constants_dict
-        self._parsed_constants = {}
+        self._evaluated_constants = {}
         self._backend_expressions = {}
 
-    def parse_constants(self, backend='numpy'):
+    def evaluate_constants(self, backend='numpy'):
         """Convert any constant operands to the correct backend form, and
         perform as many contractions as possible to create a new list of
-        operands, stored in ``self._parsed_constants[backend]``. This also
+        operands, stored in ``self._evaluated_constants[backend]``. This also
         makes sure ``self.contraction_list`` only contains the remaining,
         non-const operations.
         """
@@ -556,20 +556,20 @@ class ContractExpression:
         tmp_const_ops = [self._constants_dict.get(i, None) for i in range(self._full_num_args)]
 
         # get the new list of operands with constant operations performed, and remaining contractions
-        new_ops, new_contraction_list = self(*tmp_const_ops, backend=backend, parse_constants=True)
-        self._parsed_constants[backend] = new_ops
+        new_ops, new_contraction_list = self(*tmp_const_ops, backend=backend, evaluate_constants=True)
+        self._evaluated_constants[backend] = new_ops
         self.contraction_list = new_contraction_list
 
-    def _get_parsed_constants(self, backend):
+    def _get_evaluated_constants(self, backend):
         """Retrieve or generate the cached list of constant operators (mixed
         in with None representing non-consts) and the remaining contraction
         list.
         """
         try:
-            return self._parsed_constants[backend]
+            return self._evaluated_constants[backend]
         except KeyError:
-            self.parse_constants(backend)
-            return self._parsed_constants[backend]
+            self.evaluate_constants(backend)
+            return self._evaluated_constants[backend]
 
     def _get_backend_expression(self, arrays, backend):
         try:
@@ -579,26 +579,26 @@ class ContractExpression:
             self._backend_expressions[backend] = fn
             return fn
 
-    def _contract(self, arrays, out=None, backend='numpy', parse_constants=False):
+    def _contract(self, arrays, out=None, backend='numpy', evaluate_constants=False):
         """The normal, core contraction.
         """
-        contraction_list = self._full_contraction_list if parse_constants else self.contraction_list
+        contraction_list = self._full_contraction_list if evaluate_constants else self.contraction_list
 
         return _core_contract(list(arrays), contraction_list, out=out, backend=backend,
-                              parse_constants=parse_constants, **self.einsum_kwargs)
+                              evaluate_constants=evaluate_constants, **self.einsum_kwargs)
 
-    def _contract_with_conversion(self, arrays, out, backend, parse_constants=False):
+    def _contract_with_conversion(self, arrays, out, backend, evaluate_constants=False):
         """Special contraction, i.e. contraction with a different backend
         but converting to and from that backend. Retrieves or generates a
         cached expression using ``arrays`` as templates, then calls it
         with ``arrays``.
 
-        If ``parse_constants=True``, perform a partial contraction that
+        If ``evaluate_constants=True``, perform a partial contraction that
         prepares the constant tensors and operations with the right backend.
         """
         # convert consts to correct type & find reduced contraction list
-        if parse_constants:
-            return backends.parse_constants(backend, arrays, self)
+        if evaluate_constants:
+            return backends.evaluate_constants(backend, arrays, self)
 
         result = self._get_backend_expression(arrays, backend)(*arrays)
 
@@ -624,21 +624,21 @@ class ContractExpression:
         """
         out = kwargs.pop('out', None)
         backend = kwargs.pop('backend', 'numpy')
-        parse_constants = kwargs.pop('parse_constants', False)
+        evaluate_constants = kwargs.pop('evaluate_constants', False)
 
         if kwargs:
             raise ValueError("The only valid keyword arguments to a `ContractExpression` "
                              "call are `out=` or `backend=`. Got: %s." % kwargs)
 
-        correct_num_args = self._full_num_args if parse_constants else self.num_args
+        correct_num_args = self._full_num_args if evaluate_constants else self.num_args
 
         if len(arrays) != correct_num_args:
             raise ValueError("This `ContractExpression` takes exactly %s array arguments "
                              "but received %s." % (self.num_args, len(arrays)))
 
-        if self._constants_dict and not parse_constants:
+        if self._constants_dict and not evaluate_constants:
             # fill in the missing non-constant terms with newly supplied arrays
-            ops_var, ops_const = iter(arrays), self._get_parsed_constants(backend)
+            ops_var, ops_const = iter(arrays), self._get_evaluated_constants(backend)
             ops = [next(ops_var) if op is None else op for op in ops_const]
         else:
             ops = arrays
@@ -647,9 +647,9 @@ class ContractExpression:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
             if backend in backends.CONVERT_BACKENDS and any(isinstance(x, np.ndarray) for x in arrays):
-                return self._contract_with_conversion(ops, out, backend, parse_constants=parse_constants)
+                return self._contract_with_conversion(ops, out, backend, evaluate_constants=evaluate_constants)
 
-            return self._contract(ops, out, backend, parse_constants=parse_constants)
+            return self._contract(ops, out, backend, evaluate_constants=evaluate_constants)
 
         except ValueError as err:
             original_msg = str(err.args) if err.args else ""
@@ -739,7 +739,7 @@ def contract_expression(subscripts, *shapes, **kwargs):
 
         >>> expr = contract_expression("ab,bc->ac", a, (4, 5), constants=[0])
         >>> expr
-        <ContractExpression('bc,[ab]->ac', constants=[0])>
+        <ContractExpression('[ab],bc->ac', constants=[0])>
 
         >>> c = expr(b)
         >>> np.allclose(c, a @ b)
