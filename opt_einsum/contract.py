@@ -128,7 +128,7 @@ def contract_path(*operands, **kwargs):
 
     # Get length of each unique dimension and ensure all dimensions are correct
     dimension_dict = {}
-    broadcast_indices = [[] for x in range(len(input_list))]
+    bcast = set()
     for tnum, term in enumerate(input_list):
         sh = operands[tnum].shape
 
@@ -138,27 +138,24 @@ def contract_path(*operands, **kwargs):
         for cnum, char in enumerate(term):
             dim = sh[cnum]
 
-            # Build out broadcast indices
-            if dim == 1:
-                broadcast_indices[tnum].append(char)
-
             if char in dimension_dict.keys():
                 # For broadcasting cases we always want the largest dim size
                 if dimension_dict[char] == 1:
                     dimension_dict[char] = dim
-                elif dim not in (1, dimension_dict[char]):
+                    # store broadcast indices in the (1, d) or (d, 1) cases
+                    if dim != 1:
+                        bcast.add(char)
+                elif dim == 1:
+                    if dimension_dict[char] != 1:
+                        bcast.add(char)
+                elif dim != dimension_dict[char]:
                     raise ValueError("Size of label '%s' for operand %d (%d) "
                                      "does not match previous terms (%d)." % (char, tnum, dimension_dict[char], dim))
             else:
                 dimension_dict[char] = dim
 
-    # Convert broadcast inds to sets
-    broadcast_indices = [set(x) for x in broadcast_indices]
-
     # Compute size of each input array plus the output array
-    size_list = []
-    for term in input_list + [output_subscript]:
-        size_list.append(helpers.compute_size_by_dict(term, dimension_dict))
+    size_list = [helpers.compute_size_by_dict(term, dimension_dict) for term in input_list + [output_subscript]]
     out_size = max(size_list)
 
     if memory_limit is None:
@@ -217,16 +214,8 @@ def contract_path(*operands, **kwargs):
         scale_list.append(len(idx_contract))
         size_list.append(helpers.compute_size_by_dict(out_inds, dimension_dict))
 
-        bcast = set()
-        tmp_inputs = []
-        for x in contract_inds:
-            tmp_inputs.append(input_list.pop(x))
-            bcast |= broadcast_indices.pop(x)
-
-        new_bcast_inds = bcast - idx_removed
-
-        # If were broadcasting, nix blas
-        if use_blas and not len(idx_removed & bcast):
+        tmp_inputs = [input_list.pop(x) for x in contract_inds]
+        if use_blas and not (bcast & idx_removed):
             do_blas = blas.can_blas(tmp_inputs, out_inds, idx_removed)
         else:
             do_blas = False
@@ -239,7 +228,7 @@ def contract_path(*operands, **kwargs):
             idx_result = "".join([x[1] for x in sorted(sort_result)])
 
         input_list.append(idx_result)
-        broadcast_indices.append(new_bcast_inds)
+
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
 
         contraction = (contract_inds, idx_removed, einsum_str, input_list[:], do_blas)
@@ -674,13 +663,11 @@ class ContractExpression:
         return s
 
 
-class _ShapeOnly(np.ndarray):
+def shape_only(shape):
     """Dummy ``numpy.ndarray`` which has a shape only - for generating
     contract expressions.
     """
-
-    def __init__(self, shape):
-        self.shape = shape
+    return np.broadcast_to(np.nan, shape)
 
 
 def contract_expression(subscripts, *shapes, **kwargs):
@@ -760,6 +747,6 @@ def contract_expression(subscripts, *shapes, **kwargs):
     kwargs['_constants_dict'] = constants_dict
 
     # apart from constant arguments, make dummy arrays
-    dummy_arrays = [s if i in constants else _ShapeOnly(s) for i, s in enumerate(shapes)]
+    dummy_arrays = [s if i in constants else shape_only(s) for i, s in enumerate(shapes)]
 
     return contract(subscripts, *dummy_arrays, **kwargs)

@@ -76,11 +76,7 @@ def find_output_str(subscripts):
     """Find the output string for the inputs ``susbcripts``.
     """
     tmp_subscripts = subscripts.replace(",", "")
-    output_subscript = ""
-    for s in sorted(set(tmp_subscripts)):
-        if tmp_subscripts.count(s) == 1:
-            output_subscript += s
-    return output_subscript
+    return "".join(s for s in sorted(set(tmp_subscripts)) if tmp_subscripts.count(s) == 1)
 
 
 def possibly_convert_to_numpy(x):
@@ -111,10 +107,10 @@ def parse_einsum_input(operands):
 
     >>> a = np.random.rand(4, 4)
     >>> b = np.random.rand(4, 4, 4)
-    >>> _parse_einsum_input(('...a,...a->...', a, b))
+    >>> parse_einsum_input(('...a,...a->...', a, b))
     ('za,xza', 'xz', [a, b])
 
-    >>> _parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
+    >>> parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
     ('za,xza', 'xz', [a, b])
     """
 
@@ -144,7 +140,7 @@ def parse_einsum_input(operands):
                 elif isinstance(s, int):
                     subscripts += get_symbol(s)
                 else:
-                    raise TypeError("For this input type lists must contain " "either int or Ellipsis")
+                    raise TypeError("For this input type lists must contain either int or Ellipsis")
             if num != last:
                 subscripts += ","
 
@@ -156,7 +152,8 @@ def parse_einsum_input(operands):
                 elif isinstance(s, int):
                     subscripts += get_symbol(s)
                 else:
-                    raise TypeError("For this input type lists must contain " "either int or Ellipsis")
+                    raise TypeError("For this input type lists must contain either int or Ellipsis")
+
     # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):
         invalid = (subscripts.count("-") > 1) or (subscripts.count(">") > 1)
