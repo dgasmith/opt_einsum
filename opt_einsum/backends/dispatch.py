@@ -16,6 +16,7 @@ _aliases = {
     'dask': 'dask.array',
     'theano': 'theano.tensor',
     'torch': 'opt_einsum.backends.torch',
+    'pytorch': 'opt_einsum.backends.torch',
 }
 
 

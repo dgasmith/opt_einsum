@@ -28,6 +28,8 @@ The ``ContractExpression`` can be called with 3 arrays that match the original s
 Note that few checks are performed when calling the expression, and while it will work for a set of arrays with the same ranks as the original shapes but differing sizes, it might no longer be optimal.
 
 
+.. _constants-section:
+
 ====================
 Specifying Constants
 ====================
