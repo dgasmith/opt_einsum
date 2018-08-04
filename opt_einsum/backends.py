@@ -62,70 +62,128 @@ def has_einsum(backend):
 
 # Tensorflow
 
-def convert_arrays_to_tensorflow(arrays):
-    """Convert numpy arrays to ``tensorflow.placeholder`` instances.
+def to_tensorflow(array, constant=False):
+    """Convert a numpy array to a ``tensorflow.placeholder`` instance.
     """
     import tensorflow
-    return [tensorflow.placeholder(x.dtype, x.shape) for x in arrays]
+
+    if isinstance(array, numpy.ndarray):
+        if constant:
+            return tensorflow.constant(array, array.dtype, array.shape)
+
+        return tensorflow.placeholder(array.dtype, array.shape)
+
+    return array
 
 
 def build_tensorflow_expression(arrays, expr):
     """Build a tensorflow function based on ``arrays`` and ``expr``.
     """
     import tensorflow
-    placeholders = convert_arrays_to_tensorflow(arrays)
-    graph = expr._normal_contract(placeholders, backend='tensorflow')
+
+    placeholders = [to_tensorflow(array) for array in arrays]
+    graph = expr._contract(placeholders, backend='tensorflow')
 
     def tensorflow_contract(*arrays):
         session = tensorflow.get_default_session()
-        return session.run(graph, feed_dict=dict(zip(placeholders, arrays)))
+        # only want to feed placeholders - constant tensors already have values
+        feed_dict = {p: a for p, a in zip(placeholders, arrays) if p.op.type == 'Placeholder'}
+        return session.run(graph, feed_dict=feed_dict)
 
     return tensorflow_contract
 
 
+def evaluate_constants_tensorflow(const_arrays, expr):
+    """Convert constant arguments to tensorflow constants, and perform any
+    possible constant contractions. Requires evaluating a tensorflow graph.
+    """
+    import tensorflow
+
+    # compute the partial graph of new inputs
+    const_arrays = [to_tensorflow(x, constant=True) for x in const_arrays]
+    new_ops, new_contraction_list = expr(*const_arrays, backend='tensorflow', evaluate_constants=True)
+
+    # evaluate the new inputs and convert to tensorflow constants
+    session = tensorflow.get_default_session()
+    new_ops = [None if x is None else to_tensorflow(session.run(x), constant=True) for x in new_ops]
+
+    return new_ops, new_contraction_list
+
+
 # Theano
 
-def convert_arrays_to_theano(arrays):
-    """Convert numpy arrays to ``theano.tensor.TensorType`` instances.
+def to_theano(array, constant=False):
+    """Convert a numpy array to ``theano.tensor.TensorType`` instance.
     """
     import theano
-    return [theano.tensor.TensorType(dtype=x.dtype, broadcastable=[False] * len(x.shape))() for x in arrays]
+
+    if isinstance(array, numpy.ndarray):
+        if constant:
+            return theano.tensor.constant(array)
+
+        return theano.tensor.TensorType(dtype=array.dtype, broadcastable=[False] * len(array.shape))()
+
+    return array
 
 
 def build_theano_expression(arrays, expr):
     """Build a theano function based on ``arrays`` and ``expr``.
     """
     import theano
-    in_vars = convert_arrays_to_theano(arrays)
-    out_var = expr._normal_contract(in_vars, backend='theano')
-    graph = theano.function(in_vars, out_var)
+
+    in_vars = [to_theano(array) for array in arrays]
+    out_var = expr._contract(in_vars, backend='theano')
+
+    # don't supply constants to graph
+    graph_ins = [x for x in in_vars if not isinstance(x, theano.tensor.TensorConstant)]
+    graph = theano.function(graph_ins, out_var)
 
     def theano_contract(*arrays):
-        return graph(*arrays)
+        return graph(*[x for x in arrays if not isinstance(x, theano.tensor.TensorConstant)])
 
     return theano_contract
 
 
+def evaluate_constants_theano(const_arrays, expr):
+    # compute the partial graph of new inputs
+    const_arrays = [to_theano(x, constant=True) for x in const_arrays]
+    new_ops, new_contraction_list = expr(*const_arrays, backend='theano', evaluate_constants=True)
+
+    # evaluate the new inputs and convert to theano shared tensors
+    new_ops = [None if x is None else to_theano(x.eval(), constant=True) for x in new_ops]
+
+    return new_ops, new_contraction_list
+
+
 # Cupy
 
-def convert_arrays_to_cupy(arrays):  # pragma: no cover
-    """Convert numpy arrays to ``cupy.ndarray`` instances.
-    """
+def to_cupy(array):  # pragma: no cover
     import cupy
-    return [cupy.asarray(x) for x in arrays]
+
+    if isinstance(array, numpy.ndarray):
+        return cupy.asarray(array)
+
+    return array
 
 
 def build_cupy_expression(_, expr):  # pragma: no cover
     """Build a cupy function based on ``arrays`` and ``expr``.
     """
-    import cupy
 
     def cupy_contract(*arrays):
-        cupy_arrays = convert_arrays_to_cupy(arrays)
-        cupy_out = expr._normal_contract(cupy_arrays, backend='cupy')
-        return cupy.asnumpy(cupy_out)
+        cupy_arrays = [to_cupy(x) for x in arrays]
+        cupy_out = expr._contract(cupy_arrays, backend='cupy')
+        return cupy_out.get()
 
     return cupy_contract
+
+
+def evaluate_constants_cupy(const_arrays, expr):  # pragma: no cover
+    """Convert constant arguments to cupy arrays, and perform any possible
+    constant contractions.
+    """
+    const_arrays = [to_cupy(x) for x in const_arrays]
+    return expr(*const_arrays, backend='cupy', evaluate_constants=True)
 
 
 # Dispatch to correct expression backend
@@ -137,8 +195,22 @@ CONVERT_BACKENDS = {
 }
 
 
+PARSE_CONSTS_BACKENDS = {
+    'tensorflow': evaluate_constants_tensorflow,
+    'theano': evaluate_constants_theano,
+    'cupy': evaluate_constants_cupy,
+}
+
+
 def build_expression(backend, arrays, expr):
     """Build an expression, based on ``expr`` and initial arrays ``arrays``,
     that evaluates using backend ``backend``.
     """
     return CONVERT_BACKENDS[backend](arrays, expr)
+
+
+def evaluate_constants(backend, arrays, expr):
+    """Convert constant arrays to the correct backend, and perform as much of
+    the contraction of ``expr`` with these as possible.
+    """
+    return PARSE_CONSTS_BACKENDS[backend](arrays, expr)
