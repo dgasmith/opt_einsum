@@ -440,12 +440,10 @@ def _core_contract(operands, contraction_list, backend='numpy', evaluate_constan
     for num, contraction in enumerate(contraction_list):
         inds, idx_rm, einsum_str, remaining, blas_flag = contraction
 
-        # check if we are performing the pre-pass of an expression with constants
-        if evaluate_constants:
-            # if so, keep contracting until we find any non-constant operators, then break out
-            operands_copy = list(operands)
-            if any(operands_copy.pop(x) is None for x in inds):
-                return operands, contraction_list[num:]
+        # check if we are performing the pre-pass of an expression with constants,
+        #     if so, break out upon finding first non-constant (None) operand
+        if evaluate_constants and any(operands[x] is None for x in inds):
+            return operands, contraction_list[num:]
 
         tmp_operands = [operands.pop(x) for x in inds]
 
