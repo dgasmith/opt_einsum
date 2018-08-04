@@ -96,9 +96,9 @@ two contractions to compute the output.
 
 .. note::
 
-    The constant part of an expression is lazily generated upon first call,
-    (specific a particular backend) though it can be explicitly built with call
-    to :meth:`~opt_einsum.contract.ContractExpression.evaluate_constants`.
+    The constant part of an expression is lazily generated upon first call
+    (specific to each backend), though it can also be explicitly built by
+    calling :meth:`~opt_einsum.contract.ContractExpression.evaluate_constants`.
 
 We can confirm the advantage of using expressions and constants by timing the
 following scenarios, first setting
