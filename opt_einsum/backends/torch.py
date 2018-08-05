@@ -1,3 +1,7 @@
+"""
+Required functions for optimized contractions of numpy arrays using pytorch.
+"""
+
 from __future__ import absolute_import
 import numpy as np
 
@@ -34,6 +38,7 @@ def einsum(equation, *operands):
 def tensordot(x, y, axes=2):
     """Simple translation of tensordot syntax to einsum.
     """
+    # XXX: tensordot should be directly implemented in torch soon
     torch, _ = _get_torch_and_device()
 
     xnd = x.ndimension()

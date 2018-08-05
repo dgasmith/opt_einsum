@@ -1,5 +1,7 @@
 """
-Performing array conversions and operations with various backends.
+Handles dispatching array operations to the correct backend library, as well
+as converting arrays to backend formats and then potentially storing them as
+constants.
 """
 
 import importlib
@@ -16,7 +18,6 @@ _aliases = {
     'dask': 'dask.array',
     'theano': 'theano.tensor',
     'torch': 'opt_einsum.backends.torch',
-    'pytorch': 'opt_einsum.backends.torch',
 }
 
 

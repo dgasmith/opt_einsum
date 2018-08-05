@@ -1,3 +1,7 @@
+"""
+Required functions for optimized contractions of numpy arrays using tensorflow.
+"""
+
 from __future__ import absolute_import
 import numpy as np
 
