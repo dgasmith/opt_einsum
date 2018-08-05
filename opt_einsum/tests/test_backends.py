@@ -20,31 +20,6 @@ try:
 except ImportError:
     found_theano = False
 
-try:
-    import cupy
-    found_cupy = True
-except ImportError:
-    found_cupy = False
-
-try:
-    import dask.array as da
-    found_dask = True
-except ImportError:
-    found_dask = False
-
-try:
-    import sparse
-    found_sparse = True
-except ImportError:
-    found_sparse = False
-
-try:
-    import torch
-    found_torch = True
-except ImportError:
-    found_torch = False
-
-
 tests = [
     'ab,bc->ca',
     'abc,bcd,dea',
@@ -151,9 +126,10 @@ def test_theano_with_constants():
     assert isinstance(res_got3, theano.tensor.TensorVariable)
 
 
-@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_cupy(string):  # pragma: no cover
+    cupy = pytest.importorskip("cupy")
+
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -170,8 +146,9 @@ def test_cupy(string):  # pragma: no cover
     assert np.allclose(ein, cupy.asnumpy(cupy_opt))
 
 
-@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
-def test_cupy_with_constants():
+def test_cupy_with_constants():  # pragma: no cover
+    cupy = pytest.importorskip("cupy")
+
     eq = 'ij,jk,kl->li'
     shapes = (2, 3), (3, 4), (4, 5)
     constants = {0, 2}
@@ -197,9 +174,10 @@ def test_cupy_with_constants():
     assert np.allclose(res_exp, res_got3.get())
 
 
-@pytest.mark.skipif(not found_dask, reason="Dask not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_dask(string):
+    da = pytest.importorskip("dask.array")
+
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -220,9 +198,10 @@ def test_dask(string):
     assert np.allclose(ein, np.array(da_opt))
 
 
-@pytest.mark.skipif(not found_sparse, reason="Sparse not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_sparse(string):
+    sparse = pytest.importorskip("sparse")
+
     views = helpers.build_views(string)
 
     # sparsify views so they don't become dense during contraction
@@ -250,9 +229,10 @@ def test_sparse(string):
     assert np.allclose(ein, sparse_opt.todense())
 
 
-@pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_torch(string):  # pragma: no cover
+def test_torch(string):
+    torch = pytest.importorskip("torch")
+
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -269,8 +249,9 @@ def test_torch(string):  # pragma: no cover
     assert np.allclose(ein, torch_opt.cpu().numpy())
 
 
-@pytest.mark.skipif(not found_torch, reason="torch not installed.")
 def test_torch_with_constants():
+    torch = pytest.importorskip("torch")
+
     eq = 'ij,jk,kl->li'
     shapes = (2, 3), (3, 4), (4, 5)
     constants = {0, 2}
