@@ -4,6 +4,7 @@ channels:
 dependencies:
     # Base depends
   - numpy
+  - nomkl
 
     # Backends
   - tensorflow
