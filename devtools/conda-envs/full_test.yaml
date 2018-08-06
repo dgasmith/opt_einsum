@@ -10,6 +10,7 @@ dependencies:
   - tensorflow
   - dask
   - sparse
+  - theano
 
     # Testing
   - pytest
