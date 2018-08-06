@@ -11,31 +11,33 @@ matrix:
     - python: 3.4
     - python: 3.5
     - python: 3.6
+    - python: 3.7
+
+  allow_failures:
+    - python: 3.7
 
 before_install:
+  # Additional info about the build
   - uname -a
   - free -m
   - df -h
   - ulimit -a
   - python -V
-  - pip install --upgrade pip setuptools
-  - pip install pytest pytest-cov codecov
-  - pip install numpy
-  - pip install codecov
-  - pip install tensorflow
-  - pip install theano
-  - pip install dask[array]
-  - pip install sparse
-  - pip install -e .
-  - if [ `python -c "import numpy; print(numpy.version.version)"` == "1.14.0" ]; then
-        pip install numpy --upgrade;
-    fi
+
+  # Setup python environment
+  - source devtools/travis-ci/before_install.sh
+  - python -V
+
+install:
+    # Install from environment
+  - conda env create -n test python=$PYTHON_VER -f devtools/conda-envs/full_test.yaml
+  - source activate test
+
+    # Build and install package
+  - python setup.py develop --no-deps
 
 script:
-  - py.test -v --cov=./
-
-# after_success:
-#   - ./tools/travis-upload-wheel.sh
+  - py.test -v --cov=opt_einsum opt_einsum/
 
 notifications:
     email: false
