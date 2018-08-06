@@ -1,6 +1,7 @@
 name: test
 channels:
   - conda-forge
+  - pytorch
 dependencies:
     # Base depends
   - numpy
@@ -11,6 +12,7 @@ dependencies:
   - dask
   - sparse
   - theano
+  - pytorch-cpu
 
     # Testing
   - pytest
