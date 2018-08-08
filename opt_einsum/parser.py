@@ -79,6 +79,16 @@ def find_output_str(subscripts):
     return "".join(s for s in sorted(set(tmp_subscripts)) if tmp_subscripts.count(s) == 1)
 
 
+def find_output_shape(inputs, shapes, output):
+    """Find the output shape for given inputs, shapes and output string, taking
+    into account broadcasting.
+    """
+    return tuple(
+        max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0)
+        for c in output
+    )
+
+
 def possibly_convert_to_numpy(x):
     """Convert things without a 'shape' to ndarrays, but leave everything else.
     """

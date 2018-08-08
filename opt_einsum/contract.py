@@ -123,14 +123,14 @@ def contract_path(*operands, **kwargs):
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
     input_sets = [set(x) for x in input_list]
+    input_shps = [x.shape for x in operands]
     output_set = set(output_subscript)
     indices = set(input_subscripts.replace(',', ''))
 
     # Get length of each unique dimension and ensure all dimensions are correct
     dimension_dict = {}
-    bcast = set()
     for tnum, term in enumerate(input_list):
-        sh = operands[tnum].shape
+        sh = input_shps[tnum]
 
         if len(sh) != len(term):
             raise ValueError("Einstein sum subscript %s does not contain the "
@@ -138,17 +138,11 @@ def contract_path(*operands, **kwargs):
         for cnum, char in enumerate(term):
             dim = sh[cnum]
 
-            if char in dimension_dict.keys():
+            if char in dimension_dict:
                 # For broadcasting cases we always want the largest dim size
                 if dimension_dict[char] == 1:
                     dimension_dict[char] = dim
-                    # store broadcast indices in the (1, d) or (d, 1) cases
-                    if dim != 1:
-                        bcast.add(char)
-                elif dim == 1:
-                    if dimension_dict[char] != 1:
-                        bcast.add(char)
-                elif dim != dimension_dict[char]:
+                elif dim not in (1, dimension_dict[char]):
                     raise ValueError("Size of label '%s' for operand %d (%d) "
                                      "does not match previous terms (%d)." % (char, tnum, dimension_dict[char], dim))
             else:
@@ -215,8 +209,10 @@ def contract_path(*operands, **kwargs):
         size_list.append(helpers.compute_size_by_dict(out_inds, dimension_dict))
 
         tmp_inputs = [input_list.pop(x) for x in contract_inds]
-        if use_blas and not (bcast & idx_removed):
-            do_blas = blas.can_blas(tmp_inputs, out_inds, idx_removed)
+        tmp_shapes = [input_shps.pop(x) for x in contract_inds]
+
+        if use_blas:
+            do_blas = blas.can_blas(tmp_inputs, out_inds, idx_removed, tmp_shapes)
         else:
             do_blas = False
 
@@ -227,7 +223,10 @@ def contract_path(*operands, **kwargs):
             sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
             idx_result = "".join([x[1] for x in sorted(sort_result)])
 
+        shp_result = parser.find_output_shape(tmp_inputs, tmp_shapes, idx_result)
+
         input_list.append(idx_result)
+        input_shps.append(shp_result)
 
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
 
