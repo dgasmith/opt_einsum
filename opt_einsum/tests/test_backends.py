@@ -20,6 +20,12 @@ try:
 except ImportError:
     found_theano = False
 
+try:
+    import torch
+    found_torch = True
+except ImportError:
+    found_torch = False
+
 tests = [
     'ab,bc->ca',
     'abc,bcd,dea',
@@ -229,9 +235,9 @@ def test_sparse(string):
     assert np.allclose(ein, sparse_opt.todense())
 
 
+@pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_torch(string):
-    torch = pytest.importorskip("torch")
 
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
@@ -249,8 +255,8 @@ def test_torch(string):
     assert np.allclose(ein, torch_opt.cpu().numpy())
 
 
+@pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 def test_torch_with_constants():
-    torch = pytest.importorskip("torch")
 
     eq = 'ij,jk,kl->li'
     shapes = (2, 3), (3, 4), (4, 5)
