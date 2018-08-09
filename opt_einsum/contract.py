@@ -220,8 +220,9 @@ def contract_path(*operands, **kwargs):
         if (cnum - len(path)) == -1:
             idx_result = output_subscript
         else:
-            sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
-            idx_result = "".join([x[1] for x in sorted(sort_result)])
+            # use tensordot order to minimize transpositions
+            all_input_inds = "".join(tmp_inputs)
+            idx_result = "".join(sorted(out_inds, key=all_input_inds.find))
 
         shp_result = parser.find_output_shape(tmp_inputs, tmp_shapes, idx_result)
 
