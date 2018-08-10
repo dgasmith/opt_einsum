@@ -123,14 +123,14 @@ def contract_path(*operands, **kwargs):
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
     input_sets = [set(x) for x in input_list]
+    input_shps = [x.shape for x in operands]
     output_set = set(output_subscript)
     indices = set(input_subscripts.replace(',', ''))
 
     # Get length of each unique dimension and ensure all dimensions are correct
     dimension_dict = {}
-    broadcast_indices = [[] for x in range(len(input_list))]
     for tnum, term in enumerate(input_list):
-        sh = operands[tnum].shape
+        sh = input_shps[tnum]
 
         if len(sh) != len(term):
             raise ValueError("Einstein sum subscript %s does not contain the "
@@ -138,11 +138,7 @@ def contract_path(*operands, **kwargs):
         for cnum, char in enumerate(term):
             dim = sh[cnum]
 
-            # Build out broadcast indices
-            if dim == 1:
-                broadcast_indices[tnum].append(char)
-
-            if char in dimension_dict.keys():
+            if char in dimension_dict:
                 # For broadcasting cases we always want the largest dim size
                 if dimension_dict[char] == 1:
                     dimension_dict[char] = dim
@@ -152,13 +148,8 @@ def contract_path(*operands, **kwargs):
             else:
                 dimension_dict[char] = dim
 
-    # Convert broadcast inds to sets
-    broadcast_indices = [set(x) for x in broadcast_indices]
-
     # Compute size of each input array plus the output array
-    size_list = []
-    for term in input_list + [output_subscript]:
-        size_list.append(helpers.compute_size_by_dict(term, dimension_dict))
+    size_list = [helpers.compute_size_by_dict(term, dimension_dict) for term in input_list + [output_subscript]]
     out_size = max(size_list)
 
     if memory_limit is None:
@@ -217,17 +208,11 @@ def contract_path(*operands, **kwargs):
         scale_list.append(len(idx_contract))
         size_list.append(helpers.compute_size_by_dict(out_inds, dimension_dict))
 
-        bcast = set()
-        tmp_inputs = []
-        for x in contract_inds:
-            tmp_inputs.append(input_list.pop(x))
-            bcast |= broadcast_indices.pop(x)
+        tmp_inputs = [input_list.pop(x) for x in contract_inds]
+        tmp_shapes = [input_shps.pop(x) for x in contract_inds]
 
-        new_bcast_inds = bcast - idx_removed
-
-        # If were broadcasting, nix blas
-        if use_blas and not len(idx_removed & bcast):
-            do_blas = blas.can_blas(tmp_inputs, out_inds, idx_removed)
+        if use_blas:
+            do_blas = blas.can_blas(tmp_inputs, out_inds, idx_removed, tmp_shapes)
         else:
             do_blas = False
 
@@ -235,11 +220,15 @@ def contract_path(*operands, **kwargs):
         if (cnum - len(path)) == -1:
             idx_result = output_subscript
         else:
-            sort_result = [(dimension_dict[ind], ind) for ind in out_inds]
-            idx_result = "".join([x[1] for x in sorted(sort_result)])
+            # use tensordot order to minimize transpositions
+            all_input_inds = "".join(tmp_inputs)
+            idx_result = "".join(sorted(out_inds, key=all_input_inds.find))
+
+        shp_result = parser.find_output_shape(tmp_inputs, tmp_shapes, idx_result)
 
         input_list.append(idx_result)
-        broadcast_indices.append(new_bcast_inds)
+        input_shps.append(shp_result)
+
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
 
         contraction = (contract_inds, idx_removed, einsum_str, input_list[:], do_blas)
@@ -301,7 +290,7 @@ def _transpose(x, axes, backend='numpy'):
     """
     try:
         return x.transpose(axes)
-    except AttributeError:
+    except (AttributeError, TypeError):
         # some libraries don't implement method version
         fn = backends.get_func('transpose', backend)
         return fn(x, axes)
@@ -674,13 +663,11 @@ class ContractExpression:
         return s
 
 
-class _ShapeOnly(np.ndarray):
+def shape_only(shape):
     """Dummy ``numpy.ndarray`` which has a shape only - for generating
     contract expressions.
     """
-
-    def __init__(self, shape):
-        self.shape = shape
+    return np.broadcast_to(np.nan, shape)
 
 
 def contract_expression(subscripts, *shapes, **kwargs):
@@ -760,6 +747,6 @@ def contract_expression(subscripts, *shapes, **kwargs):
     kwargs['_constants_dict'] = constants_dict
 
     # apart from constant arguments, make dummy arrays
-    dummy_arrays = [s if i in constants else _ShapeOnly(s) for i, s in enumerate(shapes)]
+    dummy_arrays = [s if i in constants else shape_only(s) for i, s in enumerate(shapes)]
 
     return contract(subscripts, *dummy_arrays, **kwargs)

@@ -7,7 +7,7 @@ import numpy as np
 from . import helpers
 
 
-def can_blas(inputs, result, idx_removed):
+def can_blas(inputs, result, idx_removed, shapes=None):
     """
     Checks if we can use a BLAS call.
 
@@ -19,7 +19,8 @@ def can_blas(inputs, result, idx_removed):
         Resulting summation.
     idx_removed : set
         Indices that are removed in the summation
-
+    shapes : sequence of tuple[int], optional
+        If given, check also that none of the indices are broadcast dimensions.
 
     Returns
     -------
@@ -35,14 +36,18 @@ def can_blas(inputs, result, idx_removed):
 
     Examples
     --------
-    >>> _can_blas(['ij', 'jk'], 'ik', set('j'))
+    >>> can_blas(['ij', 'jk'], 'ik', set('j'))
     'GEMM'
 
-    >>> _can_blas(['ijj', 'jk'], 'ik', set('j'))
+    >>> can_blas(['ijj', 'jk'], 'ik', set('j'))
     False
 
-    >>> _can_blas(['ab', 'cd'], 'abcd', set())
+    >>> can_blas(['ab', 'cd'], 'abcd', set())
     'OUTER/EINSUM'
+
+    >>> # looks like GEMM but actually 'j' is broadcast:
+    >>> can_blas(['ij', 'jk'], 'ik', set('j'), shapes=[(4, 1), (5, 6)])
+    False
     """
     # Can only do two
     if len(inputs) != 2:
@@ -61,6 +66,13 @@ def can_blas(inputs, result, idx_removed):
         #     "ab,ca->ca" (take diagonal of 'a')
         if nl + nr - 1 == int(c in result):
             return False
+
+    # check for broadcast indices e.g:
+    #     "ij,jk->ik" (but one of the 'j' dimensions is broadcast up)
+    if shapes is not None:
+        for c in idx_removed:
+            if shapes[0][input_left.find(c)] != shapes[1][input_right.find(c)]:
+                return False
 
     # Prefer einsum if not removing indices
     #     (N.B. tensordot outer faster for large arrays?)

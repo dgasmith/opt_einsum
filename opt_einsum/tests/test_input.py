@@ -220,6 +220,7 @@ def test_singleton_dimension_broadcast():
 
     p = np.ones((1, 5))
     q = np.ones((5, 5))
+
     for optimize in (True, False):
         res1 = contract("...ij,...jk->...ik", p, p, optimize=optimize),
         res2 = contract("...ij,...jk->...ik", p, q, optimize=optimize)

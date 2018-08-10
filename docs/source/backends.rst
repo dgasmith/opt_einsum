@@ -2,7 +2,8 @@
 Backends & GPU Support
 ======================
 
-A brief overview of libraries that have been tested:
+The following is a brief overview of libraries which have been tested with
+``opt_einsum``:
 
     - `tensorflow <https://www.tensorflow.org/>`_: compiled tensor expressions
       that can run on GPU.
@@ -13,6 +14,7 @@ A brief overview of libraries that have been tested:
       computations, distributed scheduling, and potential reuse of
       intermediaries.
     - `sparse <https://sparse.pydata.org/>`_: sparse tensors.
+    - `pytorch <https://pytorch.org>`_: numpy-like api for GPU tensors.
 
 ``opt_einsum`` is quite agnostic to the type of n-dimensional arrays (tensors)
 it uses, since finding the contraction path only relies on getting the shape
@@ -25,14 +27,14 @@ While more special functionality such as axes reduction is reliant on a
 
 .. note::
 
-    For a contraction to be possible without using a backend einsum, it must 
-    satisfy the following rule: in the full expression (so *including* output 
-    indices) each index must appear twice. In other words, each dimension 
+    For a contraction to be possible without using a backend einsum, it must
+    satisfy the following rule: in the full expression (so *including* output
+    indices) each index must appear twice. In other words, each dimension
     must be contracted with one other dimension, or left alone.
 
 
 General backend for any ndarray
--------------------------------
+===============================
 
 This 'duck-typing' support just requires specifying the correct ``backend``
 argument for the type of arrays supplied when calling
@@ -106,7 +108,7 @@ supported. An example:
 
 
 Special (GPU) backends for numpy arrays
----------------------------------------
+=======================================
 
 A special case is if you want to supply numpy arrays and get numpy arrays back,
 but use a different backend, such as performing a contraction on a GPU.
@@ -117,12 +119,16 @@ automatically for:
     - `tensorflow <https://www.tensorflow.org/>`_
     - `theano <http://deeplearning.net/software/theano/>`_
     - `cupy <https://cupy.chainer.org/>`_
+    - `pytorch <https://pytorch.org>`_
 
 which all offer GPU support. Since ``tensorflow`` and ``theano`` both require
 compiling the expression, this functionality is encapsulated in generating a
 :class:`~opt_einsum.ContractExpression` using
 :func:`~opt_einsum.contract_expression`, which can then be called using numpy
 arrays whilst specifiying ``backend='tensorflow'`` etc.
+Additionally, if arrays are marked as ``constant``
+(see :ref:`constants-section`), then these arrays will be kept on the device
+for optimal performance.
 
 
 Theano
@@ -176,3 +182,46 @@ session:
 Note that you can still supply this expression with, for example, a
 ``tensorflow.placeholder`` using ``backend='tensorflow'``, and then no
 conversion would take place, instead you'd get a ``tensorflow.Tensor`` back.
+
+Version 1.9 of tensorflow also added support for eager execution of
+computations. If compilation of the contraction expression tensorflow graph is
+taking a substantial amount of time up then it can be advantageous to use this,
+especially since tensor contractions are quite compute-bound. This is achieved
+by running the following snippet:
+
+
+.. code-block:: python
+
+  import tensorflow as tf
+  tf.enable_eager_execution()
+
+After which ``opt_einsum`` will automatically detect eager mode if
+``backend='tensorflow'`` is supplied to a
+:class:`~opt_einsum.ContractExpression`.
+
+
+Pytorch & Cupy
+--------------
+
+Both `pytorch <https://pytorch.org>`_ and `cupy <https://cupy.chainer.org/>`_
+offer numpy-like, GPU-enabled arrays which execute eagerly rather than
+requiring any compilation. If they are installed, no steps are required to
+utilize them other than specifiying the ``backend`` keyword:
+
+.. code-block:: python
+
+    >>> expr(*xs, backend='torch')
+    array([[ 129.28357  , -128.00684  , -164.62903  , -335.1167   ],
+           [-462.52362  , -121.12659  ,  -67.84769  ,  624.5455   ],
+           [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],
+          dtype=float32)
+
+    >>> expr(*xs, backend='cupy')
+    array([[ 129.28357  , -128.00684  , -164.62903  , -335.1167   ],
+           [-462.52362  , -121.12659  ,  -67.84769  ,  624.5455   ],
+           [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],
+          dtype=float32)
+
+And as with the other GPU backends, if raw ``cupy`` or ``pytorch`` arrays are
+supplied the returned array will be of the same type, with no conversion
+to or from ``numpy`` arrays.
