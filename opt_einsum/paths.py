@@ -216,11 +216,6 @@ def greedy(input_sets, output_set, idx_dict, memory_limit):
     [(0, 2), (0, 1)]
     """
 
-    if len(input_sets) == 1:
-        return [(0, )]
-    elif len(input_sets) == 2:
-        return [(0, 1)]
-
     # Build up a naive cost
     contract = helpers.find_contraction(range(len(input_sets)), input_sets, output_set)
     idx_result, new_input_sets, idx_removed, idx_contract = contract
