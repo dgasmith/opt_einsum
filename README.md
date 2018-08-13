@@ -82,6 +82,14 @@ Please see the [documentation](http://optimized-einsum.readthedocs.io/en/latest/
 
 `opt_einsum` can either be installed via `pip install opt_einsum` or from conda `conda install opt_einsum -c conda-forge`. See the installation [documenation](http://optimized-einsum.readthedocs.io/en/latest/install.html) for further methods.
 
+## Citation
+
+If this code has benefited your research, please support us by citing:
+
+Daniel G. A. Smith and Johnnie Gray, opt_einsum - A Python package for optimizing contraction order for einsum-like expressions. *Journal of Open Source Software*, **2018**, 3(26), 753
+
+DOI: https://doi.org/10.21105/joss.00753
+
 
 ## Contributing
 

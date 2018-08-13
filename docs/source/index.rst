@@ -102,8 +102,19 @@ We can then view more details about the optimized contraction order:
        5      GEMM            klpq,rk->lpqr                            sl,lpqr->pqrs
        5      GEMM            lpqr,sl->pqrs                               pqrs->pqrs
 
+Citation
+========
+
+If this code has benefited your research, please support us by citing:
+
+Daniel G. A. Smith and Johnnie Gray, opt_einsum - A Python package for optimizing contraction order for einsum-like expressions. **Journal of Open Source Software**, *2018*, 3(26), 753
+
+DOI: https://doi.org/10.21105/joss.00753
+
 
 .. toctree::
+   :caption: Table of Contents
+
    :maxdepth: 2
    :caption: Getting Started
 
