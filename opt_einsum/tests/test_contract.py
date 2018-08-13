@@ -231,5 +231,6 @@ def test_contract_expression_with_constants(string, constants):
             ctrc_args.append(view)
 
     expr = contract_expression(string, *expr_args, constants=constants)
+    print(expr)
     out = expr(*ctrc_args)
     assert np.allclose(expected, out)

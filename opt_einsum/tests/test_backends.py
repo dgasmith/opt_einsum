@@ -30,6 +30,7 @@ tests = [
     'ab,bc->ca',
     'abc,bcd,dea',
     'abc,def->fedcba',
+    'abc,bcd,df->fa',
     # test 'prefer einsum' ops
     'ijk,ikj',
     'i,j->ij',

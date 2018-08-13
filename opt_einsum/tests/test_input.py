@@ -2,6 +2,8 @@
 Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 """
 
+import sys
+
 import numpy as np
 import pytest
 
@@ -226,3 +228,12 @@ def test_singleton_dimension_broadcast():
         res2 = contract("...ij,...jk->...ik", p, q, optimize=optimize)
         assert np.allclose(res1, res2)
         assert np.allclose(res2, np.full((1, 5), 5))
+
+
+@pytest.mark.skipif(sys.version_info.major == 2, reason="Requires python 3.")
+def test_large_int_input_format():
+    string = 'ab,bc,cd'
+    x, y, z = build_views(string)
+    string_output = contract(string, x, y, z)
+    int_output = contract(x, (1000, 1001), y, (1001, 1002), z, (1002, 1003))
+    assert np.allclose(string_output, int_output)
