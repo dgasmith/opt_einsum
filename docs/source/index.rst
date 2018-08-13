@@ -109,6 +109,7 @@ We can then view more details about the optimized contraction order:
 
    install
    backends
+   reusing_paths
 
 
 .. toctree::
@@ -116,7 +117,6 @@ We can then view more details about the optimized contraction order:
    :caption: Path Information:
 
    path_finding
-   reusing_paths
    optimal_path
    greedy_path
 
