@@ -16,7 +16,7 @@ Optimized einsum can greatly reduce the overall time [`np.einsum`](https://docs.
 As well as [`opt_einsum.contract`](https://optimized-einsum.readthedocs.io/en/latest/autosummary/opt_einsum.contract.html#opt-einsum-contract) acting as a drop-in replacement for `np.einsum`, the following capabilities are enabled by `opt_einsum`:
 
 * Inspect [detailed informaton](http://optimized-einsum.readthedocs.io/en/latest/path_finding.html) about the path chosen.
-* Perform the contractions with many [different backends](http://optimized-einsum.readthedocs.io/en/latest/backends.html), including on the GPU.
+* Perform the contractions with many [different backends](http://optimized-einsum.readthedocs.io/en/latest/backends.html), including on the GPU and with libraries such as [TensorFlow](https://www.tensorflow.org) and [PyTorch](https://pytorch.org).
 * Generate [reusable expressions](http://optimized-einsum.readthedocs.io/en/latest/reusing_paths.html), potentially with [constant tensors](http://optimized-einsum.readthedocs.io/en/latest/reusing_paths.html#specifying-constants), that can be compiled for greater performance.
 * Use an arbitrary number of indices to find contractions for [hundreds or even thousands of tensors](http://optimized-einsum.readthedocs.io/en/latest/ex_large_expr_with_greedy.html).
 
