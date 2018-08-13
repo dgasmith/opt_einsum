@@ -21,7 +21,7 @@ def contract_path(*operands, **kwargs):
         Specifies the subscripts for summation.
     *operands : list of array_like
         These are the arrays for the operation.
-    path : bool or list, optional (default: ``greedy``)
+    path : bool or list, optional (default: ``auto``)
         Choose the type of path.
 
         - if a list is given uses this as the path.
@@ -31,6 +31,8 @@ def contract_path(*operands, **kwargs):
         - 'optimal' An algorithm that tries all possible ways of
           contracting the listed tensors. Scales exponentially with
           the number of terms in the contraction.
+        - 'auto' Use the optimal approach for small numbers of terms (currently
+          4 or less), else use the greedy approach.
 
     use_blas : bool
         Use BLAS functions or not
@@ -110,7 +112,7 @@ def contract_path(*operands, **kwargs):
     if len(unknown_kwargs):
         raise TypeError("einsum_path: Did not understand the following kwargs: %s" % unknown_kwargs)
 
-    path_type = kwargs.pop('path', 'greedy')
+    path_type = kwargs.pop('path', 'auto')
     memory_limit = kwargs.pop('memory_limit', None)
 
     # Hidden option, only einsum should call this
@@ -163,29 +165,31 @@ def contract_path(*operands, **kwargs):
         else:
             memory_arg = int(memory_limit)
 
+    num_ops = len(input_list)
+
     # Compute naive cost
     # This isnt quite right, need to look into exactly how einsum does this
     # indices_in_input = input_subscripts.replace(',', '')
-    # inne
+
     inner_product = (sum(len(x) for x in input_sets) - len(indices)) > 0
-    naive_cost = helpers.flop_count(indices, inner_product, len(input_list), dimension_dict)
+    naive_cost = helpers.flop_count(indices, inner_product, num_ops, dimension_dict)
 
     # Compute the path
     if not isinstance(path_type, str):
         path = path_type
-    elif len(input_list) == 1:
+    elif num_ops == 1:
         # Nothing to be optimized
         path = [(0, )]
-    elif len(input_list) == 2:
+    elif num_ops == 2:
         # Nothing to be optimized
         path = [(0, 1)]
     elif indices == output_set:
         # If no rank reduction leave it to einsum
-        path = [tuple(range(len(input_list)))]
-    elif path_type in ["greedy", "opportunistic"]:
-        path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type == "optimal":
+        path = [tuple(range(num_ops))]
+    elif path_type == "optimal" or (path_type == "auto" and num_ops <= 4):
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
+    elif path_type in ("greedy", "opportunistic", "auto"):
+        path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:
         raise KeyError("Path name %s not found" % path_type)
 
