@@ -30,7 +30,6 @@ Note that few checks are performed when calling the expression, and while it wil
 
 .. _constants-section:
 
-====================
 Specifying Constants
 ====================
 
