@@ -117,7 +117,8 @@ def find_contraction(positions, input_sets, output_set):
     """
 
     remaining = list(input_sets)
-    idx_contract = set.union(*map(remaining.pop, sorted(positions, reverse=True)))
+    inputs = (remaining.pop(i) for i in sorted(positions, reverse=True))
+    idx_contract = set.union(*inputs)
     idx_remain = output_set.union(*remaining)
 
     new_result = idx_remain & idx_contract
