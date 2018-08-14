@@ -2,9 +2,10 @@
 
 ### PyPI Source and Wheel:
 ```
-python setup.py sdist
-python setup.py bdist_wheel --universal
-twine upload dist/*
+conda update setuptools wheel
+
+python3 setup.py sdist
+twine upload --repository-url https://test.pypi.org/legacy/ sdist/
 ```
 
 ### Update conda-forge:
