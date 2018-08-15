@@ -1,0 +1,9 @@
+recursive-include opt_einsum *.py
+
+include setup.py
+include README.md
+include LICENSE
+include MANIFEST.in
+
+include versioneer.py
+include opt_einsum/_version.py
