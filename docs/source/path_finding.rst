@@ -6,15 +6,15 @@ As an example, consider the following expression found in a perturbation theory 
 
 .. code:: python
 
-    bdik,acaj,ikab,ajac,ikbd
+    'bdik,acaj,ikab,ajac,ikbd'
 
 At first, it would appear that this scales like N^7 as there are 7 unique indices; however, we can define a intermediate to reduce this scaling.
 
 .. code:: python
 
-    a = bdik,ikab,ikbd` (N^5 scaling)
+    a = 'bdik,ikab,ikbd' (N^5 scaling)
 
-    result = acaj,ajac,a` (N^4 scaling)
+    result = 'acaj,ajac,a' (N^4 scaling)
 
 This is a single possible path to the final answer (and notably, not the most optimal) out of many possible paths. Now, let opt_einsum compute the optimal path:
 
@@ -35,8 +35,6 @@ This is a single possible path to the final answer (and notably, not the most op
     >>> print(path_info[0])
     [(1, 3), (0, 2), (0, 2), (0, 1)]
 
-    ```
-    ```
     >>> print(path_info[1])
       Complete contraction:  bdik,acaj,ikab,ajac,ikbd->
              Naive scaling:  7
