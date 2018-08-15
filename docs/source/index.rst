@@ -111,10 +111,12 @@ Daniel G. A. Smith and Johnnie Gray, opt_einsum - A Python package for optimizin
 
 DOI: https://doi.org/10.21105/joss.00753
 
+========
+
+Table of Contents
+=================
 
 .. toctree::
-   :caption: Table of Contents
-
    :maxdepth: 2
    :caption: Getting Started
 
@@ -140,6 +142,7 @@ DOI: https://doi.org/10.21105/joss.00753
 
 .. toctree::
    :maxdepth: 1
-   :caption: Function Reference:
+   :caption: Help & Reference:
 
    api
+   changelog
