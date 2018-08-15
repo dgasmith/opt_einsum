@@ -1,5 +1,5 @@
 """
-Contains the primary optimization and contraction routines
+Contains the primary optimization and contraction routines.
 """
 
 import numpy as np
@@ -310,8 +310,7 @@ def _tensordot(x, y, axes, backend='numpy'):
 # Rewrite einsum to handle different cases
 def contract(*operands, **kwargs):
     """
-    contract(subscripts, *operands, out=None, dtype=None, order='K', casting='safe',
-             use_blas=True, optimize=True, memory_limit=None, backend='numpy')
+    contract(subscripts, *operands, out=None, dtype=None, order='K', casting='safe', use_blas=True, optimize=True, memory_limit=None, backend='numpy')
 
     Evaluates the Einstein summation convention on the operands. A drop in
     replacment for NumPy's einsum function that optimizes the order of contraction
@@ -363,7 +362,7 @@ def contract(*operands, **kwargs):
     Notes
     -----
     This function should produce result identical to that of NumPy's einsum
-    function. The primary difference is `contract` will attempt to form
+    function. The primary difference is ``contract`` will attempt to form
     intermediates which reduce the overall scaling of the given einsum contraction.
     By default the worst intermediate formed will be equal to that of the largest
     input array. For large einsum expressions with many input arrays this can
