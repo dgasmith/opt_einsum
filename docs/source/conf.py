@@ -70,7 +70,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'opt_einsum'
-copyright = '2017, Daniel G. A. Smith'
+copyright = '2017-2018, Daniel G. A. Smith'
 author = 'Daniel G. A. Smith'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -124,7 +124,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', "units"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 # ['default', 'emacs', 'friendly', 'colorful', 'autumn', 'murphy', 'manni', 'monokai', 'perldoc', 'pastie', 'borland', 'trac', 'native', 'fruity', 'bw', 'vim', 'vs', 'tango', 'rrt', 'xcode', 'igor', 'paraiso-light', 'paraiso-dark', 'lovelace', 'algol', 'algol_nu', 'arduino', 'rainbow_dash', 'abap']
-pygments_style = 'friendly'
+pygments_style = 'default'
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
