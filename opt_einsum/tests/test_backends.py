@@ -35,6 +35,7 @@ tests = [
     'ijk,ikj',
     'i,j->ij',
     'ijk,k->ij',
+    'AB,BC->CA',
 ]
 
 
