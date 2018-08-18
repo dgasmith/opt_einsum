@@ -5,8 +5,7 @@ Required functions for optimized contractions of numpy arrays using pytorch.
 from __future__ import absolute_import
 import numpy as np
 
-from ..parser import einsum_symbols_base, get_symbol
-
+from ..parser import convert_to_valid_einsum_chars, einsum_symbols_base
 
 _TORCH_DEVICE = None
 
@@ -33,9 +32,7 @@ def einsum(equation, *operands):
     """
     # rename symbols to support PyTorch 0.4.1 and earlier,
     # which allow only symbols a-z.
-    symbols = sorted(set(equation) - set(',->'))
-    rename = {s: get_symbol(i) for i, s in enumerate(symbols)}
-    equation = ''.join(rename.get(s, s) for s in equation)
+    equation = convert_to_valid_einsum_chars(equation)
 
     torch, _ = _get_torch_and_device()
     return torch.einsum(equation, operands)
