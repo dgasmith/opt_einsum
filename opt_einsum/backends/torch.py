@@ -5,8 +5,7 @@ Required functions for optimized contractions of numpy arrays using pytorch.
 from __future__ import absolute_import
 import numpy as np
 
-from ..parser import einsum_symbols_base
-
+from ..parser import convert_to_valid_einsum_chars, einsum_symbols_base
 
 _TORCH_DEVICE = None
 
@@ -31,6 +30,10 @@ def transpose(a, axes):
 def einsum(equation, *operands):
     """Variadic version of torch.einsum to match numpy api.
     """
+    # rename symbols to support PyTorch 0.4.1 and earlier,
+    # which allow only symbols a-z.
+    equation = convert_to_valid_einsum_chars(equation)
+
     torch, _ = _get_torch_and_device()
     return torch.einsum(equation, operands)
 
@@ -39,8 +42,6 @@ def tensordot(x, y, axes=2):
     """Simple translation of tensordot syntax to einsum.
     """
     # XXX: tensordot should be directly implemented in torch soon
-    torch, _ = _get_torch_and_device()
-
     xnd = x.ndimension()
     ynd = y.ndimension()
 
@@ -80,7 +81,7 @@ def tensordot(x, y, axes=2):
 
     # form full string and contract!
     einsum_str = "{},{}->{}".format(*map("".join, (x_ix, y_ix, out_ix)))
-    return torch.einsum(einsum_str, (x, y))
+    return einsum(einsum_str, x, y)
 
 
 def to_torch(array):

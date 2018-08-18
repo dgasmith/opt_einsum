@@ -57,18 +57,11 @@ def gen_unused_symbols(used, n):
 
 def convert_to_valid_einsum_chars(einsum_str):
     """Convert the str ``einsum_str`` to contain only the alphabetic characters
-    valid for numpy einsum.
+    valid for numpy einsum. If there are too many symbols, let the backend
+    throw an error.
     """
-    # partition into valid and invalid sets
-    valid, invalid = set(), set()
-    for x in einsum_str:
-        (valid if is_valid_einsum_char(x) else invalid).add(x)
-
-    # get replacements for invalid chars that are not already used
-    available = gen_unused_symbols(valid, len(invalid))
-
-    # map invalid to available and replace in the inputs
-    replacer = dict(zip(invalid, available))
+    symbols = sorted(set(einsum_str) - set(',->'))
+    replacer = {x: get_symbol(i) for i, x in enumerate(symbols)}
     return "".join(replacer.get(x, x) for x in einsum_str)
 
 

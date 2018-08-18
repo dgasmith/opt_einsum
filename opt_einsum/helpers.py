@@ -4,8 +4,8 @@ Contains helper functions for opt_einsum testing scripts
 
 import numpy as np
 
-chars = 'abcdefghijklmopq'
-sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3])
+chars = 'abcdefghijklmopqABC'
+sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4])
 default_dim_dict = {c: s for c, s in zip(chars, sizes)}
 
 
