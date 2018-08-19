@@ -9,6 +9,7 @@ from . import blas
 from . import helpers
 from . import parser
 from . import paths
+from .backends.shared import handle_sharing
 
 
 def contract_path(*operands, **kwargs):
@@ -626,28 +627,29 @@ class ContractExpression:
             raise ValueError("This `ContractExpression` takes exactly %s array arguments "
                              "but received %s." % (self.num_args, len(arrays)))
 
-        if self._constants_dict and not evaluate_constants:
-            # fill in the missing non-constant terms with newly supplied arrays
-            ops_var, ops_const = iter(arrays), self._get_evaluated_constants(backend)
-            ops = [next(ops_var) if op is None else op for op in ops_const]
-        else:
-            ops = arrays
+        with handle_sharing(backend) as backend:
+            if self._constants_dict and not evaluate_constants:
+                # fill in the missing non-constant terms with newly supplied arrays
+                ops_var, ops_const = iter(arrays), self._get_evaluated_constants(backend)
+                ops = [next(ops_var) if op is None else op for op in ops_const]
+            else:
+                ops = arrays
 
-        try:
-            # Check if the backend requires special preparation / calling
-            #   but also ignore non-numpy arrays -> assume user wants same type back
-            if backend in backends.CONVERT_BACKENDS and any(isinstance(x, np.ndarray) for x in arrays):
-                return self._contract_with_conversion(ops, out, backend, evaluate_constants=evaluate_constants)
+            try:
+                # Check if the backend requires special preparation / calling
+                #   but also ignore non-numpy arrays -> assume user wants same type back
+                if backend in backends.CONVERT_BACKENDS and any(isinstance(x, np.ndarray) for x in arrays):
+                    return self._contract_with_conversion(ops, out, backend, evaluate_constants=evaluate_constants)
 
-            return self._contract(ops, out, backend, evaluate_constants=evaluate_constants)
+                return self._contract(ops, out, backend, evaluate_constants=evaluate_constants)
 
-        except ValueError as err:
-            original_msg = str(err.args) if err.args else ""
-            msg = ("Internal error while evaluating `ContractExpression`. Note that few checks are performed"
-                   " - the number and rank of the array arguments must match the original expression. "
-                   "The internal error was: '%s'" % original_msg, )
-            err.args = msg
-            raise
+            except ValueError as err:
+                original_msg = str(err.args) if err.args else ""
+                msg = ("Internal error while evaluating `ContractExpression`. Note that few checks are performed"
+                       " - the number and rank of the array arguments must match the original expression. "
+                       "The internal error was: '%s'" % original_msg, )
+                err.args = msg
+                raise
 
     def __repr__(self):
         if self._constants_dict:
