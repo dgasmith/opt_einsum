@@ -63,10 +63,11 @@ def _alpha_canonicalize(equation):
 
 def transpose(a, axes):
     backend = _CURRENT_BACKEND[0]
+    cache = _SHARING_STACK[-1]
+    cache['tensor', id(a)] = a
+
     axes = tuple(axes)
     key = 'transpose', backend, id(a), axes
-
-    cache = _SHARING_STACK[-1]
     if key in cache:
         return cache[key]
 
@@ -77,12 +78,14 @@ def transpose(a, axes):
 
 def tensordot(x, y, axes=2):
     backend = _CURRENT_BACKEND[0]
+    cache = _SHARING_STACK[-1]
+    cache['tensor', id(x)] = x
+    cache['tensor', id(y)] = y
+
     if isinstance(axes, numbers.Number):
         axes = list(range(len(x.shape)))[len(x.shape) - axes:], list(range(len(y.shape)))[:axes]
     axes = tuple(axes[0]), tuple(axes[1])
     key = 'tensordot', backend, id(x), id(y), axes
-
-    cache = _SHARING_STACK[-1]
     if key in cache:
         return cache[key]
 
@@ -93,6 +96,10 @@ def tensordot(x, y, axes=2):
 
 def einsum(equation, *operands):
     backend = _CURRENT_BACKEND[0]
+    cache = _SHARING_STACK[-1]
+    for d in operands:
+        cache['tensor', id(d)] = d
+
     # compute a canonical hash, modulo commutativity
     inputs, output = equation.split('->')
     inputs = inputs.split(',')
@@ -100,9 +107,7 @@ def einsum(equation, *operands):
     canonical_inputs = ','.join(input_ for input_, _ in canonical)
     canonical_equation = _alpha_canonicalize('{}->{}'.format(canonical_inputs, output))
     canonical_operands = tuple(d for _, d in canonical)
-    key = 'einsum', backend, canonical_equation, tuple(id(x) for x in canonical_operands)
-
-    cache = _SHARING_STACK[-1]
+    key = 'einsum', backend, canonical_equation, tuple(map(id, canonical_operands))
     if key in cache:
         return cache[key]
 
