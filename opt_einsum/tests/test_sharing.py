@@ -13,11 +13,6 @@ except ImportError:
 backends = ['numpy', torch_if_found]
 
 
-def contract(eq, *ops, **kwargs):
-    expr = contract_expression(eq, *(op.shape for op in ops))
-    return expr(*ops, **kwargs)
-
-
 @pytest.mark.parametrize('backend', backends)
 def test_sharing_value(backend):
     eq = 'abc,bcd,cde,def->af'
@@ -147,7 +142,8 @@ def test_chain_2_growth(backend):
             for i in range(size):
                 target = alphabet[i:i+2]
                 eq = '{}->{}'.format(inputs, target)
-                contract(eq, *xs, backend=backend)
+                expr = contract_expression(eq, *(x.shape for x in xs))
+                expr(*xs, backend=backend)
             costs.append(compute_cost(cache))
 
     print('sizes = {}'.format(repr(sizes)))
@@ -169,7 +165,8 @@ def test_chain_sharing(size, backend):
         with shared_intermediates() as cache:
             target = alphabet[i]
             eq = '{}->{}'.format(inputs, target)
-            contract(eq, *xs, backend=backend)
+            expr = contract_expression(eq, *(x.shape for x in xs))
+            expr(*xs, backend=backend)
             num_exprs_nosharing += compute_cost(cache)
 
     with shared_intermediates() as cache:
@@ -179,7 +176,8 @@ def test_chain_sharing(size, backend):
             eq = '{}->{}'.format(inputs, target)
             path_info = contract_path(eq, *xs)
             print(path_info[1])
-            contract(eq, *xs, backend=backend)
+            expr = contract_expression(eq, *(x.shape for x in xs))
+            expr(*xs, backend=backend)
         num_exprs_sharing = compute_cost(cache)
 
     print('-' * 40)
