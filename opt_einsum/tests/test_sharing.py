@@ -3,22 +3,29 @@ import pytest
 
 from opt_einsum import contract, contract_path, get_symbol, shared_intermediates
 
+try:
+    import torch
+    torch_if_found = 'torch'
+except ImportError:
+    torch_if_found = pytest.param('torch', marks=[pytest.mark.skip(reason="PyTorch not installed.")])
 
-def test_shared_backend():
+
+@pytest.mark.parametrize('backend', ['numpy', torch_if_found])
+def test_sharing_value(backend):
     w = np.random.normal(size=(2, 3, 4))
     x = np.random.normal(size=(3, 4, 5))
     y = np.random.normal(size=(4, 5, 6))
     z = np.random.normal(size=(5, 6, 7))
     expr = 'abc,bcd,cde,def->af'
 
-    expected = contract(expr, w, x, y, z, backend='torch')
+    expected = contract(expr, w, x, y, z, backend=backend)
     with shared_intermediates():
-        actual = contract(expr, w, x, y, z, backend='torch')
+        actual = contract(expr, w, x, y, z, backend=backend)
 
     assert (actual == expected).all()
 
 
-@pytest.mark.parametrize('backend', ['torch', 'numpy'])
+@pytest.mark.parametrize('backend', ['numpy', torch_if_found])
 def test_complete_sharing(backend):
     x = np.random.normal(size=(5, 4))
     y = np.random.normal(size=(4, 3))
@@ -43,7 +50,7 @@ def test_complete_sharing(backend):
     assert actual == expected
 
 
-@pytest.mark.parametrize('backend', ['torch', 'numpy'])
+@pytest.mark.parametrize('backend', ['numpy', torch_if_found])
 def test_partial_sharing(backend):
     x = np.random.normal(size=(5, 4))
     y = np.random.normal(size=(4, 3))
@@ -78,7 +85,8 @@ def compute_cost(cache):
 
 
 @pytest.mark.parametrize('size', [3, 4, 5])
-def test_chain(size):
+@pytest.mark.parametrize('backend', ['numpy', torch_if_found])
+def test_chain(size, backend):
     xs = [np.random.normal(size=(2, 2)) for _ in range(size)]
     alphabet = ''.join(get_symbol(i) for i in range(size + 1))
     names = [alphabet[i:i+2] for i in range(size)]
@@ -91,12 +99,13 @@ def test_chain(size):
             equation = '{}->{}'.format(inputs, target)
             path_info = contract_path(equation, *xs)
             print(path_info[1])
-            contract(equation, *xs, backend='torch')
+            contract(equation, *xs, backend=backend)
         print('-' * 40)
 
 
 @pytest.mark.parametrize('size', [3, 4, 5, 10])
-def test_chain_2(size):
+@pytest.mark.parametrize('backend', ['numpy', torch_if_found])
+def test_chain_2(size, backend):
     xs = [np.random.normal(size=(2, 2)) for _ in range(size)]
     alphabet = ''.join(get_symbol(i) for i in range(size + 1))
     names = [alphabet[i:i+2] for i in range(size)]
@@ -109,11 +118,12 @@ def test_chain_2(size):
             equation = '{}->{}'.format(inputs, target)
             path_info = contract_path(equation, *xs)
             print(path_info[1])
-            contract(equation, *xs, backend='torch')
+            contract(equation, *xs, backend=backend)
         print('-' * 40)
 
 
-def test_chain_2_growth():
+@pytest.mark.parametrize('backend', ['numpy', torch_if_found])
+def test_chain_2_growth(backend):
     sizes = list(range(1, 21))
     costs = []
     for size in sizes:
@@ -126,7 +136,7 @@ def test_chain_2_growth():
             for i in range(size):
                 target = alphabet[i:i+2]
                 equation = '{}->{}'.format(inputs, target)
-                contract(equation, *xs, backend='torch')
+                contract(equation, *xs, backend=backend)
             costs.append(compute_cost(cache))
 
     print('sizes = {}'.format(repr(sizes)))
@@ -136,7 +146,8 @@ def test_chain_2_growth():
 
 
 @pytest.mark.parametrize('size', [3, 4, 5])
-def test_chain_sharing(size):
+@pytest.mark.parametrize('backend', ['numpy', torch_if_found])
+def test_chain_sharing(size, backend):
     xs = [np.random.normal(size=(2, 2)) for _ in range(size)]
     alphabet = ''.join(get_symbol(i) for i in range(size + 1))
     names = [alphabet[i:i+2] for i in range(size)]
@@ -147,7 +158,7 @@ def test_chain_sharing(size):
         with shared_intermediates() as cache:
             target = alphabet[i]
             equation = '{}->{}'.format(inputs, target)
-            contract(equation, *xs, backend='torch')
+            contract(equation, *xs, backend=backend)
             num_exprs_nosharing += compute_cost(cache)
 
     with shared_intermediates() as cache:
@@ -157,7 +168,7 @@ def test_chain_sharing(size):
             equation = '{}->{}'.format(inputs, target)
             path_info = contract_path(equation, *xs)
             print(path_info[1])
-            contract(equation, *xs, backend='torch')
+            contract(equation, *xs, backend=backend)
         num_exprs_sharing = compute_cost(cache)
 
     print('-' * 40)

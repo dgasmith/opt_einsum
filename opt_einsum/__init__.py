@@ -2,9 +2,9 @@
 Main init function for opt_einsum.
 """
 
-from .backends.shared import shared_intermediates
 from .contract import contract, contract_path, contract_expression
 from .parser import get_symbol
+from .sharing import shared_intermediates
 from . import paths
 from . import blas
 from . import helpers
