@@ -80,6 +80,60 @@ def test_complete_sharing(backend):
     assert actual == expected
 
 
+@pytest.mark.parametrize('backend', backends)
+def test_sharing_reused_cache(backend):
+    eq = 'ab,bc,cd->'
+    views = helpers.build_views(eq)
+    expr = contract_expression(eq, *(v.shape for v in views))
+
+    print('-' * 40)
+    print('Without sharing:')
+    with shared_intermediates() as cache:
+        expr(*views, backend=backend)
+        expected = count_cached_ops(cache)
+
+    print('-' * 40)
+    print('With sharing:')
+    with shared_intermediates() as cache:
+        expr(*views, backend=backend)
+    with shared_intermediates(cache):
+        expr(*views, backend=backend)
+        actual = count_cached_ops(cache)
+
+    print('-' * 40)
+    print('Without sharing: {} expressions'.format(expected))
+    print('With sharing: {} expressions'.format(actual))
+    assert actual == expected
+
+
+@pytest.mark.parametrize('backend', backends)
+def test_no_sharing_separate_cache(backend):
+    eq = 'ab,bc,cd->'
+    views = helpers.build_views(eq)
+    expr = contract_expression(eq, *(v.shape for v in views))
+
+    print('-' * 40)
+    print('Without sharing:')
+    with shared_intermediates() as cache:
+        expr(*views, backend=backend)
+        expected = count_cached_ops(cache)
+        expected.update(count_cached_ops(cache))  # we expect double
+
+    print('-' * 40)
+    print('With sharing:')
+    with shared_intermediates() as cache1:
+        expr(*views, backend=backend)
+        actual = count_cached_ops(cache)
+    with shared_intermediates() as cache2:
+        expr(*views, backend=backend)
+        actual.update(count_cached_ops(cache))
+
+    print('-' * 40)
+    print('Without sharing: {} expressions'.format(expected))
+    print('With sharing: {} expressions'.format(actual))
+    assert actual == expected
+
+
 @pytest.mark.parametrize('eq', equations)
 @pytest.mark.parametrize('backend', backends)
 def test_sharing_modulo_commutativity(eq, backend):
