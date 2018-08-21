@@ -1,9 +1,9 @@
 import contextlib
 import functools
 import numbers
-from collections import Counter, OrderedDict
+from collections import Counter
 
-from .parser import get_symbol, parse_einsum_input
+from .parser import alpha_canonicalize, parse_einsum_input
 
 _SHARING_STACK = []
 
@@ -44,18 +44,6 @@ def count_cached_ops(cache):
     This is useful for profiling to increase sharing.
     """
     return Counter(key[0] for key in cache.keys())
-
-
-def _alpha_canonicalize(equation):
-    """Alpha convert in an order-independent canonical way.
-    """
-    rename = OrderedDict()
-    for name in equation:
-        if name in ',->':
-            continue
-        if name not in rename:
-            rename[name] = get_symbol(len(rename))
-    return ''.join(rename.get(x, x) for x in equation)
 
 
 def _save_tensors(*tensors):
@@ -126,7 +114,7 @@ def einsum_cache_wrap(einsum):
         canonical = sorted(zip(inputs, map(id, operands)), key=lambda x: x[1])
         canonical_ids = tuple(id_ for _, id_ in canonical)
         canonical_inputs = ','.join(input_ for input_, _ in canonical)
-        canonical_equation = _alpha_canonicalize('{}->{}'.format(canonical_inputs, output))
+        canonical_equation = alpha_canonicalize('{}->{}'.format(canonical_inputs, output))
         key = 'einsum', backend, canonical_equation, canonical_ids
         return _memoize(key, einsum, equation, *operands, backend=backend)
 
