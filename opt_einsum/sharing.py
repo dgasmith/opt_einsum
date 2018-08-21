@@ -1,7 +1,7 @@
 import contextlib
 import functools
 import numbers
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 
 from .backends import cupy as _cupy
 from .backends import torch as _torch
@@ -40,6 +40,13 @@ def shared_intermediates(cache=None):
         yield cache
     finally:
         _SHARING_STACK.pop()
+
+
+def count_cached_ops(cache):
+    """Returns a counter of the types of each op in the cache.
+    This is useful for profiling to increase sharing.
+    """
+    return Counter(key[0] for key in cache.keys())
 
 
 def _alpha_canonicalize(equation):

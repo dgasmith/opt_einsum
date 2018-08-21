@@ -1,8 +1,17 @@
+from collections import Counter
+
 import numpy as np
 import pytest
 
 from opt_einsum import (contract_expression, contract_path, get_symbol,
                         helpers, shared_intermediates)
+from opt_einsum.sharing import count_cached_ops
+
+try:
+    import cupy
+    cupy_if_found = 'cupy'
+except ImportError:
+    cupy_if_found = pytest.param('cupy', marks=[pytest.mark.skip(reason="CuPy not installed.")])
 
 try:
     import torch
@@ -10,7 +19,7 @@ try:
 except ImportError:
     torch_if_found = pytest.param('torch', marks=[pytest.mark.skip(reason="PyTorch not installed.")])
 
-backends = ['numpy', torch_if_found]
+backends = ['numpy', torch_if_found, cupy_if_found]
 
 
 @pytest.mark.parametrize('backend', backends)
@@ -37,14 +46,14 @@ def test_complete_sharing(backend):
     print('Without sharing:')
     with shared_intermediates() as cache:
         expr(*views, backend=backend)
-        expected = len(cache)
+        expected = count_cached_ops(cache)
 
     print('-' * 40)
     print('With sharing:')
     with shared_intermediates() as cache:
         expr(*views, backend=backend)
         expr(*views, backend=backend)
-        actual = len(cache)
+        actual = count_cached_ops(cache)
 
     print('-' * 40)
     print('Without sharing: {} expressions'.format(expected))
@@ -54,32 +63,32 @@ def test_complete_sharing(backend):
 
 @pytest.mark.parametrize('backend', backends)
 def test_partial_sharing(backend):
-    eq = 'ab,bc,cd->'
+    eq = 'ab,bc,de->'
     x, y, z1 = helpers.build_views(eq)
     z2 = 2.0 * z1 - 1.0
     expr = contract_expression(eq, x.shape, y.shape, z1.shape)
 
     print('-' * 40)
     print('Without sharing:')
-    num_exprs_nosharing = 0
+    num_exprs_nosharing = Counter()
     with shared_intermediates() as cache:
         expr(x, y, z1, backend=backend)
-        num_exprs_nosharing += len(cache)
+        num_exprs_nosharing.update(count_cached_ops(cache))
     with shared_intermediates() as cache:
         expr(x, y, z2, backend=backend)
-        num_exprs_nosharing += len(cache)
+        num_exprs_nosharing.update(count_cached_ops(cache))
 
     print('-' * 40)
     print('With sharing:')
     with shared_intermediates() as cache:
         expr(x, y, z1, backend=backend)
         expr(x, y, z2, backend=backend)
-        num_exprs_sharing = len(cache)
+        num_exprs_sharing = count_cached_ops(cache)
 
     print('-' * 40)
     print('Without sharing: {} expressions'.format(num_exprs_nosharing))
     print('With sharing: {} expressions'.format(num_exprs_sharing))
-    assert num_exprs_nosharing > num_exprs_sharing
+    assert num_exprs_nosharing['einsum'] > num_exprs_sharing['einsum']
 
 
 def compute_cost(cache):
