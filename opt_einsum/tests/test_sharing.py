@@ -64,17 +64,17 @@ def test_partial_sharing(backend):
     num_exprs_nosharing = 0
     with shared_intermediates() as cache:
         expr(x, y, z1, backend=backend)
-        num_exprs_nosharing += len(cache) - 3  # ignore shared_tensor
+        num_exprs_nosharing += len(cache)
     with shared_intermediates() as cache:
         expr(x, y, z2, backend=backend)
-        num_exprs_nosharing += len(cache) - 3  # ignore shared_tensor
+        num_exprs_nosharing += len(cache)
 
     print('-' * 40)
     print('With sharing:')
     with shared_intermediates() as cache:
         expr(x, y, z1, backend=backend)
         expr(x, y, z2, backend=backend)
-        num_exprs_sharing = len(cache) - 4  # ignore shared_tensor
+        num_exprs_sharing = len(cache)
 
     print('-' * 40)
     print('Without sharing: {} expressions'.format(num_exprs_nosharing))
