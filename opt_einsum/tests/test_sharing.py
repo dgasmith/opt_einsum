@@ -7,8 +7,8 @@ import pytest
 from opt_einsum import (contract_expression, contract_path, get_symbol,
                         helpers, shared_intermediates)
 from opt_einsum.backends import to_cupy, to_torch
-from opt_einsum.sharing import (count_cached_ops, get_func_shared,
-                                parse_equation)
+from opt_einsum.sharing import count_cached_ops, get_func_shared
+from opt_einsum.parser import parse_einsum_input
 
 try:
     import cupy
@@ -137,9 +137,9 @@ def test_no_sharing_separate_cache(backend):
 @pytest.mark.parametrize('eq', equations)
 @pytest.mark.parametrize('backend', backends)
 def test_sharing_modulo_commutativity(eq, backend):
-    inputs, output = parse_equation(eq)
     ops = helpers.build_views(eq)
     ops = [to_backend[backend](x) for x in ops]
+    inputs, output, _ = parse_einsum_input([eq] + ops)
     einsum = get_func_shared('einsum', backend)
 
     print('-' * 40)

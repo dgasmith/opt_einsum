@@ -6,18 +6,9 @@ from collections import Counter, OrderedDict
 from .backends import cupy as _cupy
 from .backends import torch as _torch
 from .backends.dispatch import CONVERT_BACKENDS, build_expression, get_func
-from .parser import get_symbol
+from .parser import get_symbol, parse_einsum_input
 
 _SHARING_STACK = []
-
-
-def parse_equation(eq):
-    """Parses an equation into a list of inputs and an output.
-    """
-    parts = eq.split('->')
-    inputs = parts[0].split(',')
-    output = parts[1] if len(parts) == 2 else ''
-    return inputs, output
 
 
 @contextlib.contextmanager
@@ -88,7 +79,7 @@ def _memoize(key, fn, *args):
     return result
 
 
-def transpose_cache_wrap(transpose, backend):
+def _transpose_cache_wrap(transpose, backend):
 
     @functools.wraps(transpose)
     def cached_transpose(a, axes):
@@ -101,7 +92,7 @@ def transpose_cache_wrap(transpose, backend):
     return cached_transpose
 
 
-def tensordot_cache_wrap(tensordot, backend):
+def _tensordot_cache_wrap(tensordot, backend):
 
     @functools.wraps(tensordot)
     def cached_tensordot(x, y, axes=2):
@@ -116,13 +107,14 @@ def tensordot_cache_wrap(tensordot, backend):
     return cached_tensordot
 
 
-def einsum_cache_wrap(einsum, backend):
+def _einsum_cache_wrap(einsum, backend):
 
     @functools.wraps(einsum)
-    def cached_einsum(equation, *operands):
+    def cached_einsum(*args):
+        equation = args[0]
+        inputs, output, operands = parse_einsum_input(args)
         # hash modulo commutativity by computing a canonical ordering and names
         _save_tensors(*operands)
-        inputs, output = parse_equation(equation)
         canonical = sorted(zip(inputs, map(id, operands)), key=lambda x: x[1])
         canonical_ids = tuple(id_ for _, id_ in canonical)
         canonical_inputs = ','.join(input_ for input_, _ in canonical)
@@ -134,9 +126,9 @@ def einsum_cache_wrap(einsum, backend):
 
 
 _cache_wrap = {
-    'transpose': transpose_cache_wrap,
-    'tensordot': tensordot_cache_wrap,
-    'einsum': einsum_cache_wrap,
+    'transpose': _transpose_cache_wrap,
+    'tensordot': _tensordot_cache_wrap,
+    'einsum': _einsum_cache_wrap,
 }
 
 _cached_funcs = {}
@@ -158,7 +150,7 @@ def get_func_shared(func, backend='numpy'):
         return cached_fn
 
 
-def to_backend_cache_wrap(to_backend, backend):
+def _to_backend_cache_wrap(to_backend, backend):
 
     @functools.wraps(to_backend)
     def cached_to_backend(array):
@@ -170,8 +162,8 @@ def to_backend_cache_wrap(to_backend, backend):
 
 
 _to_backend = {
-    'torch': to_backend_cache_wrap(_torch.to_torch, 'torch'),
-    'cupy': to_backend_cache_wrap(_cupy.to_cupy, 'cupy'),
+    'torch': _to_backend_cache_wrap(_torch.to_torch, 'torch'),
+    'cupy': _to_backend_cache_wrap(_cupy.to_cupy, 'cupy'),
 }
 
 
