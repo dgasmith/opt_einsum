@@ -1,3 +1,4 @@
+import itertools
 from collections import Counter
 
 import numpy as np
@@ -5,7 +6,9 @@ import pytest
 
 from opt_einsum import (contract_expression, contract_path, get_symbol,
                         helpers, shared_intermediates)
-from opt_einsum.sharing import count_cached_ops
+from opt_einsum.backends import to_cupy, to_torch
+from opt_einsum.sharing import (count_cached_ops, get_func_shared,
+                                parse_equation)
 
 try:
     import cupy
@@ -20,11 +23,27 @@ except ImportError:
     torch_if_found = pytest.param('torch', marks=[pytest.mark.skip(reason="PyTorch not installed.")])
 
 backends = ['numpy', torch_if_found, cupy_if_found]
+equations = [
+    'ab,bc->ca',
+    'abc,bcd,dea',
+    'abc,def->fedcba',
+    'abc,bcd,df->fa',
+    # test 'prefer einsum' ops
+    'ijk,ikj',
+    'i,j->ij',
+    'ijk,k->ij',
+    'AB,BC->CA',
+]
+to_backend = {
+    'numpy': lambda x: x,
+    'torch': to_torch,
+    'cupy': to_cupy,
+}
 
 
+@pytest.mark.parametrize('eq', equations)
 @pytest.mark.parametrize('backend', backends)
-def test_sharing_value(backend):
-    eq = 'abc,bcd,cde,def->af'
+def test_sharing_value(eq, backend):
     views = helpers.build_views(eq)
     shapes = [v.shape for v in views]
     expr = contract_expression(eq, *shapes)
@@ -53,6 +72,36 @@ def test_complete_sharing(backend):
     with shared_intermediates() as cache:
         expr(*views, backend=backend)
         expr(*views, backend=backend)
+        actual = count_cached_ops(cache)
+
+    print('-' * 40)
+    print('Without sharing: {} expressions'.format(expected))
+    print('With sharing: {} expressions'.format(actual))
+    assert actual == expected
+
+
+@pytest.mark.parametrize('eq', equations)
+@pytest.mark.parametrize('backend', backends)
+def test_sharing_modulo_commutativity(eq, backend):
+    inputs, output = parse_equation(eq)
+    ops = helpers.build_views(eq)
+    ops = [to_backend[backend](x) for x in ops]
+    einsum = get_func_shared('einsum', backend)
+
+    print('-' * 40)
+    print('Without sharing:')
+    with shared_intermediates() as cache:
+        einsum(eq, *ops)
+        expected = count_cached_ops(cache)
+
+    print('-' * 40)
+    print('With sharing:')
+    with shared_intermediates() as cache:
+        for permuted in itertools.permutations(zip(inputs, ops)):
+            permuted_inputs = [p[0] for p in permuted]
+            permuted_ops = [p[1] for p in permuted]
+            permuted_eq = '{}->{}'.format(','.join(permuted_inputs), output)
+            einsum(eq, *ops)
         actual = count_cached_ops(cache)
 
     print('-' * 40)

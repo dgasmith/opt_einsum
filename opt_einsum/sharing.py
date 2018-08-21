@@ -11,6 +11,15 @@ from .parser import get_symbol
 _SHARING_STACK = []
 
 
+def parse_equation(eq):
+    """Parses an equation into a list of inputs and an output.
+    """
+    parts = eq.split('->')
+    inputs = parts[0].split(',')
+    output = parts[1] if len(parts) == 2 else ''
+    return inputs, output
+
+
 @contextlib.contextmanager
 def shared_intermediates(cache=None):
     """Context in which contract intermediate results are shared.
@@ -113,8 +122,7 @@ def einsum_cache_wrap(einsum, backend):
     def cached_einsum(equation, *operands):
         # hash modulo commutativity by computing a canonical ordering and names
         _save_tensors(*operands)
-        inputs, output = equation.split('->')
-        inputs = inputs.split(',')
+        inputs, output = parse_equation(equation)
         canonical = sorted(zip(inputs, map(id, operands)), key=lambda x: x[1])
         canonical_ids = tuple(id_ for _, id_ in canonical)
         canonical_inputs = ','.join(input_ for input_, _ in canonical)
