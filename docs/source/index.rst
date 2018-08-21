@@ -123,7 +123,7 @@ Table of Contents
    install
    backends
    reusing_paths
-
+   sharing_intermediates
 
 .. toctree::
    :maxdepth: 1
