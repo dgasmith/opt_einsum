@@ -15,12 +15,12 @@ def to_cupy(array):  # pragma: no cover
     return array
 
 
-def build_expression(_, expr):  # pragma: no cover
+def build_expression(_, expr, to_backend=to_cupy):  # pragma: no cover
     """Build a cupy function based on ``arrays`` and ``expr``.
     """
 
     def cupy_contract(*arrays):
-        return expr._contract([to_cupy(x) for x in arrays], backend='cupy').get()
+        return expr._contract([to_backend(x) for x in arrays], backend='cupy').get()
 
     return cupy_contract
 

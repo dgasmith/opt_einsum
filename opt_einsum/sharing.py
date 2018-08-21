@@ -3,7 +3,9 @@ import functools
 import numbers
 from collections import OrderedDict
 
-from .backends.dispatch import get_func
+from .backends import cupy as _cupy
+from .backends import torch as _torch
+from .backends.dispatch import CONVERT_BACKENDS, build_expression, get_func
 from .parser import get_symbol
 
 _SHARING_STACK = []
@@ -125,8 +127,8 @@ _cache_wrap = {
 _cached_funcs = {}
 
 
-def get_shared_func(func, backend='numpy'):
-    """Outside of a ``shared_intermediates`` context, this returns
+def get_func_shared(func, backend='numpy'):
+    """Outside of any ``shared_intermediates`` context, this returns
     ``get_func(func, backend)``. Inside of a ``shared_intermediates`` context,
     this returns a cached version of that function.
     """
@@ -139,3 +141,38 @@ def get_shared_func(func, backend='numpy'):
         cached_fn = _cache_wrap[func](fn, backend)
         _cached_funcs[func, backend] = cached_fn
         return cached_fn
+
+
+def to_backend_cache_wrap(to_backend, backend):
+
+    @functools.wraps(to_backend)
+    def cached_to_backend(array):
+        # hash by id
+        key = 'to_backend', backend, id(array)
+        return _memoize(key, to_backend, array)
+
+    return cached_to_backend
+
+
+_to_backend = {
+    'torch': to_backend_cache_wrap(_torch.to_torch, 'torch'),
+    'cupy': to_backend_cache_wrap(_cupy.to_cupy, 'cupy'),
+}
+
+
+def build_expression_shared(backend, arrays, expr):
+    """Outside of any ``shared_intermediates`` context, this returns
+    ``build_expression(backend, arrays, expr)``. Inside of a
+    ``shared_intermediates`` context, this returns a version of that
+    function that caches the ``numpy``-to-backend conversions.
+    """
+    if not _SHARING_STACK:
+        return build_expression(backend, arrays, expr)
+
+    try:
+        to_backend = _to_backend[backend]
+    except KeyError:
+        raise NotImplementedError(
+            'Sharing with the {} backend is only supported with manual conversions. '
+            'Please convert your numpy arrays to {} format before contracting.'.format(backend))
+    return CONVERT_BACKENDS[backend](arrays, expr, to_backend=to_backend)

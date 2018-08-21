@@ -271,7 +271,7 @@ def contract_path(*operands, **kwargs):
 def _einsum(*operands, **kwargs):
     """Base einsum, but with pre-parse for valid characters if string given.
     """
-    fn = sharing.get_shared_func('einsum', kwargs.pop('backend', 'numpy'))
+    fn = sharing.get_func_shared('einsum', kwargs.pop('backend', 'numpy'))
 
     if not isinstance(operands[0], str):
         return fn(*operands, **kwargs)
@@ -297,14 +297,14 @@ def _transpose(x, axes, backend='numpy'):
         return x.transpose(axes)
     except (AttributeError, TypeError):
         # some libraries don't implement method version
-        fn = sharing.get_shared_func('transpose', backend)
+        fn = sharing.get_func_shared('transpose', backend)
         return fn(x, axes)
 
 
 def _tensordot(x, y, axes, backend='numpy'):
     """Base tensordot.
     """
-    fn = sharing.get_shared_func('tensordot', backend)
+    fn = sharing.get_func_shared('tensordot', backend)
     return fn(x, y, axes=axes)
 
 
@@ -566,7 +566,7 @@ class ContractExpression:
         try:
             return self._backend_expressions[backend]
         except KeyError:
-            fn = backends.build_expression(backend, arrays, self)
+            fn = sharing.build_expression_shared(backend, arrays, self)
             self._backend_expressions[backend] = fn
             return fn
 

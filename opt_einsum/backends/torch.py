@@ -93,12 +93,12 @@ def to_torch(array):
     return array
 
 
-def build_expression(_, expr):  # pragma: no cover
+def build_expression(_, expr, to_backend=to_torch):  # pragma: no cover
     """Build a torch function based on ``arrays`` and ``expr``.
     """
 
     def torch_contract(*arrays):
-        torch_arrays = [to_torch(x) for x in arrays]
+        torch_arrays = [to_backend(x) for x in arrays]
         torch_out = expr._contract(torch_arrays, backend='torch')
 
         if torch_out.device.type == 'cpu':
