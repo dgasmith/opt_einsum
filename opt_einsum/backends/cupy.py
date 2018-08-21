@@ -4,8 +4,10 @@ Required functions for optimized contractions of numpy arrays using cupy.
 
 from __future__ import absolute_import
 import numpy as np
+from ..sharing import to_backend_cache_wrap
 
 
+@to_backend_cache_wrap
 def to_cupy(array):  # pragma: no cover
     import cupy
 
@@ -15,12 +17,12 @@ def to_cupy(array):  # pragma: no cover
     return array
 
 
-def build_expression(_, expr, to_backend=to_cupy):  # pragma: no cover
+def build_expression(_, expr):  # pragma: no cover
     """Build a cupy function based on ``arrays`` and ``expr``.
     """
 
     def cupy_contract(*arrays):
-        return expr._contract([to_backend(x) for x in arrays], backend='cupy').get()
+        return expr._contract([to_cupy(x) for x in arrays], backend='cupy').get()
 
     return cupy_contract
 

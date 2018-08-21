@@ -7,8 +7,9 @@ import pytest
 from opt_einsum import (contract_expression, contract_path, get_symbol,
                         helpers, shared_intermediates)
 from opt_einsum.backends import to_cupy, to_torch
-from opt_einsum.sharing import count_cached_ops, get_func_shared
+from opt_einsum.contract import _einsum
 from opt_einsum.parser import parse_einsum_input
+from opt_einsum.sharing import count_cached_ops
 
 try:
     import cupy
@@ -123,10 +124,10 @@ def test_no_sharing_separate_cache(backend):
     print('With sharing:')
     with shared_intermediates() as cache1:
         expr(*views, backend=backend)
-        actual = count_cached_ops(cache)
+        actual = count_cached_ops(cache1)
     with shared_intermediates() as cache2:
         expr(*views, backend=backend)
-        actual.update(count_cached_ops(cache))
+        actual.update(count_cached_ops(cache2))
 
     print('-' * 40)
     print('Without sharing: {} expressions'.format(expected))
@@ -140,12 +141,12 @@ def test_sharing_modulo_commutativity(eq, backend):
     ops = helpers.build_views(eq)
     ops = [to_backend[backend](x) for x in ops]
     inputs, output, _ = parse_einsum_input([eq] + ops)
-    einsum = get_func_shared('einsum', backend)
+    inputs = inputs.split(',')
 
     print('-' * 40)
     print('Without sharing:')
     with shared_intermediates() as cache:
-        einsum(eq, *ops)
+        _einsum(eq, *ops, backend=backend)
         expected = count_cached_ops(cache)
 
     print('-' * 40)
@@ -155,7 +156,7 @@ def test_sharing_modulo_commutativity(eq, backend):
             permuted_inputs = [p[0] for p in permuted]
             permuted_ops = [p[1] for p in permuted]
             permuted_eq = '{}->{}'.format(','.join(permuted_inputs), output)
-            einsum(eq, *ops)
+            _einsum(permuted_eq, *permuted_ops, backend=backend)
         actual = count_cached_ops(cache)
 
     print('-' * 40)

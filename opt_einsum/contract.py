@@ -268,10 +268,11 @@ def contract_path(*operands, **kwargs):
     return path, path_print
 
 
+@sharing.einsum_cache_wrap
 def _einsum(*operands, **kwargs):
     """Base einsum, but with pre-parse for valid characters if string given.
     """
-    fn = sharing.get_func_shared('einsum', kwargs.pop('backend', 'numpy'))
+    fn = backends.get_func('einsum', kwargs.pop('backend', 'numpy'))
 
     if not isinstance(operands[0], str):
         return fn(*operands, **kwargs)
@@ -290,6 +291,7 @@ def _einsum(*operands, **kwargs):
     return fn(einsum_str, *operands, **kwargs)
 
 
+@sharing.transpose_cache_wrap
 def _transpose(x, axes, backend='numpy'):
     """Base transpose.
     """
@@ -297,14 +299,15 @@ def _transpose(x, axes, backend='numpy'):
         return x.transpose(axes)
     except (AttributeError, TypeError):
         # some libraries don't implement method version
-        fn = sharing.get_func_shared('transpose', backend)
+        fn = backends.get_func('transpose', backend)
         return fn(x, axes)
 
 
+@sharing.tensordot_cache_wrap
 def _tensordot(x, y, axes, backend='numpy'):
     """Base tensordot.
     """
-    fn = sharing.get_func_shared('tensordot', backend)
+    fn = backends.get_func('tensordot', backend)
     return fn(x, y, axes=axes)
 
 
@@ -566,7 +569,7 @@ class ContractExpression:
         try:
             return self._backend_expressions[backend]
         except KeyError:
-            fn = sharing.build_expression_shared(backend, arrays, self)
+            fn = backends.build_expression(backend, arrays, self)
             self._backend_expressions[backend] = fn
             return fn
 

@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import numpy as np
 
 from ..parser import convert_to_valid_einsum_chars, einsum_symbols_base
+from ..sharing import to_backend_cache_wrap
 
 _TORCH_DEVICE = None
 
@@ -84,6 +85,7 @@ def tensordot(x, y, axes=2):
     return einsum(einsum_str, x, y)
 
 
+@to_backend_cache_wrap
 def to_torch(array):
     torch, device = _get_torch_and_device()
 
@@ -93,12 +95,12 @@ def to_torch(array):
     return array
 
 
-def build_expression(_, expr, to_backend=to_torch):  # pragma: no cover
+def build_expression(_, expr):  # pragma: no cover
     """Build a torch function based on ``arrays`` and ``expr``.
     """
 
     def torch_contract(*arrays):
-        torch_arrays = [to_backend(x) for x in arrays]
+        torch_arrays = [to_torch(x) for x in arrays]
         torch_out = expr._contract(torch_arrays, backend='torch')
 
         if torch_out.device.type == 'cpu':

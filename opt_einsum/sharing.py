@@ -3,9 +3,6 @@ import functools
 import numbers
 from collections import Counter, OrderedDict
 
-from .backends import cupy as _cupy
-from .backends import torch as _torch
-from .backends.dispatch import CONVERT_BACKENDS, build_expression, get_func
 from .parser import get_symbol, parse_einsum_input
 
 _SHARING_STACK = []
@@ -70,116 +67,81 @@ def _save_tensors(*tensors):
         cache['tensor', id(tensor)] = tensor
 
 
-def _memoize(key, fn, *args):
+def _memoize(key, fn, *args, **kwargs):
     cache = _SHARING_STACK[-1]
     if key in cache:
         return cache[key]
-    result = fn(*args)
+    result = fn(*args, **kwargs)
     cache[key] = result
     return result
 
 
-def _transpose_cache_wrap(transpose, backend):
+def transpose_cache_wrap(transpose):
 
     @functools.wraps(transpose)
-    def cached_transpose(a, axes):
+    def cached_transpose(a, axes, backend='numpy'):
+        if not _SHARING_STACK:
+            return transpose(a, axes, backend=backend)
+
         # hash by axes
         _save_tensors(a)
         axes = tuple(axes)
         key = 'transpose', backend, id(a), axes
-        return _memoize(key, transpose, a, axes)
+        return _memoize(key, transpose, a, axes, backend=backend)
 
     return cached_transpose
 
 
-def _tensordot_cache_wrap(tensordot, backend):
+def tensordot_cache_wrap(tensordot):
 
     @functools.wraps(tensordot)
-    def cached_tensordot(x, y, axes=2):
+    def cached_tensordot(x, y, axes=2, backend='numpy'):
+        if not _SHARING_STACK:
+            return tensordot(x, y, axes, backend=backend)
+
         # hash based on the (axes_x,axes_y) form of axes
         _save_tensors(x, y)
         if isinstance(axes, numbers.Number):
             axes = list(range(len(x.shape)))[len(x.shape) - axes:], list(range(len(y.shape)))[:axes]
         axes = tuple(axes[0]), tuple(axes[1])
         key = 'tensordot', backend, id(x), id(y), axes
-        return _memoize(key, tensordot, x, y, axes)
+        return _memoize(key, tensordot, x, y, axes, backend=backend)
 
     return cached_tensordot
 
 
-def _einsum_cache_wrap(einsum, backend):
+def einsum_cache_wrap(einsum):
 
     @functools.wraps(einsum)
-    def cached_einsum(*args):
+    def cached_einsum(*args, **kwargs):
+        if not _SHARING_STACK:
+            return einsum(*args, **kwargs)
+
+        # hash modulo commutativity by computing a canonical ordering and names
+        backend = kwargs.pop('backend', 'numpy')
         equation = args[0]
         inputs, output, operands = parse_einsum_input(args)
-        # hash modulo commutativity by computing a canonical ordering and names
+        inputs = inputs.split(',')
         _save_tensors(*operands)
         canonical = sorted(zip(inputs, map(id, operands)), key=lambda x: x[1])
         canonical_ids = tuple(id_ for _, id_ in canonical)
         canonical_inputs = ','.join(input_ for input_, _ in canonical)
         canonical_equation = _alpha_canonicalize('{}->{}'.format(canonical_inputs, output))
         key = 'einsum', backend, canonical_equation, canonical_ids
-        return _memoize(key, einsum, equation, *operands)
+        return _memoize(key, einsum, equation, *operands, backend=backend)
 
     return cached_einsum
 
 
-_cache_wrap = {
-    'transpose': _transpose_cache_wrap,
-    'tensordot': _tensordot_cache_wrap,
-    'einsum': _einsum_cache_wrap,
-}
-
-_cached_funcs = {}
-
-
-def get_func_shared(func, backend='numpy'):
-    """Outside of any ``shared_intermediates`` context, this returns
-    ``get_func(func, backend)``. Inside of a ``shared_intermediates`` context,
-    this returns a cached version of that function.
-    """
-    if not _SHARING_STACK:
-        return get_func(func, backend)
-    try:
-        return _cached_funcs[func, backend]
-    except KeyError:
-        fn = get_func(func, backend)
-        cached_fn = _cache_wrap[func](fn, backend)
-        _cached_funcs[func, backend] = cached_fn
-        return cached_fn
-
-
-def _to_backend_cache_wrap(to_backend, backend):
+def to_backend_cache_wrap(to_backend):
 
     @functools.wraps(to_backend)
     def cached_to_backend(array):
+        if not _SHARING_STACK:
+            return to_backend(array)
+
         # hash by id
-        key = 'to_backend', backend, id(array)
+        key = to_backend.__name__, id(array)
         return _memoize(key, to_backend, array)
 
     return cached_to_backend
-
-
-_to_backend = {
-    'torch': _to_backend_cache_wrap(_torch.to_torch, 'torch'),
-    'cupy': _to_backend_cache_wrap(_cupy.to_cupy, 'cupy'),
-}
-
-
-def build_expression_shared(backend, arrays, expr):
-    """Outside of any ``shared_intermediates`` context, this returns
-    ``build_expression(backend, arrays, expr)``. Inside of a
-    ``shared_intermediates`` context, this returns a version of that
-    function that caches the ``numpy``-to-backend conversions.
-    """
-    if not _SHARING_STACK:
-        return build_expression(backend, arrays, expr)
-
-    try:
-        to_backend = _to_backend[backend]
-    except KeyError:
-        raise NotImplementedError(
-            'Sharing with the {} backend is only supported with manual conversions. '
-            'Please convert your numpy arrays to {} format before contracting.'.format(backend))
-    return CONVERT_BACKENDS[backend](arrays, expr, to_backend=to_backend)
