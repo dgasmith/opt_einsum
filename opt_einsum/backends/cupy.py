@@ -4,8 +4,10 @@ Required functions for optimized contractions of numpy arrays using cupy.
 
 from __future__ import absolute_import
 import numpy as np
+from ..sharing import to_backend_cache_wrap
 
 
+@to_backend_cache_wrap
 def to_cupy(array):  # pragma: no cover
     import cupy
 

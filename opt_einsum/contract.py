@@ -9,6 +9,7 @@ from . import blas
 from . import helpers
 from . import parser
 from . import paths
+from . import sharing
 
 
 def contract_path(*operands, **kwargs):
@@ -267,6 +268,7 @@ def contract_path(*operands, **kwargs):
     return path, path_print
 
 
+@sharing.einsum_cache_wrap
 def _einsum(*operands, **kwargs):
     """Base einsum, but with pre-parse for valid characters if string given.
     """
@@ -289,6 +291,7 @@ def _einsum(*operands, **kwargs):
     return fn(einsum_str, *operands, **kwargs)
 
 
+@sharing.transpose_cache_wrap
 def _transpose(x, axes, backend='numpy'):
     """Base transpose.
     """
@@ -300,6 +303,7 @@ def _transpose(x, axes, backend='numpy'):
         return fn(x, axes)
 
 
+@sharing.tensordot_cache_wrap
 def _tensordot(x, y, axes, backend='numpy'):
     """Base tensordot.
     """

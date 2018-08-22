@@ -4,8 +4,9 @@
 A functionally equivalent parser of the numpy.einsum input parser
 """
 
-import numpy as np
+from collections import OrderedDict
 
+import numpy as np
 
 einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -63,6 +64,18 @@ def convert_to_valid_einsum_chars(einsum_str):
     symbols = sorted(set(einsum_str) - set(',->'))
     replacer = {x: get_symbol(i) for i, x in enumerate(symbols)}
     return "".join(replacer.get(x, x) for x in einsum_str)
+
+
+def alpha_canonicalize(equation):
+    """Alpha convert an equation in an order-independent canonical way.
+    """
+    rename = OrderedDict()
+    for name in equation:
+        if name in '.,->':
+            continue
+        if name not in rename:
+            rename[name] = get_symbol(len(rename))
+    return ''.join(rename.get(x, x) for x in equation)
 
 
 def find_output_str(subscripts):

@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import numpy as np
 
 from ..parser import convert_to_valid_einsum_chars, einsum_symbols_base
+from ..sharing import to_backend_cache_wrap
 
 _TORCH_DEVICE = None
 
@@ -84,6 +85,7 @@ def tensordot(x, y, axes=2):
     return einsum(einsum_str, x, y)
 
 
+@to_backend_cache_wrap
 def to_torch(array):
     torch, device = _get_torch_and_device()
 

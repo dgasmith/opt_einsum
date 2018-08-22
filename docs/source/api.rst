@@ -12,3 +12,4 @@ Function Reference
     opt_einsum.paths.optimal
     opt_einsum.paths.greedy
     opt_einsum.parser.get_symbol
+    opt_einsum.sharing.shared_intermediates
