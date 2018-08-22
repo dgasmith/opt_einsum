@@ -1,3 +1,5 @@
+# Copyright (c) 2018 Uber Technologies
+
 import contextlib
 import functools
 import numbers
@@ -56,6 +58,10 @@ def _save_tensors(*tensors):
 
 
 def _memoize(key, fn, *args, **kwargs):
+    """Memoize ``fn(*args, **kwargs)`` using the given ``key``.
+    Results will be stored in the innermost ``cache`` yielded by
+    :func:`shared_intermediates`.
+    """
     cache = _SHARING_STACK[-1]
     if key in cache:
         return cache[key]
@@ -65,6 +71,9 @@ def _memoize(key, fn, *args, **kwargs):
 
 
 def transpose_cache_wrap(transpose):
+    """Decorates a ``transpose()`` implementation to be memoized inside a
+    :func:`shared_intermediates` context.
+    """
 
     @functools.wraps(transpose)
     def cached_transpose(a, axes, backend='numpy'):
@@ -81,6 +90,9 @@ def transpose_cache_wrap(transpose):
 
 
 def tensordot_cache_wrap(tensordot):
+    """Decorates a ``tensordot()`` implementation to be memoized inside a
+    :func:`shared_intermediates` context.
+    """
 
     @functools.wraps(tensordot)
     def cached_tensordot(x, y, axes=2, backend='numpy'):
@@ -99,6 +111,9 @@ def tensordot_cache_wrap(tensordot):
 
 
 def einsum_cache_wrap(einsum):
+    """Decorates an ``einsum()`` implementation to be memoized inside a
+    :func:`shared_intermediates` context.
+    """
 
     @functools.wraps(einsum)
     def cached_einsum(*args, **kwargs):
@@ -122,6 +137,9 @@ def einsum_cache_wrap(einsum):
 
 
 def to_backend_cache_wrap(to_backend):
+    """Decorates an ``to_backend()`` implementation to be memoized inside a
+    :func:`shared_intermediates` context (e.g. ``to_cupy``, ``to_torch``).
+    """
 
     @functools.wraps(to_backend)
     def cached_to_backend(array):

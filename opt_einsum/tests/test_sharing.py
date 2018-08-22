@@ -238,10 +238,6 @@ def test_partial_sharing(backend):
     assert num_exprs_nosharing['einsum'] > num_exprs_sharing['einsum']
 
 
-def compute_cost(cache):
-    return sum(1 for key in cache.keys() if key[0] in ('einsum', 'tensordot'))
-
-
 @pytest.mark.parametrize('backend', backends)
 def test_sharing_with_constants(backend):
     inputs = 'ij,jk,kl'
@@ -305,6 +301,11 @@ def test_chain_2(size, backend):
         print('-' * 40)
 
 
+def _compute_cost(cache):
+    counts = count_cached_ops(cache)
+    return counts['einsum'] + counts['tensordot']
+
+
 @pytest.mark.parametrize('backend', backends)
 def test_chain_2_growth(backend):
     sizes = list(range(1, 21))
@@ -321,7 +322,7 @@ def test_chain_2_growth(backend):
                 eq = '{}->{}'.format(inputs, target)
                 expr = contract_expression(eq, *(x.shape for x in xs))
                 expr(*xs, backend=backend)
-            costs.append(compute_cost(cache))
+            costs.append(_compute_cost(cache))
 
     print('sizes = {}'.format(repr(sizes)))
     print('costs = {}'.format(repr(costs)))
@@ -344,7 +345,7 @@ def test_chain_sharing(size, backend):
             eq = '{}->{}'.format(inputs, target)
             expr = contract_expression(eq, *(x.shape for x in xs))
             expr(*xs, backend=backend)
-            num_exprs_nosharing += compute_cost(cache)
+            num_exprs_nosharing += _compute_cost(cache)
 
     with shared_intermediates() as cache:
         print(inputs)
@@ -355,7 +356,7 @@ def test_chain_sharing(size, backend):
             print(path_info[1])
             expr = contract_expression(eq, *(x.shape for x in xs))
             expr(*xs, backend=backend)
-        num_exprs_sharing = compute_cost(cache)
+        num_exprs_sharing = _compute_cost(cache)
 
     print('-' * 40)
     print('Without sharing: {} expressions'.format(num_exprs_nosharing))
