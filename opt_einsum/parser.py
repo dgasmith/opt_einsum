@@ -6,6 +6,7 @@ A functionally equivalent parser of the numpy.einsum input parser
 
 import numpy as np
 
+from . import compat
 
 einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -39,7 +40,7 @@ def get_symbol(i):
     """
     if i < 52:
         return einsum_symbols_base[i]
-    return chr(i + 140)
+    return compat.get_chr(i + 140)
 
 
 def gen_unused_symbols(used, n):
@@ -127,7 +128,7 @@ def parse_einsum_input(operands):
     if len(operands) == 0:
         raise ValueError("No input operands")
 
-    if isinstance(operands[0], str):
+    if isinstance(operands[0], compat.strings):
         subscripts = operands[0].replace(" ", "")
         operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
 

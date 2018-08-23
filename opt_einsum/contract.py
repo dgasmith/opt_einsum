@@ -6,6 +6,7 @@ import numpy as np
 
 from . import backends
 from . import blas
+from . import compat
 from . import helpers
 from . import parser
 from . import paths
@@ -175,7 +176,7 @@ def contract_path(*operands, **kwargs):
     naive_cost = helpers.flop_count(indices, inner_product, num_ops, dimension_dict)
 
     # Compute the path
-    if not isinstance(path_type, str):
+    if not isinstance(path_type, compat.strings):
         path = path_type
     elif num_ops == 1:
         # Nothing to be optimized
@@ -272,7 +273,7 @@ def _einsum(*operands, **kwargs):
     """
     fn = backends.get_func('einsum', kwargs.pop('backend', 'numpy'))
 
-    if not isinstance(operands[0], str):
+    if not isinstance(operands[0], compat.strings):
         return fn(*operands, **kwargs)
 
     einsum_str, operands = operands[0], operands[1:]
