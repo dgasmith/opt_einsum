@@ -56,7 +56,7 @@ True
 1 loops, best of 3: 934 ms per loop
 
 %timeit optimized(I, C)
-1000 loops, best of 3: 527 µs per loop
+1000 loops, best of 3: 527 us per loop
 ```
 
 A 2000 fold speed up for 4 extra lines of code!
@@ -69,7 +69,7 @@ The opt_einsum package is a drop-in replacement for the np.einsum function and c
 from opt_einsum import contract
 
 %timeit contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
-1000 loops, best of 3: 324 µs per loop
+1000 loops, best of 3: 324 us per loop
 ```
 
 The above will automatically find the optimal contraction order, in this case, identical to that of the optimized function above, and compute the products for you. In this case, it even uses `np.dot` under the hood to exploit any vendor BLAS functionality that your NumPy build has!
