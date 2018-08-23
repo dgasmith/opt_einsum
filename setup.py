@@ -3,15 +3,20 @@
 import setuptools
 import versioneer
 
-with open("README.md", "r") as handle:
-    long_description = handle.read()
+short_description = "Optimizing numpys einsum function"
+try:
+    with open("README.md", "r") as handle:
+        long_description = handle.read()
+except:
+    long_description = short_description
+
 
 if __name__ == "__main__":
     setuptools.setup(
         name='opt_einsum',
         version=versioneer.get_version(),
         cmdclass=versioneer.get_cmdclass(),
-        description='Optimizing numpys einsum function',
+        description=short_description,
         author='Daniel Smith',
         author_email='dgasmith@icloud.com',
         url="https://github.com/dgasmith/opt_einsum",
