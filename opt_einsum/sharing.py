@@ -129,7 +129,7 @@ def einsum_cache_wrap(einsum):
         canonical = sorted(zip(inputs, map(id, operands)), key=lambda x: x[1])
         canonical_ids = tuple(id_ for _, id_ in canonical)
         canonical_inputs = ','.join(input_ for input_, _ in canonical)
-        canonical_equation = alpha_canonicalize('{}->{}'.format(canonical_inputs, output))
+        canonical_equation = alpha_canonicalize(canonical_inputs + "->" + output)
         key = 'einsum', backend, canonical_equation, canonical_ids
         return _memoize(key, einsum, equation, *operands, backend=backend)
 
