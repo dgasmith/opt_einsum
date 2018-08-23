@@ -3,6 +3,8 @@ Tests the accuracy of the opt_einsum paths in addition to unit tests for
 the various path helper functions.
 """
 
+import itertools
+
 import numpy as np
 import pytest
 
@@ -174,3 +176,14 @@ def test_can_optimize_outer_products():
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
     d = np.random.randn(10, 2)
     assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, path='greedy')[0] == [(2, 3), (0, 2), (0, 1)]
+
+
+@pytest.mark.parametrize('num_symbols', [2, 3, 26, 26 + 26, 256 - 140, 300])
+def test_large_path(num_symbols):
+    symbols = ''.join(oe.get_symbol(i) for i in range(num_symbols))
+    dimension_dict = dict(zip(symbols, itertools.cycle([2, 3, 4])))
+    expression = ','.join(symbols[t:t+2] for t in range(num_symbols - 1))
+    tensors = oe.helpers.build_views(expression, dimension_dict=dimension_dict)
+
+    # Check that path construction does not crash
+    oe.contract_path(expression, *tensors, path='greedy')
