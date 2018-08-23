@@ -230,7 +230,6 @@ def test_singleton_dimension_broadcast():
         assert np.allclose(res2, np.full((1, 5), 5))
 
 
-@pytest.mark.skipif(sys.version_info.major == 2, reason="Requires python 3.")
 def test_large_int_input_format():
     string = 'ab,bc,cd'
     x, y, z = build_views(string)

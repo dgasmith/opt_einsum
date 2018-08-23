@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import pytest
 
-from opt_einsum import contract, contract_path, helpers, contract_expression
+from opt_einsum import compat, contract, contract_path, helpers, contract_expression
 
 tests = [
     # Test hadamard-like products
@@ -117,7 +117,6 @@ def test_drop_in_replacement(string):
     assert np.allclose(opt, np.einsum(string, *views))
 
 
-@pytest.mark.skipif(sys.version_info[0] < 3, reason='requires python3')
 @pytest.mark.parametrize("string", tests)
 def test_compare_greek(string):
     views = helpers.build_views(string)
@@ -125,7 +124,7 @@ def test_compare_greek(string):
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     # convert to greek
-    string = ''.join(chr(ord(c) + 848) if c not in ',->.' else c for c in string)
+    string = ''.join(compat.get_chr(ord(c) + 848) if c not in ',->.' else c for c in string)
 
     opt = contract(string, *views, optimize='greedy', use_blas=False)
     assert np.allclose(ein, opt)
