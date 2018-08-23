@@ -145,7 +145,6 @@ def test_compare_blas(string):
     assert np.allclose(ein, opt)
 
 
-@pytest.mark.skipif(sys.version_info[0] < 3, reason='requires python3')
 @pytest.mark.parametrize("string", tests)
 def test_compare_blas_greek(string):
     views = helpers.build_views(string)
@@ -153,7 +152,7 @@ def test_compare_blas_greek(string):
     ein = contract(string, *views, optimize=False)
 
     # convert to greek
-    string = ''.join(chr(ord(c) + 848) if c not in ',->.' else c for c in string)
+    string = ''.join(compat.get_chr(ord(c) + 848) if c not in ',->.' else c for c in string)
 
     opt = contract(string, *views, optimize='greedy')
     assert np.allclose(ein, opt)
@@ -162,10 +161,9 @@ def test_compare_blas_greek(string):
     assert np.allclose(ein, opt)
 
 
-@pytest.mark.skipif(sys.version_info[0] < 3, reason='requires python3')
 def test_some_non_alphabet_maintains_order():
     # 'c beta a' should automatically go to -> 'a c beta'
-    string = 'c' + chr(ord('b') + 848) + 'a'
+    string = 'c' + compat.get_chr(ord('b') + 848) + 'a'
     # but beta will be temporarily replaced with 'b' for which 'cba->abc'
     # so check manual output kicks in:
     x = np.random.rand(2, 3, 4)
