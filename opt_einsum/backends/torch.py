@@ -6,12 +6,14 @@ from __future__ import absolute_import
 
 import numpy as np
 
-from ..parser import convert_to_valid_einsum_chars, einsum_symbols_base
+from ..parser import convert_to_valid_einsum_chars
 from ..sharing import to_backend_cache_wrap
 
 __all__ = ["transpose", "einsum", "tensordot", "to_torch", "build_expression", "evaluate_constants"]
 
 _TORCH_DEVICE = None
+
+_torch_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def _get_torch_and_device():
@@ -65,7 +67,7 @@ def tensordot(x, y, axes=2):
     out_ix = []
 
     # fill in repeated indices
-    available_ix = iter(einsum_symbols_base)
+    available_ix = iter(_torch_symbols_base)
     for ax1, ax2 in zip(*axes):
         repeat = next(available_ix)
         x_ix[ax1] = repeat
