@@ -9,9 +9,11 @@ import importlib
 import numpy
 
 from . import cupy as _cupy
-from . import torch as _torch
-from . import theano as _theano
 from . import tensorflow as _tensorflow
+from . import theano as _theano
+from . import torch as _torch
+
+__all__ = ["get_func", "has_einsum", "build_expression", "evaluate_constants", "has_backend"]
 
 # known non top-level imports
 _aliases = {
@@ -80,7 +82,6 @@ CONVERT_BACKENDS = {
     'torch': _torch.build_expression,
 }
 
-
 EVAL_CONSTS_BACKENDS = {
     'tensorflow': _tensorflow.evaluate_constants,
     'theano': _theano.evaluate_constants,
@@ -101,3 +102,9 @@ def evaluate_constants(backend, arrays, expr):
     the contraction of ``expr`` with these as possible.
     """
     return EVAL_CONSTS_BACKENDS[backend](arrays, expr)
+
+
+def has_backend(backend):
+    """Checks if the backend is known.
+    """
+    return backend.lower() in CONVERT_BACKENDS

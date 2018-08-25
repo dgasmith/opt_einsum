@@ -6,6 +6,8 @@ import numpy as np
 
 from . import helpers
 
+__all__ = ["can_blas", "tensor_blas"]
+
 
 def can_blas(inputs, result, idx_removed, shapes=None):
     """
@@ -204,31 +206,27 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
     # Matrix multiply
     # No transpose needed
     elif input_left[-rs:] == input_right[:rs]:
-        new_view = np.dot(view_left.reshape(dim_left, dim_removed),
-                          view_right.reshape(dim_removed, dim_right))
+        new_view = np.dot(view_left.reshape(dim_left, dim_removed), view_right.reshape(dim_removed, dim_right))
 
     # Transpose both
     elif input_left[:rs] == input_right[-rs:]:
-        new_view = np.dot(view_left.reshape(dim_removed, dim_left).T,
-                          view_right.reshape(dim_right, dim_removed).T)
+        new_view = np.dot(view_left.reshape(dim_removed, dim_left).T, view_right.reshape(dim_right, dim_removed).T)
 
     # Transpose right
     elif input_left[-rs:] == input_right[-rs:]:
-        new_view = np.dot(view_left.reshape(dim_left, dim_removed),
-                          view_right.reshape(dim_right, dim_removed).T)
+        new_view = np.dot(view_left.reshape(dim_left, dim_removed), view_right.reshape(dim_right, dim_removed).T)
 
     # Tranpose left
     elif input_left[:rs] == input_right[:rs]:
-        new_view = np.dot(view_left.reshape(dim_removed, dim_left).T,
-                          view_right.reshape(dim_removed, dim_right))
+        new_view = np.dot(view_left.reshape(dim_removed, dim_left).T, view_right.reshape(dim_removed, dim_right))
 
     # Conventional tensordot
     else:
         # Find indices to contract over
         left_pos, right_pos = (), ()
         for s in idx_removed:
-            left_pos += (input_left.find(s),)
-            right_pos += (input_right.find(s),)
+            left_pos += (input_left.find(s), )
+            right_pos += (input_right.find(s), )
         new_view = np.tensordot(view_left, view_right, axes=(left_pos, right_pos))
 
     # Make sure the resulting shape is correct

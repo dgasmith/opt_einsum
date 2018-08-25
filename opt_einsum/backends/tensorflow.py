@@ -3,8 +3,10 @@ Required functions for optimized contractions of numpy arrays using tensorflow.
 """
 
 from __future__ import absolute_import
+
 import numpy as np
 
+__all__ = ["to_tensorflow", "build_expression", "evaluate_constants"]
 
 _CACHED_TF_DEVICE = None
 
@@ -52,6 +54,7 @@ def to_tensorflow(array, constant=False):
 
 # Standard graph mode
 
+
 def build_expression_graph(arrays, expr):
     """Build a tensorflow function based on ``arrays`` and ``expr``.
     """
@@ -89,9 +92,11 @@ def evaluate_constants_graph(const_arrays, expr):
 
 # Eager execution mode
 
+
 def build_expression_eager(_, expr):
     """Build a eager tensorflow function based on ``arrays`` and ``expr``.
     """
+
     def tensorflow_eager_contract(*arrays):
         return expr._contract([to_tensorflow(x) for x in arrays], backend='tensorflow').numpy()
 
@@ -102,10 +107,11 @@ def evaluate_constants_eager(const_arrays, expr):
     """Convert constant arguments to tensorflow_eager arrays, and perform any
     possible constant contractions.
     """
-    return expr(*[to_tensorflow(x) for x in const_arrays], backend='tensorflow', evaluate_constants=True)
+    return expr(* [to_tensorflow(x) for x in const_arrays], backend='tensorflow', evaluate_constants=True)
 
 
 # Dispatch to eager or graph mode
+
 
 def build_expression(arrays, expr):
     _, _, eager = _get_tensorflow_and_device()

@@ -1,20 +1,28 @@
-# Copyright (c) 2018 Uber Technologies
+"""
+A module for sharing intermediates between contractions.
+
+Copyright (c) 2018 Uber Technologies
+"""
 
 import contextlib
 import functools
 import numbers
-from collections import Counter, defaultdict
 import threading
+from collections import Counter, defaultdict
 
 from .parser import alpha_canonicalize, parse_einsum_input
 
+__all__ = [
+    "currently_sharing", "get_sharing_cache", "shared_intermediates", "count_cached_ops", "transpose_cache_wrap",
+    "einsum_cache_wrap", "to_backend_cache_wrap"
+]
 
 _SHARING_STACK = defaultdict(list)
-
 
 try:
     get_thread_id = threading.get_ident
 except AttributeError:
+
     def get_thread_id():
         return threading.current_thread().ident
 

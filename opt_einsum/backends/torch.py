@@ -3,10 +3,13 @@ Required functions for optimized contractions of numpy arrays using pytorch.
 """
 
 from __future__ import absolute_import
+
 import numpy as np
 
 from ..parser import convert_to_valid_einsum_chars, einsum_symbols_base
 from ..sharing import to_backend_cache_wrap
+
+__all__ = ["transpose", "einsum", "tensordot", "to_torch", "build_expression", "evaluate_constants"]
 
 _TORCH_DEVICE = None
 

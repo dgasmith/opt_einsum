@@ -12,6 +12,8 @@ from . import parser
 from . import paths
 from . import sharing
 
+__all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only", "shape_only"]
+
 
 def contract_path(*operands, **kwargs):
     """
@@ -579,8 +581,13 @@ class ContractExpression:
         """
         contraction_list = self._full_contraction_list if evaluate_constants else self.contraction_list
 
-        return _core_contract(list(arrays), contraction_list, out=out, backend=backend,
-                              evaluate_constants=evaluate_constants, **self.einsum_kwargs)
+        return _core_contract(
+            list(arrays),
+            contraction_list,
+            out=out,
+            backend=backend,
+            evaluate_constants=evaluate_constants,
+            **self.einsum_kwargs)
 
     def _contract_with_conversion(self, arrays, out, backend, evaluate_constants=False):
         """Special contraction, i.e. contraction with a different backend
@@ -641,7 +648,7 @@ class ContractExpression:
         try:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
-            if backend in backends.CONVERT_BACKENDS and any(isinstance(x, np.ndarray) for x in arrays):
+            if backends.has_backend(backend) and any(isinstance(x, np.ndarray) for x in arrays):
                 return self._contract_with_conversion(ops, out, backend, evaluate_constants=evaluate_constants)
 
             return self._contract(ops, out, backend, evaluate_constants=evaluate_constants)

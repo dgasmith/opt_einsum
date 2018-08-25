@@ -10,6 +10,12 @@ import numpy as np
 
 from . import compat
 
+__all__ = [
+    "is_valid_einsum_char", "has_valid_einsum_chars_only", "get_symbol", "gen_unused_symbols",
+    "convert_to_valid_einsum_chars", "alpha_canonicalize", "find_output_str", "find_output_shape",
+    "possibly_convert_to_numpy", "parse_einsum_input"
+]
+
 einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
@@ -42,7 +48,7 @@ def get_symbol(i):
     """
     if i < 52:
         return einsum_symbols_base[i]
-    return compat.get_chr(i + 140)
+    return compat.get_char(i + 140)
 
 
 def gen_unused_symbols(used, n):
@@ -92,9 +98,7 @@ def find_output_shape(inputs, shapes, output):
     into account broadcasting.
     """
     return tuple(
-        max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0)
-        for c in output
-    )
+        max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
 
 
 def possibly_convert_to_numpy(x):
