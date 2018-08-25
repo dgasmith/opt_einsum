@@ -3,11 +3,43 @@
 import contextlib
 import functools
 import numbers
-from collections import Counter
+from collections import Counter, defaultdict
+import threading
 
 from .parser import alpha_canonicalize, parse_einsum_input
 
-_SHARING_STACK = []
+
+_SHARING_STACK = defaultdict(list)
+
+
+try:
+    get_thread_id = threading.get_ident
+except AttributeError:
+    def get_thread_id():
+        return threading.current_thread().ident
+
+
+def currently_sharing():
+    """Check if we are currently sharing a cache -- thread specific.
+    """
+    return get_thread_id() in _SHARING_STACK
+
+
+def get_sharing_cache():
+    """Return the most recent sharing cache -- thread specific.
+    """
+    return _SHARING_STACK[get_thread_id()][-1]
+
+
+def _add_sharing_cache(cache):
+    _SHARING_STACK[get_thread_id()].append(cache)
+
+
+def _remove_sharing_cache():
+    tid = get_thread_id()
+    _SHARING_STACK[tid].pop()
+    if not _SHARING_STACK[tid]:
+        del _SHARING_STACK[tid]
 
 
 @contextlib.contextmanager
@@ -34,11 +66,11 @@ def shared_intermediates(cache=None):
     """
     if cache is None:
         cache = {}
+    _add_sharing_cache(cache)
     try:
-        _SHARING_STACK.append(cache)
         yield cache
     finally:
-        _SHARING_STACK.pop()
+        _remove_sharing_cache()
 
 
 def count_cached_ops(cache):
@@ -52,7 +84,7 @@ def _save_tensors(*tensors):
     """Save tensors in the cache to prevent their ids from being recycled.
     This is needed to prevent false cache lookups.
     """
-    cache = _SHARING_STACK[-1]
+    cache = get_sharing_cache()
     for tensor in tensors:
         cache['tensor', id(tensor)] = tensor
 
@@ -62,7 +94,7 @@ def _memoize(key, fn, *args, **kwargs):
     Results will be stored in the innermost ``cache`` yielded by
     :func:`shared_intermediates`.
     """
-    cache = _SHARING_STACK[-1]
+    cache = get_sharing_cache()
     if key in cache:
         return cache[key]
     result = fn(*args, **kwargs)
@@ -77,7 +109,7 @@ def transpose_cache_wrap(transpose):
 
     @functools.wraps(transpose)
     def cached_transpose(a, axes, backend='numpy'):
-        if not _SHARING_STACK:
+        if not currently_sharing():
             return transpose(a, axes, backend=backend)
 
         # hash by axes
@@ -96,7 +128,7 @@ def tensordot_cache_wrap(tensordot):
 
     @functools.wraps(tensordot)
     def cached_tensordot(x, y, axes=2, backend='numpy'):
-        if not _SHARING_STACK:
+        if not currently_sharing():
             return tensordot(x, y, axes, backend=backend)
 
         # hash based on the (axes_x,axes_y) form of axes
@@ -117,7 +149,7 @@ def einsum_cache_wrap(einsum):
 
     @functools.wraps(einsum)
     def cached_einsum(*args, **kwargs):
-        if not _SHARING_STACK:
+        if not currently_sharing():
             return einsum(*args, **kwargs)
 
         # hash modulo commutativity by computing a canonical ordering and names
@@ -143,7 +175,7 @@ def to_backend_cache_wrap(to_backend):
 
     @functools.wraps(to_backend)
     def cached_to_backend(array):
-        if not _SHARING_STACK:
+        if not currently_sharing():
             return to_backend(array)
 
         # hash by id
