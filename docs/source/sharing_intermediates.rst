@@ -16,7 +16,7 @@ For example, suppose we want to compute marginals at each point in a factor chai
                  for output in 'abcdef'}
     1 loop, best of 3: 5.82 s per loop
 
-To share this computation, we can perform all contractions in a shared context
+To share this computation, we can perform all contractions in a shared context:
 
 .. code:: python
 
@@ -39,3 +39,6 @@ If it is difficult to fit your code into a context, you can instead save the sha
     del cache  # garbage collect intermediates
 
 Note that sharing contexts can be nested, so it is safe to to use :func:`~opt_einsum.shared_intermediates` in library code without leaking intermediates into user caches.
+
+.. note::
+    By default a cache is thread safe, to share intermediates between threads explicitly pass a cache to each thread.

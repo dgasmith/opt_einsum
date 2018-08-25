@@ -35,7 +35,7 @@ def contract_path(*operands, **kwargs):
         - 'optimal' An algorithm that tries all possible ways of
           contracting the listed tensors. Scales exponentially with
           the number of terms in the contraction.
-        - 'auto' Use the optimal approach for small numbers of terms (currently
+        - 'auto' Use the optimal approach for a small number of terms (currently
           4 or less), else use the greedy approach.
 
     use_blas : bool
@@ -59,10 +59,10 @@ def contract_path(*operands, **kwargs):
     Examples
     --------
 
-    We can begin with a chain dot example. In this case it is optimal to
-    contract the b and c tensors reprsented by the first element of the path (1,
+    We can begin with a chain dot example. In this case, it is optimal to
+    contract the b and c tensors represented by the first element of the path (1,
     2). The resulting tensor is added to the end of the contraction and the
-    remaining contraction (0, 1) is then completed.
+    remaining contraction, ``(0, 1)``, is then executed.
 
     >>> a = np.random.rand(2, 2)
     >>> b = np.random.rand(2, 5)
@@ -273,7 +273,7 @@ def contract_path(*operands, **kwargs):
 
 @sharing.einsum_cache_wrap
 def _einsum(*operands, **kwargs):
-    """Base einsum, but with pre-parse for valid characters if string given.
+    """Base einsum, but with pre-parse for valid characters if a string is given.
     """
     fn = backends.get_func('einsum', kwargs.pop('backend', 'numpy'))
 
@@ -320,7 +320,7 @@ def contract(*operands, **kwargs):
     contract(subscripts, *operands, out=None, dtype=None, order='K', casting='safe', use_blas=True, optimize=True, memory_limit=None, backend='numpy')
 
     Evaluates the Einstein summation convention on the operands. A drop in
-    replacment for NumPy's einsum function that optimizes the order of contraction
+    replacement for NumPy's einsum function that optimizes the order of contraction
     to reduce overall scaling at the cost of several intermediate arrays.
 
     Parameters
@@ -351,7 +351,7 @@ def contract(*operands, **kwargs):
           the number of terms in the contraction.
 
     memory_limit : int or None (default : None)
-        The upper limit of the size of tensor created, by default this will be
+        The upper limit of the size of tensor created, by default, this will be
         Give the upper bound of the largest intermediate tensor contract will build.
         By default (None) will size the ``memory_limit`` as the largest input tensor.
         Users can also specify ``-1`` to allow arbitrarily large tensors to be built.
@@ -368,7 +368,7 @@ def contract(*operands, **kwargs):
 
     Notes
     -----
-    This function should produce result identical to that of NumPy's einsum
+    This function should produce a result identical to that of NumPy's einsum
     function. The primary difference is ``contract`` will attempt to form
     intermediates which reduce the overall scaling of the given einsum contraction.
     By default the worst intermediate formed will be equal to that of the largest
@@ -376,9 +376,9 @@ def contract(*operands, **kwargs):
     provide arbitrarily large (1000 fold+) speed improvements.
 
     For contractions with just two tensors this function will attempt to use
-    NumPy's built in BLAS functionality to ensure that the given operation is
-    preformed in an optimal manner. When NumPy is linked to a threaded BLAS, potenital
-    speedsups are on the order of 20-100 for a six core machine.
+    NumPy's built-in BLAS functionality to ensure that the given operation is
+    preformed optimally. When NumPy is linked to a threaded BLAS, potential
+    speedups are on the order of 20-100 for a six core machine.
 
     Examples
     --------
@@ -590,7 +590,7 @@ class ContractExpression:
             **self.einsum_kwargs)
 
     def _contract_with_conversion(self, arrays, out, backend, evaluate_constants=False):
-        """Special contraction, i.e. contraction with a different backend
+        """Special contraction, i.e., contraction with a different backend
         but converting to and from that backend. Retrieves or generates a
         cached expression using ``arrays`` as templates, then calls it
         with ``arrays``.
@@ -686,8 +686,8 @@ def shape_only(shape):
 
 
 def contract_expression(subscripts, *shapes, **kwargs):
-    """Generate an reusable expression for a given contraction with
-    specific shapes, which can for example be cached.
+    """Generate a reusable expression for a given contraction with
+    specific shapes, which can, for example, be cached.
 
     Parameters
     ----------
@@ -699,8 +699,8 @@ def contract_expression(subscripts, *shapes, **kwargs):
         The indices of any constant arguments in ``shapes``, in which case the
         actual array should be supplied at that position rather than just a
         shape. If these are specified, then constant parts of the contraction
-        between calls will be reused. Additionally, if a gpu-enabled backend is
-        used for example, then the constant tensors will be kept on the gpu,
+        between calls will be reused. Additionally, if a GPU-enabled backend is
+        used for example, then the constant tensors will be kept on the GPU,
         minimizing transfers.
     kwargs :
         Passed on to ``contract_path`` or ``einsum``. See ``contract``.
@@ -721,7 +721,7 @@ def contract_expression(subscripts, *shapes, **kwargs):
     - The generated expression will work with any arrays which have
       the same rank (number of dimensions) as the original shapes, however, if
       the actual sizes are different, the expression may no longer be optimal.
-    - Constant operations will be computed upon first call with a particular
+    - Constant operations will be computed upon the first call with a particular
       backend, then subsequently reused.
 
     Examples

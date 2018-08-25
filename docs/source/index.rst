@@ -2,7 +2,7 @@
 opt_einsum
 ==========
 
-:func:`~numpy.einsum` is a very powerful function for contracting tensors of arbitrary
+:func:`~numpy.einsum` is a powerful function for contracting tensors of arbitrary
 dimension and index. However, it is only optimized to contract two terms
 at a time resulting in non-optimal scaling.
 
@@ -32,8 +32,8 @@ Consider two different algorithms:
         return K
 
 The einsum function does not consider building intermediate arrays;
-therefore, helping einsum out by building these intermediate arrays can result
-in a considerable cost savings even for small N (N=10):
+therefore, helping einsum out by creating these intermediate arrays can result
+in considerable cost savings even for small N (N=10):
 
 .. code:: python
 
@@ -46,14 +46,14 @@ in a considerable cost savings even for small N (N=10):
     %timeit optimized(I, C)
     1000 loops, best of 3: 445 µs per loop
 
-The index transformation is a well known contraction that leads to
+The index transformation is a well-known contraction that leads to
 straightforward intermediates. This contraction can be further
 complicated by considering that the shape of the C matrices need not be
-the same, in this case the ordering in which the indices are transformed
-matters greatly. Logic can be built that optimizes the ordering;
+the same, in this case, the ordering in which the indices are transformed
+matters significantly. Logic can be built that optimizes the order;
 however, this is a lot of time and effort for a single expression.
 
-The opt_einsum package is a drop in replacement for the ``np.einsum`` function
+The opt_einsum package is a drop-in replacement for the ``np.einsum`` function
 and can handle all of the logic for you:
 
 .. code:: python
@@ -70,8 +70,7 @@ and can handle all of the logic for you:
     %timeit contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
     100 loops, best of 3: 16.2 ms per loop
 
-The above will automatically find the optimal contraction order, in this case
-identical to that of the optimized function above, and compute the products for
+The above will automatically find the optimal contraction order, in this case, identical to that of the optimized function above, and compute the products for
 you. In this case, it even uses `np.dot` under the hood to exploit any vendor
 BLAS functionality that your NumPy build has!
 

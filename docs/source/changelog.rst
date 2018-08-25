@@ -6,11 +6,37 @@ Changelog
 
 New Features
 ++++++++++++
+- (:pr:`48`) Intermediates can now be shared between contractions, see here for more details.
+- (:pr:`53`) Intermediate caching is thread safe.
 
-- Improved documentation.
+Enhancements
+++++++++++++
+- (:pr:`48`) Expressions are now mapped to non-unicode index set so that unicode input is support for all backends.
+- (:pr:`54`) General documenation update.
+
+Bug fixes
++++++++++
+- (:pr:`41`) PyTorch indices are mapped back to a small a-z subset valid for PyTorch's einsum implementation.
+
+2.1.3 / 2018-8-23
+-----------------
+
+Bug fixes
++++++++++
+
+- Fixes unicode issue for large numbers of tensors in Python 2.7.
+- Fixes unicode install bug in README.md.
+
+2.1.2 / 2018-8-16
+-----------------
+
+Bug fixes
++++++++++
+
+- Ensures `versioneer.py` is in MANIFEST.in for a clean pip install.
 
 
-2.1.1 / 2018-8-16
+2.1.1 / 2018-8-15
 -----------------
 
 Bug fixes
@@ -71,7 +97,7 @@ New Features
 Bug Fixes
 +++++++++
 
-- A error effecting cases where opt_einsum mistook broadcasting operations for matrix multiply has been fixed.
+- An error affecting cases where opt_einsum mistook broadcasting operations for matrix multiply has been fixed.
 - Most error messages are now more expressive.
 
 
