@@ -41,4 +41,4 @@ If it is difficult to fit your code into a context, you can instead save the sha
 Note that sharing contexts can be nested, so it is safe to to use :func:`~opt_einsum.shared_intermediates` in library code without leaking intermediates into user caches.
 
 .. note::
-    By default a cache is thread safe, to share intermediates between threads explicitly pass a cache to each thread.
+    By default a cache is thread safe, to share intermediates between threads explicitly pass the same cache to each thread.
