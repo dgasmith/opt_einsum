@@ -2,7 +2,7 @@
 Reusing Paths
 =============
 
-If you expect to repeatedly use a particular contraction it can make things simpler and more efficient to not compute the path each time. Instead, supplying :func:`~opt_einsum.contract_expression` with the contraction string and the shapes of the tensors generates a :class:`~opt_einsum.contract.ContractExpression` which can then be repeatedly called with any matching set of arrays. For example:
+If you expect to use a particular contraction repeatedly, it can make things simpler and more efficient not to compute the path each time. Instead, supplying :func:`~opt_einsum.contract_expression` with the contraction string and the shapes of the tensors generates a :class:`~opt_einsum.contract.ContractExpression` which can then be repeatedly called with any matching set of arrays. For example:
 
 .. code:: python
 
@@ -67,7 +67,7 @@ supply the actual arrays rather than just the shapes to
     <ContractExpression('ij,[jk,kl,lm],mn->ni', constants=[1, 2, 3])>
 
 The expression now only takes the remaining two arrays as arguments (the
-tensors with ``'ij'`` and ``'mn'`` indices), and will store as many resuable
+tensors with ``'ij'`` and ``'mn'`` indices), and will store as many reusable
 constant contractions as possible.
 
 .. code:: python
@@ -95,9 +95,8 @@ two contractions to compute the output.
 
 .. note::
 
-    The constant part of an expression is lazily generated upon first call
-    (specific to each backend), though it can also be explicitly built by
-    calling :meth:`~opt_einsum.contract.ContractExpression.evaluate_constants`.
+    The constant part of an expression is lazily generated upon the first call
+    (specific to each backend), though it can also be explicitly built by calling:meth:`~opt_einsum.contract.ContractExpression.evaluate_constants`.
 
 We can confirm the advantage of using expressions and constants by timing the
 following scenarios, first setting
@@ -132,4 +131,4 @@ contractions.
 We also note that even if there are *no* constant contractions to perform, it
 can be very advantageous to specify constant tensors for particular backends.
 For instance, if a GPU backend is used, the constant tensors will be kept on
-the device rather than being transfered each time.
+the device rather than being transferred each time.

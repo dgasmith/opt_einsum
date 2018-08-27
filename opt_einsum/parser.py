@@ -10,17 +10,39 @@ import numpy as np
 
 from . import compat
 
-einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+__all__ = [
+    "is_valid_einsum_char", "has_valid_einsum_chars_only", "get_symbol", "gen_unused_symbols",
+    "convert_to_valid_einsum_chars", "alpha_canonicalize", "find_output_str", "find_output_shape",
+    "possibly_convert_to_numpy", "parse_einsum_input"
+]
+
+_einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def is_valid_einsum_char(x):
     """Check if the character ``x`` is valid for numpy einsum.
+
+    Examples
+    --------
+    >>> is_valid_einsum_char("a")
+    True
+
+    >>> is_valid_einsum_char("Ǵ")
+    False
     """
-    return (x in einsum_symbols_base) or (x in ',->.')
+    return (x in _einsum_symbols_base) or (x in ',->.')
 
 
 def has_valid_einsum_chars_only(einsum_str):
     """Check if ``einsum_str`` contains only valid characters for numpy einsum.
+
+    Examples
+    --------
+    >>> has_valid_einsum_chars_only("abAZ")
+    True
+
+    >>> has_valid_einsum_chars_only("Över")
+    False
     """
     return all(map(is_valid_einsum_char, einsum_str))
 
@@ -34,19 +56,24 @@ def get_symbol(i):
     >>> get_symbol(2)
     'c'
 
-    >>> oe.get_symbol(200)
+    >>> get_symbol(200)
     'Ŕ'
 
-    >>> oe.get_symbol(20000)
+    >>> get_symbol(20000)
     '京'
     """
     if i < 52:
-        return einsum_symbols_base[i]
-    return compat.get_chr(i + 140)
+        return _einsum_symbols_base[i]
+    return compat.get_char(i + 140)
 
 
 def gen_unused_symbols(used, n):
     """Generate ``n`` symbols that are not already in ``used``.
+
+    Examples
+    --------
+    >>> list(oe.parser.gen_unused_symbols("abd", 2))
+    ['c', 'e']
     """
     i = cnt = 0
     while cnt < n:
@@ -62,6 +89,11 @@ def convert_to_valid_einsum_chars(einsum_str):
     """Convert the str ``einsum_str`` to contain only the alphabetic characters
     valid for numpy einsum. If there are too many symbols, let the backend
     throw an error.
+
+    Examples
+    --------
+    >>> oe.parser.convert_to_valid_einsum_chars("Ĥěļļö")
+    'cbdda'
     """
     symbols = sorted(set(einsum_str) - set(',->'))
     replacer = {x: get_symbol(i) for i, x in enumerate(symbols)}
@@ -70,6 +102,14 @@ def convert_to_valid_einsum_chars(einsum_str):
 
 def alpha_canonicalize(equation):
     """Alpha convert an equation in an order-independent canonical way.
+
+    Examples
+    --------
+    >>> oe.parser.alpha_canonicalize("dcba")
+    'abcd'
+
+    >>> oe.parser.alpha_canonicalize("Ĥěļļö")
+    'abccd'
     """
     rename = OrderedDict()
     for name in equation:
@@ -81,7 +121,19 @@ def alpha_canonicalize(equation):
 
 
 def find_output_str(subscripts):
-    """Find the output string for the inputs ``susbcripts``.
+    """
+    Find the output string for the inputs ``subscripts`` under canonical einstein summation rules. That is, repeated indices are summed over by default.
+
+    Examples
+    --------
+    >>> oe.parser.find_output_str("ab,bc")
+    'ac'
+
+    >>> oe.parser.find_output_str("a,b")
+    'ab'
+
+    >>> oe.parser.find_output_str("a,a,b,b")
+    ''
     """
     tmp_subscripts = subscripts.replace(",", "")
     return "".join(s for s in sorted(set(tmp_subscripts)) if tmp_subscripts.count(s) == 1)
@@ -90,16 +142,45 @@ def find_output_str(subscripts):
 def find_output_shape(inputs, shapes, output):
     """Find the output shape for given inputs, shapes and output string, taking
     into account broadcasting.
+
+    Examples
+    --------
+    >>> oe.parser.find_output_shape(["ab", "bc"], [(2, 3), (3, 4)], "ac")
+    (2, 4)
+
+    # Broadcasting is accounted for
+    >>> oe.parser.find_output_shape(["a", "a"], [(4, ), (1, )], "a")
+    (4,)
     """
     return tuple(
-        max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0)
-        for c in output
-    )
+        max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
 
 
 def possibly_convert_to_numpy(x):
     """Convert things without a 'shape' to ndarrays, but leave everything else.
+
+    Examples
+    --------
+    >>> oe.parser.possibly_convert_to_numpy(5)
+    array(5)
+
+    >>> oe.parser.possibly_convert_to_numpy([5, 3])
+    array([5, 3])
+
+    >>> oe.parser.possibly_convert_to_numpy(np.array([5, 3]))
+    array([5, 3])
+
+    # Any class with a shape is passed through
+    >>> class Shape:
+    ...     def __init__(self, shape):
+    ...         self.shape = shape
+    ...
+
+    >>> myshape = Shape((5, 5))
+    >>> oe.parser.possibly_convert_to_numpy(myshape)
+    <__main__.Shape object at 0x10f850710>
     """
+
     if not hasattr(x, 'shape'):
         return np.asanyarray(x)
     else:

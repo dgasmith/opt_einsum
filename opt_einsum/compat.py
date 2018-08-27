@@ -1,10 +1,12 @@
-# Python 2/3 compatability shim
+"""
+Python 2/3 compatability shim
+"""
 
 try:
     # Python 2
-    get_chr = unichr
-    strings = (str, type(get_chr(300)))
+    get_char = unichr
+    strings = (str, type(get_char(300)))
 except NameError:
     # Python 3
-    get_chr = chr
+    get_char = chr
     strings = str

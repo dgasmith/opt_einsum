@@ -5,6 +5,7 @@ import itertools
 
 from . import helpers
 
+__all__ = ["optimal", "greedy"] 
 
 def optimal(input_sets, output_set, idx_dict, memory_limit):
     """

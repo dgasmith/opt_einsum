@@ -4,9 +4,11 @@ Contains helper functions for opt_einsum testing scripts
 
 import numpy as np
 
-chars = 'abcdefghijklmopqABC'
-sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4])
-default_dim_dict = {c: s for c, s in zip(chars, sizes)}
+__all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
+
+_valid_chars = "abcdefghijklmopqABC"
+_sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4])
+_default_dim_dict = {c: s for c, s in zip(_valid_chars, _sizes)}
 
 
 def build_views(string, dimension_dict=None):
@@ -18,7 +20,7 @@ def build_views(string, dimension_dict=None):
     tensor_list : list of str
         List of tensor strings to build
     dimension_dictionary : dictionary
-        Dictionary of index sizes
+        Dictionary of index _sizes
 
     Returns
     -------
@@ -34,7 +36,7 @@ def build_views(string, dimension_dict=None):
     """
 
     if dimension_dict is None:
-        dimension_dict = default_dim_dict
+        dimension_dict = _default_dim_dict
 
     views = []
     terms = string.split('->')[0].split(',')
@@ -54,7 +56,7 @@ def compute_size_by_dict(indices, idx_dict):
     indices : iterable
         Indices to base the product on.
     idx_dict : dictionary
-        Dictionary of index sizes
+        Dictionary of index _sizes
 
     Returns
     -------
