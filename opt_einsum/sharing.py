@@ -197,7 +197,7 @@ def to_backend_cache_wrap(to_backend=None, constants=False):
 
             # hash by id
             key = to_backend.__name__, id(array), constant
-            return _memoize(key, to_backend, array)
+            return _memoize(key, to_backend, array, constant=constant)
 
     else:
 
