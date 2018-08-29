@@ -7,7 +7,10 @@ dimension and index. However, it is only optimized to contract two terms
 at a time resulting in non-optimal scaling.
 
 For example, consider the following index transformation:
-``M_{pqrs} = C_{pi} C_{qj} I_{ijkl} C_{rk} C_{sl}``
+
+.. math::
+
+    M_{pqrs} = C_{pi} C_{qj} I_{ijkl} C_{rk} C_{sl}
 
 Consider two different algorithms:
 

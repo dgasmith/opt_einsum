@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from opt_einsum import contract, helpers, contract_expression, backends
+from opt_einsum import contract, helpers, contract_expression, backends, sharing
 
 try:
     import tensorflow as tf
@@ -90,6 +90,31 @@ def test_tensorflow_with_constants():
     assert isinstance(res_got3, tf.Tensor)
 
 
+@pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
+@pytest.mark.parametrize("string", tests)
+def test_tensorflow_with_sharing(string):
+    views = helpers.build_views(string)
+    ein = contract(string, *views, optimize=False, use_blas=False)
+
+    shps = [v.shape for v in views]
+    expr = contract_expression(string, *shps, optimize=True)
+
+    sess = tf.Session(config=_TF_CONFIG)
+
+    with sess.as_default(), sharing.shared_intermediates() as cache:
+        tfl1 = expr(*views, backend='tensorflow')
+        assert sharing.get_sharing_cache() is cache
+        cache_sz = len(cache)
+        assert cache_sz > 0
+        tfl2 = expr(*views, backend='tensorflow')
+        assert len(cache) == cache_sz
+
+    assert all(isinstance(t, tf.Tensor) for t in cache.values())
+
+    assert np.allclose(ein, tfl1)
+    assert np.allclose(ein, tfl2)
+
+
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano(string):
@@ -132,6 +157,29 @@ def test_theano_with_constants():
     # check theano call returns theano still
     res_got3 = expr(backends.to_theano(var), backend='theano')
     assert isinstance(res_got3, theano.tensor.TensorVariable)
+
+
+@pytest.mark.skipif(not found_theano, reason="Theano not installed.")
+@pytest.mark.parametrize("string", tests)
+def test_theano_with_sharing(string):
+    views = helpers.build_views(string)
+    ein = contract(string, *views, optimize=False, use_blas=False)
+
+    shps = [v.shape for v in views]
+    expr = contract_expression(string, *shps, optimize=True)
+
+    with sharing.shared_intermediates() as cache:
+        thn1 = expr(*views, backend='theano')
+        assert sharing.get_sharing_cache() is cache
+        cache_sz = len(cache)
+        assert cache_sz > 0
+        thn2 = expr(*views, backend='theano')
+        assert len(cache) == cache_sz
+
+    assert all(isinstance(t, theano.tensor.TensorVariable) for t in cache.values())
+
+    assert np.allclose(ein, thn1)
+    assert np.allclose(ein, thn2)
 
 
 @pytest.mark.parametrize("string", tests)

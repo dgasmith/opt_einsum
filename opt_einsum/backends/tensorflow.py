@@ -6,7 +6,10 @@ from __future__ import absolute_import
 
 import numpy as np
 
+from ..sharing import to_backend_cache_wrap
+
 __all__ = ["to_tensorflow", "build_expression", "evaluate_constants"]
+
 
 _CACHED_TF_DEVICE = None
 
@@ -31,6 +34,7 @@ def _get_tensorflow_and_device():
     return _CACHED_TF_DEVICE
 
 
+@to_backend_cache_wrap(constants=True)
 def to_tensorflow(array, constant=False):
     """Convert a numpy array to a ``tensorflow.placeholder`` instance.
     """
