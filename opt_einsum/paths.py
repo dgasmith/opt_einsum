@@ -65,9 +65,7 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
 
         # Update combinatorial list, if we did not find anything return best
         # path + remaining contractions
-        if iter_results:
-            full_results = iter_results
-        else:
+        if not iter_results:
             path = min(full_results, key=lambda x: x[0])[1]
             path += [tuple(range(len(input_sets) - iteration))]
             return path
