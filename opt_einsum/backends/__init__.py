@@ -15,7 +15,6 @@ __all__ = [
     'has_einsum',
     'build_expression',
     'evaluate_constants',
-    'CONVERT_BACKENDS',
     'to_tensorflow',
     'to_theano',
     'to_cupy',
