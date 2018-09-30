@@ -134,7 +134,7 @@ def test_memory_paths():
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
 
-@pytest.mark.parametrize("alg", ['greedy', 'optimal', 'cheap'])
+@pytest.mark.parametrize("alg", ['greedy', 'optimal'])
 @pytest.mark.parametrize("expression,order", path_edge_tests)
 def test_path_edge_cases(alg, expression, order):
     views = oe.helpers.build_views(expression)
