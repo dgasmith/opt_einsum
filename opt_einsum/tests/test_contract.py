@@ -99,14 +99,12 @@ tests = [
 
 
 @pytest.mark.parametrize("string", tests)
-def test_compare(string):
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+def test_compare(optimize, string):
     views = helpers.build_views(string)
 
     ein = contract(string, *views, optimize=False, use_blas=False)
-    opt = contract(string, *views, optimize='greedy', use_blas=False)
-    assert np.allclose(ein, opt)
-
-    opt = contract(string, *views, optimize='optimal', use_blas=False)
+    opt = contract(string, *views, optimize=optimize, use_blas=False)
     assert np.allclose(ein, opt)
 
 
@@ -118,7 +116,8 @@ def test_drop_in_replacement(string):
 
 
 @pytest.mark.parametrize("string", tests)
-def test_compare_greek(string):
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+def test_compare_greek(optimize, string):
     views = helpers.build_views(string)
 
     ein = contract(string, *views, optimize=False, use_blas=False)
@@ -126,27 +125,23 @@ def test_compare_greek(string):
     # convert to greek
     string = ''.join(compat.get_char(ord(c) + 848) if c not in ',->.' else c for c in string)
 
-    opt = contract(string, *views, optimize='greedy', use_blas=False)
-    assert np.allclose(ein, opt)
-
-    opt = contract(string, *views, optimize='optimal', use_blas=False)
+    opt = contract(string, *views, optimize=optimize, use_blas=False)
     assert np.allclose(ein, opt)
 
 
 @pytest.mark.parametrize("string", tests)
-def test_compare_blas(string):
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+def test_compare_blas(optimize, string):
     views = helpers.build_views(string)
 
     ein = contract(string, *views, optimize=False)
-    opt = contract(string, *views, optimize='greedy')
-    assert np.allclose(ein, opt)
-
-    opt = contract(string, *views, optimize='optimal')
+    opt = contract(string, *views, optimize=optimize)
     assert np.allclose(ein, opt)
 
 
 @pytest.mark.parametrize("string", tests)
-def test_compare_blas_greek(string):
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+def test_compare_blas_greek(optimize, string):
     views = helpers.build_views(string)
 
     ein = contract(string, *views, optimize=False)
@@ -154,10 +149,7 @@ def test_compare_blas_greek(string):
     # convert to greek
     string = ''.join(compat.get_char(ord(c) + 848) if c not in ',->.' else c for c in string)
 
-    opt = contract(string, *views, optimize='greedy')
-    assert np.allclose(ein, opt)
-
-    opt = contract(string, *views, optimize='optimal')
+    opt = contract(string, *views, optimize=optimize)
     assert np.allclose(ein, opt)
 
 
@@ -179,7 +171,7 @@ def test_printing():
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", ['greedy', 'optimal'])
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
 @pytest.mark.parametrize("use_blas", [False, True])
 @pytest.mark.parametrize("out_spec", [False, True])
 def test_contract_expressions(string, optimize, use_blas, out_spec):
