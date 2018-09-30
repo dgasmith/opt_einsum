@@ -26,10 +26,14 @@ explicit_path_tests = {
 }
 
 path_edge_tests = [
-    ['eb,cb,fb->cef', ((0, 2), (0, 1))],
-    ['dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
-    ['bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
-    ['dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
+    ['greedy', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
+    ['optimal', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
+    ['greedy', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
+    ['optimal', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
+    ['greedy', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
+    ['optimal', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
+    ['greedy', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
+    ['optimal', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
 ]
 
 
@@ -134,8 +138,7 @@ def test_memory_paths():
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
 
-@pytest.mark.parametrize("alg", ['greedy', 'optimal'])
-@pytest.mark.parametrize("expression,order", path_edge_tests)
+@pytest.mark.parametrize("alg,expression,order", path_edge_tests)
 def test_path_edge_cases(alg, expression, order):
     views = oe.helpers.build_views(expression)
 
