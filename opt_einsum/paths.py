@@ -349,7 +349,7 @@ def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
 
 def _ssa_optimize(inputs, output, sizes):
     """
-    This has an interface similar to :func:`optimize` but produces a path with
+    This has an interface similar to :func:`cheap` but produces a path with
     static single assignment ids rather than recycled linear ids.
     SSA ids are cheaper to work with and easier to reason about.
     """
@@ -438,21 +438,6 @@ def _ssa_optimize(inputs, output, sizes):
 
 
 def cheap(inputs, output, idx_dict):
-    """
-    Produces an optimization path similar to the greedy strategy
-    :func:`opt_einsum.paths.greedy`. This optimizer is cheaper and less
-    accurate than the default ``opt_einsum`` optimizer.
-
-    :param list inputs: A list of input shapes. These can be strings or sets or
-        frozensets of characters.
-    :param str output: An output shape. This can be a string or set or
-        frozenset of characters.
-    :param dict sizes: A mapping from dimensions (characters in inputs) to ints
-        that are the sizes of those dimensions.
-    :return: An optimization path: a list if tuples of contraction indices.
-    rtype: list
-    """
-
     """
     Finds the path by a quick-and-dirty method.
 
