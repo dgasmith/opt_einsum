@@ -170,7 +170,7 @@ def flop_count(idx_contraction, inner, num_terms, size_dictionary):
     return overall_size * op_factor
 
 
-def rand_equation(n, reg, n_outer, dmin=2, dmax=9, seed=None):
+def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None):
     """Generate a random contraction and shapes.
 
     Parameters
@@ -178,12 +178,14 @@ def rand_equation(n, reg, n_outer, dmin=2, dmax=9, seed=None):
     n : int
         Number of array arguments.
     reg : int
-        Average connectivity of graph.
-    n_outer : int
-        Number of outer indices.
-    dmin : int, optional
+        'Regularity' of the contraction graph. This essentially determines how
+        many indices each tensor shares with others on average.
+    n_out : int, optional
+        Number of output indices (i.e. the number of non-contracted indices).
+        Defaults to 0, i.e., a contraction resulting in a scalar.
+    d_min : int, optional
         Minimum dimension size.
-    dmax : int, optional
+    d_max : int, optional
         Maximum dimension size.
     seed: int, optional
         If not None, seed numpy's random generator with this.
@@ -192,12 +194,12 @@ def rand_equation(n, reg, n_outer, dmin=2, dmax=9, seed=None):
     -------
     eq : str
         The equation string.
-    shapes : tuple[tuple[int]]
+    shapes : list[tuple[int]]
         The array shapes.
 
     Examples
     --------
-    >>> eq, shapes = rand_equation(n=10, reg=4, n_outer=5, seed=42)
+    >>> eq, shapes = rand_equation(n=10, reg=4, n_out=5, seed=42)
     >>> eq
     'oyeqn,tmaq,skpo,vg,hxui,n,fwxmr,hitplcj,kudlgfv,rywjsb->cebda'
 
@@ -218,12 +220,12 @@ def rand_equation(n, reg, n_outer, dmin=2, dmax=9, seed=None):
         np.random.seed(seed)
 
     # total number of indices
-    num_inds = n * reg // 2 + n_outer
+    num_inds = n * reg // 2 + n_out
     inputs = ["" for _ in range(n)]
     output = []
 
     ix_szs = {
-        get_symbol(i): np.random.randint(dmin, dmax + 1)
+        get_symbol(i): np.random.randint(d_min, d_max + 1)
         for i in range(num_inds)
     }
 
@@ -231,7 +233,7 @@ def rand_equation(n, reg, n_outer, dmin=2, dmax=9, seed=None):
     def gen():
         for i, ix in enumerate(ix_szs):
             # generate an outer index
-            if i < n_outer:
+            if i < n_out:
                 output.append(ix)
                 yield ix
             # generate a bond

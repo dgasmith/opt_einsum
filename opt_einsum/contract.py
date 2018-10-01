@@ -394,11 +394,12 @@ def contract(*operands, **kwargs):
     memory_limit : {None, int, 'max_input'} (default: None)
         Give the upper bound of the largest intermediate tensor contract will build.
 
-        - if None or -1, there is no limit.
-        - if 'max_input', the limit is set as largest input tensor.
-        - else take memory_limit as the maximum number of elements directly.
+        - None or -1 means there is no limit
+        - 'max_input' means the limit is set as largest input tensor
+        - a positive integer is taken as an explicit limit on the number of elements
 
-        Note that imposing a limit can make contractions exponentially slower to perform.
+        The default is None. Note that imposing a limit can make contractions
+        exponentially slower to perform.
     backend : str, optional (default: ``numpy``)
         Which library to use to perform the required ``tensordot``, ``transpose``
         and ``einsum`` calls. Should match the types of arrays supplied, See
