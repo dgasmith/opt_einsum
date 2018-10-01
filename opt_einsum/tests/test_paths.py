@@ -26,12 +26,16 @@ explicit_path_tests = {
 }
 
 path_edge_tests = [
+    ['cheap', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
     ['greedy', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
     ['optimal', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
+    ['cheap', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['greedy', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['optimal', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
+    ['cheap', 'bca,cdb,dbf,afc->', ((0, 3), (0, 1), (0, 1))],
     ['greedy', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['optimal', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
+    ['cheap', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
     ['greedy', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
     ['optimal', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
 ]
@@ -172,10 +176,12 @@ def test_greedy_edge_cases():
     assert check_path(path, [(0, 1), (0, 2), (0, 1)])
 
 
-def test_can_optimize_outer_products():
+@pytest.mark.parametrize("optimize", ['greedy', 'cheap'])
+def test_can_optimize_outer_products(optimize):
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
     d = np.random.randn(10, 2)
-    assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, path='greedy')[0] == [(2, 3), (0, 2), (0, 1)]
+    actual = oe.contract_path("ab,cd,ef,fg", a, b, c, d, path=optimize)[0]
+    assert actual in [[(2, 3), (0, 2), (0, 1)], [(2, 3), (0, 2), (0, 1)]]
 
 
 @pytest.mark.parametrize('num_symbols', [2, 3, 26, 26 + 26, 256 - 140, 300])

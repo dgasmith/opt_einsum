@@ -312,23 +312,24 @@ def linear_to_ssa(path):
     return ssa_path
 
 
-def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2):
+def _get_candidate(output, sizes, remaining, dim_ref_counts, k1, k2):
     either = k1 | k2
     two = k1 & k2
     one = either - two
     k12 = (either & output) | (two & dim_ref_counts[3]) | (one & dim_ref_counts[2])
-    footprint12 = helpers.compute_size_by_dict(k12, sizes)
-    cost = footprint12 - footprints[k1] - footprints[k2]
+    cost = helpers.compute_size_by_dict(k12, sizes)
     id1 = remaining[k1]
     id2 = remaining[k2]
-    cost = cost, min(id1, id2), max(id1, id2)  # break ties to ensure determinism
+    if id1 > id2:
+        k1, id1, k2, id2 = k2, id2, k1, id1
+    cost = cost, id1, id2  # break ties to ensure determinism
     return cost, k1, k2, k12
 
 
-def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue):
+def _push_candidate(output, sizes, remaining, dim_ref_counts, k1, k2s, queue):
     if not k2s:
         return
-    candidate = min(_get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2)
+    candidate = min(_get_candidate(output, sizes, remaining, dim_ref_counts, k1, k2)
                     for k2 in k2s)
     heapq.heappush(queue, candidate)
 
@@ -353,7 +354,14 @@ def _ssa_optimize(inputs, output, sizes):
     static single assignment ids rather than recycled linear ids.
     SSA ids are cheaper to work with and easier to reason about.
     """
-    # A dim common to all terms might as well be an output dim.
+    if len(inputs) == 1:
+        # Perform a single contraction to match output shape.
+        return [(0,)]
+
+    # A dim that is common to all tensors might as well be an output dim, since it
+    # cannot be contracted until the final step. This avoids an expensive all-pairs
+    # comparison to search for possible contractions at each step, leading to speedup
+    # in many practical problems where all tensors share a common batch dimension.
     inputs = list(map(frozenset, inputs))
     output = frozenset(output) | frozenset.intersection(*inputs)
 
@@ -367,10 +375,6 @@ def _ssa_optimize(inputs, output, sizes):
             remaining[key] = next(ssa_ids)
         else:
             remaining[key] = ssa_id
-
-    # Compute footprints of each tensor.
-    footprints = {key: helpers.compute_size_by_dict(key, sizes)
-                  for key in remaining}
 
     # Keep track of possible contraction dims.
     dim_to_keys = defaultdict(set)
@@ -388,10 +392,10 @@ def _ssa_optimize(inputs, output, sizes):
     # Find initial candidate contractions.
     queue = []
     for dim, keys in dim_to_keys.items():
-        keys = list(keys)
+        keys = sorted(keys, key=remaining.__getitem__)
         for i, k1 in enumerate(keys):
-            k2s = keys[:i]
-            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue)
+            k2s = keys[1 + i:]
+            _push_candidate(output, sizes, remaining, dim_ref_counts, k1, k2s, queue)
 
     # Greedily contract pairs of tensors.
     while queue:
@@ -405,11 +409,10 @@ def _ssa_optimize(inputs, output, sizes):
             dim_to_keys[dim].remove(k1)
         for dim in k2 - output:
             dim_to_keys[dim].remove(k2)
-        ssa_path.append((ssa_id2, ssa_id1))
+        ssa_path.append((ssa_id1, ssa_id2))
         if k12 in remaining:
             ssa_path.append((remaining[k12], next(ssa_ids)))
         else:
-            footprints[k12] = helpers.compute_size_by_dict(k12, sizes)
             for dim in k12 - output:
                 dim_to_keys[dim].add(k12)
         remaining[k12] = next(ssa_ids)
@@ -418,22 +421,21 @@ def _ssa_optimize(inputs, output, sizes):
         # Find new candidate contractions.
         k1 = k12
         k2s = set(k2 for dim in k1 for k2 in dim_to_keys[dim] if k2 != k1)
-        _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue)
+        _push_candidate(output, sizes, remaining, dim_ref_counts, k1, k2s, queue)
 
     # Greedily compute pairwise outer products.
-    queue = [(len(key & output), ssa_id, key) for key, ssa_id in remaining.items()]
+    queue = [(helpers.compute_size_by_dict(key, sizes), ssa_id, key)
+             for key, ssa_id in remaining.items()]
     heapq.heapify(queue)
     _, ssa_id1, k1 = heapq.heappop(queue)
     while queue:
         _, ssa_id2, k2 = heapq.heappop(queue)
-        ssa_path.append((ssa_id1, ssa_id2))
+        ssa_path.append((min(ssa_id1, ssa_id2), max(ssa_id1, ssa_id2)))
         k12 = (k1 | k2) & output
-        cost = len(k12)
+        cost = helpers.compute_size_by_dict(k12, sizes)
         ssa_id12 = next(ssa_ids)
         _, ssa_id1, k1 = heapq.heappushpop(queue, (cost, ssa_id12, k12))
 
-    # Perform one final reduction to match output shape.
-    ssa_path.append((ssa_id1,))
     return ssa_path
 
 
@@ -463,14 +465,14 @@ def cheap(inputs, output, idx_dict):
     Returns
     -------
     path : list
-        The greedy contraction order within the memory limit constraint.
+        The contraction order (a list of tuples of ints).
 
     Examples
     --------
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('')
     >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> greedy(isets, oset, idx_sizes, 5000)
+    >>> cheap(isets, oset, idx_sizes)
     [(0, 2), (0, 1)]
     """
     ssa_path = _ssa_optimize(inputs, output, idx_dict)
