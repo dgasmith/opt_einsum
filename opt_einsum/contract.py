@@ -178,7 +178,7 @@ def contract_path(*operands, **kwargs):
     valid_contract_kwargs = ['optimize', 'path', 'memory_limit', 'einsum_call', 'use_blas']
     unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
     if len(unknown_kwargs):
-        raise TypeError("einsum_path: Did not understand the following kwargs: %s" % unknown_kwargs)
+        raise TypeError("einsum_path: Did not understand the following kwargs: {}".format(unknown_kwargs))
 
     if 'path' in kwargs:
         import warnings
@@ -209,8 +209,8 @@ def contract_path(*operands, **kwargs):
         sh = input_shps[tnum]
 
         if len(sh) != len(term):
-            raise ValueError("Einstein sum subscript %s does not contain the "
-                             "correct number of indices for operand %d." % (input_subscripts[tnum], tnum))
+            raise ValueError("Einstein sum subscript '{}' does not contain the "
+                             "correct number of indices for operand {}.".format(input_subscripts[tnum], tnum))
         for cnum, char in enumerate(term):
             dim = sh[cnum]
 
@@ -219,8 +219,8 @@ def contract_path(*operands, **kwargs):
                 if dimension_dict[char] == 1:
                     dimension_dict[char] = dim
                 elif dim not in (1, dimension_dict[char]):
-                    raise ValueError("Size of label '%s' for operand %d (%d) "
-                                     "does not match previous terms (%d)." % (char, tnum, dimension_dict[char], dim))
+                    raise ValueError("Size of label '{}' for operand {} ({}) does not match previous "
+                                     "terms ({}).".format(char, tnum, dimension_dict[char], dim))
             else:
                 dimension_dict[char] = dim
 
@@ -254,7 +254,7 @@ def contract_path(*operands, **kwargs):
     elif path_type in ("greedy", "opportunistic", "auto"):
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:
-        raise KeyError("Path name %s not found" % path_type)
+        raise KeyError("Path name '{}' not found".format(path_type))
 
     cost_list = []
     scale_list = []
@@ -452,7 +452,7 @@ def contract(*operands, **kwargs):
     # Make sure remaining keywords are valid for einsum
     unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_einsum_kwargs]
     if len(unknown_kwargs):
-        raise TypeError("Did not understand the following kwargs: %s" % unknown_kwargs)
+        raise TypeError("Did not understand the following kwargs: {}".format(unknown_kwargs))
 
     if gen_expression:
         full_str = operands[0]
@@ -675,13 +675,13 @@ class ContractExpression:
 
         if kwargs:
             raise ValueError("The only valid keyword arguments to a `ContractExpression` "
-                             "call are `out=` or `backend=`. Got: %s." % kwargs)
+                             "call are `out=` or `backend=`. Got: {}.".format(kwargs))
 
         correct_num_args = self._full_num_args if evaluate_constants else self.num_args
 
         if len(arrays) != correct_num_args:
-            raise ValueError("This `ContractExpression` takes exactly %s array arguments "
-                             "but received %s." % (self.num_args, len(arrays)))
+            raise ValueError("This `ContractExpression` takes exactly {} array arguments "
+                             "but received {}.".format(self.num_args, len(arrays)))
 
         if self._constants_dict and not evaluate_constants:
             # fill in the missing non-constant terms with newly supplied arrays
@@ -702,7 +702,7 @@ class ContractExpression:
             original_msg = str(err.args) if err.args else ""
             msg = ("Internal error while evaluating `ContractExpression`. Note that few checks are performed"
                    " - the number and rank of the array arguments must match the original expression. "
-                   "The internal error was: '%s'" % original_msg, )
+                   "The internal error was: '{}'".format(original_msg), )
             err.args = msg
             raise
 
@@ -714,13 +714,13 @@ class ContractExpression:
         return "<ContractExpression('{}'{})>".format(self.contraction, constants_repr)
 
     def __str__(self):
-        s = self.__repr__()
+        s = [self.__repr__()]
         for i, c in enumerate(self.contraction_list):
-            s += "\n  %i.  " % (i + 1)
-            s += "'%s'" % c[2] + (" [%s]" % c[-1] if c[-1] else "")
+            s.append("\n  {}.  ".format(i + 1))
+            s.append("'{}'".format(c[2]) + (" [{}]".format(c[-1]) if c[-1] else ""))
         if self.einsum_kwargs:
-            s += "\neinsum_kwargs=%s" % self.einsum_kwargs
-        return s
+            s.append("\neinsum_kwargs={}".format(self.einsum_kwargs))
+        return "".join(s)
 
 
 def shape_only(shape):
@@ -796,8 +796,8 @@ def contract_expression(subscripts, *shapes, **kwargs):
 
     for arg in ('out', 'backend'):
         if kwargs.get(arg, None) is not None:
-            raise ValueError("'%s' should only be specified when calling a "
-                             "`ContractExpression`, not when building it." % arg)
+            raise ValueError("'{}' should only be specified when calling a "
+                             "`ContractExpression`, not when building it.".format(arg))
 
     kwargs['_gen_expression'] = True
 
