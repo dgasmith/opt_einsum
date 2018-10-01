@@ -44,7 +44,7 @@ def get_string(term):
 
 def random_contraction():
 
-    # Compute number of terms    
+    # Compute number of terms
     num_terms = np.random.randint(min_terms, max_terms)
 
     # Compute size of each index
@@ -53,7 +53,7 @@ def random_contraction():
     # Build random terms and views
     int_terms = [make_term() for x in range(num_terms)]
     views = [np.random.rand(*index_size[s]) for s in int_terms]
-    
+
     # Compute einsum string and return string
     sum_string = ','.join([get_string(s) for s in int_terms])
     out_string = sum_string.replace(',','')
@@ -79,7 +79,7 @@ for x in range(200):
         out.append(['Opt_einsum failed', sum_string, index_size, 0, 0])
         continue
 
-    current_opt_path = oe.contract_path(sum_string, *views, path=opt_path)[0]
+    current_opt_path = oe.contract_path(sum_string, *views, optimize=opt_path)[0]
     if not np.allclose(ein, opt):
         out.append(['Comparison failed', sum_string, index_size, 0, 0])
         continue

@@ -15,6 +15,68 @@ from . import sharing
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only", "shape_only"]
 
 
+class PathInfo:
+
+    def __init__(self, contraction_list, input_subscripts, output_subscript,
+                 indices, scale_list, naive_cost, opt_cost, size_list):
+        self.contraction_list = contraction_list
+        self.input_subscripts = input_subscripts
+        self.output_subscript = output_subscript
+        self.indices = indices
+        self.scale_list = scale_list
+        self.naive_cost = naive_cost
+        self.opt_cost = opt_cost
+        self.largest_intermediate = max(size_list)
+
+    def __repr__(self):
+        from decimal import Decimal
+
+        # naive costs / speedups can easily reach >~ 1e308, need exact arithmetic
+        naive_cost = Decimal(self.naive_cost)
+        opt_cost = Decimal(self.opt_cost)
+        speedup = naive_cost / opt_cost
+        largest_intermediate = Decimal(self.largest_intermediate)
+
+        # Return the path along with a nice string representation
+        overall_contraction = self.input_subscripts + "->" + self.output_subscript
+        header = ("scaling", "BLAS", "current", "remaining")
+
+        path_print = "  Complete contraction:  {}\n".format(overall_contraction)
+        path_print += "         Naive scaling:  {}\n".format(len(self.indices))
+        path_print += "     Optimized scaling:  {}\n".format(max(self.scale_list))
+        path_print += "      Naive FLOP count:  {:.3e}\n".format(naive_cost)
+        path_print += "  Optimized FLOP count:  {:.3e}\n".format(opt_cost)
+        path_print += "   Theoretical speedup:  {:3.3f}\n".format(speedup)
+        path_print += "  Largest intermediate:  {:.3e} elements\n".format(largest_intermediate)
+        path_print += "-" * 80 + "\n"
+        path_print += "{:>6} {:>11} {:>22} {:>37}\n".format(*header)
+        path_print += "-" * 80
+
+        for n, contraction in enumerate(self.contraction_list):
+            inds, idx_rm, einsum_str, remaining, do_blas = contraction
+            remaining_str = ",".join(remaining) + "->" + self.output_subscript
+            path_run = (self.scale_list[n], do_blas, einsum_str, remaining_str)
+            path_print += "\n{:>4} {:>14} {:>22} {:>37}".format(*path_run)
+
+        return path_print
+
+
+def _choose_memory_arg(memory_limit, size_list):
+    if memory_limit == 'max_input':
+        return max(size_list)
+
+    if memory_limit is None:
+        return int(1e20)
+
+    if memory_limit < 1:
+        if memory_limit == -1:
+            return int(1e20)
+        else:
+            raise ValueError("Memory limit must be larger than 0, or -1")
+
+    return int(memory_limit)
+
+
 def contract_path(*operands, **kwargs):
     """
     Evaluates the lowest cost einsum-like contraction order.
@@ -25,7 +87,7 @@ def contract_path(*operands, **kwargs):
         Specifies the subscripts for summation.
     *operands : list of array_like
         These are the arrays for the operation.
-    path : bool or list, optional (default: ``auto``)
+    optimize : bool or list, optional (default: ``auto``)
         Choose the type of path.
 
         - if a list is given uses this as the path.
@@ -111,12 +173,18 @@ def contract_path(*operands, **kwargs):
     """
 
     # Make sure all keywords are valid
-    valid_contract_kwargs = ['path', 'memory_limit', 'einsum_call', 'use_blas']
+    valid_contract_kwargs = ['optimize', 'path', 'memory_limit', 'einsum_call', 'use_blas']
     unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
     if len(unknown_kwargs):
         raise TypeError("einsum_path: Did not understand the following kwargs: %s" % unknown_kwargs)
 
-    path_type = kwargs.pop('path', 'auto')
+    if 'path' in kwargs:
+        import warnings
+        warnings.warn("The 'path' keyword argument is deprecated in favor of 'optimize'.", DeprecationWarning)
+        path_type = kwargs.pop('path')
+    else:
+        path_type = kwargs.pop('optimize', 'auto')
+
     memory_limit = kwargs.pop('memory_limit', None)
 
     # Hidden option, only einsum should call this
@@ -156,18 +224,7 @@ def contract_path(*operands, **kwargs):
 
     # Compute size of each input array plus the output array
     size_list = [helpers.compute_size_by_dict(term, dimension_dict) for term in input_list + [output_subscript]]
-    out_size = max(size_list)
-
-    if memory_limit is None:
-        memory_arg = out_size
-    else:
-        if memory_limit < 1:
-            if memory_limit == -1:
-                memory_arg = int(1e20)
-            else:
-                raise ValueError("Memory limit must be larger than 0, or -1")
-        else:
-            memory_arg = int(memory_limit)
+    memory_arg = _choose_memory_arg(memory_limit, size_list)
 
     num_ops = len(input_list)
 
@@ -247,26 +304,8 @@ def contract_path(*operands, **kwargs):
     if einsum_call_arg:
         return operands, contraction_list
 
-    # Return the path along with a nice string representation
-    overall_contraction = input_subscripts + "->" + output_subscript
-    header = ("scaling", "BLAS", "current", "remaining")
-
-    path_print = "  Complete contraction:  %s\n" % overall_contraction
-    path_print += "         Naive scaling:  %d\n" % len(indices)
-    path_print += "     Optimized scaling:  %d\n" % max(scale_list)
-    path_print += "      Naive FLOP count:  %.3e\n" % naive_cost
-    path_print += "  Optimized FLOP count:  %.3e\n" % opt_cost
-    path_print += "   Theoretical speedup:  %3.3f\n" % (naive_cost / float(opt_cost))
-    path_print += "  Largest intermediate:  %.3e elements\n" % max(size_list)
-    path_print += "-" * 80 + "\n"
-    path_print += "%6s %11s %22s %37s\n" % header
-    path_print += "-" * 80
-
-    for n, contraction in enumerate(contraction_list):
-        inds, idx_rm, einsum_str, remaining, do_blas = contraction
-        remaining_str = ",".join(remaining) + "->" + output_subscript
-        path_run = (scale_list[n], do_blas, einsum_str, remaining_str)
-        path_print += "\n%4d %14s %22s %37s" % path_run
+    path_print = PathInfo(contraction_list, input_subscripts, output_subscript,
+                          indices, scale_list, naive_cost, opt_cost, size_list)
 
     return path, path_print
 
@@ -350,11 +389,14 @@ def contract(*operands, **kwargs):
           contracting the listed tensors. Scales exponentially with
           the number of terms in the contraction.
 
-    memory_limit : int or None (default : None)
-        The upper limit of the size of tensor created, by default, this will be
+    memory_limit : {None, int, 'max_input'} (default: None)
         Give the upper bound of the largest intermediate tensor contract will build.
-        By default (None) will size the ``memory_limit`` as the largest input tensor.
-        Users can also specify ``-1`` to allow arbitrarily large tensors to be built.
+
+        - if None or -1, there is no limit.
+        - if 'max_input', the limit is set as largest input tensor.
+        - else take memory_limit as the maximum number of elements directly.
+
+        Note that imposing a limit can make contractions exponentially slower to perform.
     backend : str, optional (default: ``numpy``)
         Which library to use to perform the required ``tensordot``, ``transpose``
         and ``einsum`` calls. Should match the types of arrays supplied, See
@@ -414,7 +456,7 @@ def contract(*operands, **kwargs):
 
     # Build the contraction list and operand
     operands, contraction_list = contract_path(
-        *operands, path=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas)
+        *operands, optimize=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas)
 
     # check if performing contraction or just building expression
     if gen_expression:

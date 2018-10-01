@@ -124,17 +124,17 @@ def test_memory_paths():
     views = oe.helpers.build_views(expression)
 
     # Test tiny memory limit
-    path_ret = oe.contract_path(expression, *views, path="optimal", memory_limit=5)
+    path_ret = oe.contract_path(expression, *views, optimize="optimal", memory_limit=5)
     assert check_path(path_ret[0], [(0, 1, 2, 3, 4, 5)])
 
-    path_ret = oe.contract_path(expression, *views, path="greedy", memory_limit=5)
+    path_ret = oe.contract_path(expression, *views, optimize="greedy", memory_limit=5)
     assert check_path(path_ret[0], [(0, 1, 2, 3, 4, 5)])
 
     # Check the possibilities, greedy is capped
-    path_ret = oe.contract_path(expression, *views, path="optimal", memory_limit=-1)
+    path_ret = oe.contract_path(expression, *views, optimize="optimal", memory_limit=-1)
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
-    path_ret = oe.contract_path(expression, *views, path="greedy", memory_limit=-1)
+    path_ret = oe.contract_path(expression, *views, optimize="greedy", memory_limit=-1)
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
 
@@ -143,7 +143,7 @@ def test_path_edge_cases(alg, expression, order):
     views = oe.helpers.build_views(expression)
 
     # Test tiny memory limit
-    path_ret = oe.contract_path(expression, *views, path=alg)
+    path_ret = oe.contract_path(expression, *views, optimize=alg)
     assert check_path(path_ret[0], order)
 
 
@@ -152,10 +152,10 @@ def test_optimal_edge_cases():
     # Edge test5
     expression = 'a,ac,ab,ad,cd,bd,bc->'
     edge_test4 = oe.helpers.build_views(expression, dimension_dict={"a": 20, "b": 20, "c": 20, "d": 20})
-    path, path_str = oe.contract_path(expression, *edge_test4, path='greedy')
+    path, path_str = oe.contract_path(expression, *edge_test4, optimize='greedy', memory_limit='max_input')
     assert check_path(path, [(0, 1), (0, 1, 2, 3, 4, 5)])
 
-    path, path_str = oe.contract_path(expression, *edge_test4, path='optimal')
+    path, path_str = oe.contract_path(expression, *edge_test4, optimize='optimal', memory_limit='max_input')
     assert check_path(path, [(0, 1), (0, 1, 2, 3, 4, 5)])
 
 
@@ -165,17 +165,17 @@ def test_greedy_edge_cases():
     dim_dict = {k: 20 for k in expression.replace(",", "")}
     tensors = oe.helpers.build_views(expression, dimension_dict=dim_dict)
 
-    path, path_str = oe.contract_path(expression, *tensors, path='greedy')
+    path, path_str = oe.contract_path(expression, *tensors, optimize='greedy', memory_limit='max_input')
     assert check_path(path, [(0, 1, 2, 3)])
 
-    path, path_str = oe.contract_path(expression, *tensors, path='greedy', memory_limit=-1)
+    path, path_str = oe.contract_path(expression, *tensors, optimize='greedy', memory_limit=-1)
     assert check_path(path, [(0, 1), (0, 2), (0, 1)])
 
 
 def test_can_optimize_outer_products():
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
     d = np.random.randn(10, 2)
-    assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, path='greedy')[0] == [(2, 3), (0, 2), (0, 1)]
+    assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, optimize='greedy')[0] == [(2, 3), (0, 2), (0, 1)]
 
 
 @pytest.mark.parametrize('num_symbols', [2, 3, 26, 26 + 26, 256 - 140, 300])
@@ -186,4 +186,4 @@ def test_large_path(num_symbols):
     tensors = oe.helpers.build_views(expression, dimension_dict=dimension_dict)
 
     # Check that path construction does not crash
-    oe.contract_path(expression, *tensors, path='greedy')
+    oe.contract_path(expression, *tensors, optimize='greedy')

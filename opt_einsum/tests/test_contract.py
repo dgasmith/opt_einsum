@@ -2,8 +2,6 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
-import sys
-
 import numpy as np
 import pytest
 
@@ -175,7 +173,7 @@ def test_printing():
     views = helpers.build_views(string)
 
     ein = contract_path(string, *views)
-    assert len(ein[1]) == 729
+    assert len(str(ein[1])) == 726
 
 
 @pytest.mark.parametrize("string", tests)

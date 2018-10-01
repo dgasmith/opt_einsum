@@ -3,6 +3,7 @@ Contains helper functions for opt_einsum testing scripts
 """
 
 import numpy as np
+from .parser import get_symbol
 
 __all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
 
@@ -167,3 +168,95 @@ def flop_count(idx_contraction, inner, num_terms, size_dictionary):
         op_factor += 1
 
     return overall_size * op_factor
+
+
+def rand_equation(n, reg, n_outer, dmin=2, dmax=9, seed=None):
+    """Generate a random contraction and shapes.
+
+    Parameters
+    ----------
+    n : int
+        Number of array arguments.
+    reg : int
+        Average connectivity of graph.
+    n_outer : int
+        Number of outer indices.
+    dmin : int, optional
+        Minimum dimension size.
+    dmax : int, optional
+        Maximum dimension size.
+    seed: int, optional
+        If not None, seed numpy's random generator with this.
+
+    Returns
+    -------
+    eq : str
+        The equation string.
+    shapes : tuple[tuple[int]]
+        The array shapes.
+
+    Examples
+    --------
+    >>> eq, shapes = rand_equation(n=10, reg=4, n_outer=5, seed=42)
+    >>> eq
+    'oyeqn,tmaq,skpo,vg,hxui,n,fwxmr,hitplcj,kudlgfv,rywjsb->cebda'
+
+    >>> shapes
+    [(9, 5, 4, 5, 4),
+     (4, 4, 8, 5),
+     (9, 4, 6, 9),
+     (6, 6),
+     (6, 9, 7, 8),
+     (4,),
+     (9, 3, 9, 4, 9),
+     (6, 8, 4, 6, 8, 6, 3),
+     (4, 7, 8, 8, 6, 9, 6),
+     (9, 5, 3, 3, 9, 5)]
+    """
+
+    if seed is not None:
+        np.random.seed(seed)
+
+    # total number of indices
+    num_inds = n * reg // 2 + n_outer
+    inputs = ["" for _ in range(n)]
+    output = []
+
+    ix_szs = {
+        get_symbol(i): np.random.randint(dmin, dmax + 1)
+        for i in range(num_inds)
+    }
+
+    # generate a list of indices to place either once or twice
+    def gen():
+        for i, ix in enumerate(ix_szs):
+            # generate an outer index
+            if i < n_outer:
+                output.append(ix)
+                yield ix
+            # generate a bond
+            else:
+                yield ix
+                yield ix
+
+    # add the indices randomly to the inputs
+    for i, ix in enumerate(np.random.permutation(list(gen()))):
+        # make sure all inputs have at least one index
+        if i < n:
+            inputs[i] += ix
+        else:
+            # don't add any traces on same op
+            where = np.random.randint(0, n)
+            while ix in inputs[where]:
+                where = np.random.randint(0, n)
+
+            inputs[where] += ix
+
+    # randomly transpose the output indices and form equation
+    output = "".join(np.random.permutation(output))
+    eq = "{}->{}".format(",".join(inputs), output)
+
+    # make the shapes
+    shapes = [tuple(ix_szs[ix] for ix in op) for op in inputs]
+
+    return eq, shapes

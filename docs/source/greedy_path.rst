@@ -25,7 +25,7 @@ It should be stressed these cases are quite rare and by default ``contract`` use
     >>> B = np.random.rand(37, 51, 51, 59)
     >>> C = np.random.rand(59, 27)
 
-    >>> path, desc = oe.contract_path('xyf,xtf,ytpf,fr->tpr', M, A, B, C, path="greedy")
+    >>> path, desc = oe.contract_path('xyf,xtf,ytpf,fr->tpr', M, A, B, C, optimize="greedy")
     >>> print(desc)
       Complete contraction:  xyf,xtf,ytpf,fr->tpr
              Naive scaling:  6
@@ -41,7 +41,7 @@ It should be stressed these cases are quite rare and by default ``contract`` use
        4          False          tpfx,xtf->tpf                           fr,tpf->tpr
        4           GEMM            tpf,fr->tpr                              tpr->tpr
 
-    >>> path, desc = oe.contract_path('xyf,xtf,ytpf,fr->tpr', M, A, B, C, path="optimal")
+    >>> path, desc = oe.contract_path('xyf,xtf,ytpf,fr->tpr', M, A, B, C, optimize="optimal")
     >>> print(desc)
 
       Complete contraction:  xyf,xtf,ytpf,fr->tpr
