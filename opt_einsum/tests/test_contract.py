@@ -236,7 +236,7 @@ def test_contract_expression_with_constants(string, constants):
 @pytest.mark.parametrize("reg", [3, 4])
 @pytest.mark.parametrize("n_out", [0, 2, 4])
 def test_rand_equation(optimize, n, reg, n_out):
-    eq, shapes = helpers.rand_equation(n, reg, n_out, d_min=2, d_max=5)
+    eq, shapes = helpers.rand_equation(n, reg, n_out, d_min=2, d_max=5, seed=42)
     views = [np.random.rand(*s) for s in shapes]
 
     expected = contract(eq, *views, optimize=False)
