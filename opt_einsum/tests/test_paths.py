@@ -181,7 +181,7 @@ def test_can_optimize_outer_products(optimize):
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
     d = np.random.randn(10, 2)
     actual = oe.contract_path("ab,cd,ef,fg", a, b, c, d, path=optimize)[0]
-    assert actual in [[(2, 3), (0, 2), (0, 1)], [(2, 3), (0, 2), (0, 1)]]
+    assert actual == [(2, 3), (0, 2), (0, 1)]
 
 
 @pytest.mark.parametrize('num_symbols', [2, 3, 26, 26 + 26, 256 - 140, 300])
