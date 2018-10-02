@@ -4,6 +4,12 @@ import pytest
 from opt_einsum import contract, helpers, contract_expression, backends, sharing
 
 try:
+    import cupy
+    found_cupy = True
+except ImportError:
+    found_cupy = False
+
+try:
     import tensorflow as tf
     # needed so tensorflow doesn't allocate all gpu mem
     _TF_CONFIG = tf.ConfigProto()
@@ -182,10 +188,9 @@ def test_theano_with_sharing(string):
     assert np.allclose(ein, thn2)
 
 
+@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_cupy(string):  # pragma: no cover
-    cupy = pytest.importorskip("cupy")
-
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -202,8 +207,8 @@ def test_cupy(string):  # pragma: no cover
     assert np.allclose(ein, cupy.asnumpy(cupy_opt))
 
 
+@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 def test_cupy_with_constants():  # pragma: no cover
-    cupy = pytest.importorskip("cupy")
 
     eq = 'ij,jk,kl->li'
     shapes = (2, 3), (3, 4), (4, 5)
