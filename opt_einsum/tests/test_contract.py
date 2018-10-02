@@ -166,7 +166,7 @@ def test_printing():
     views = helpers.build_views(string)
 
     ein = contract_path(string, *views)
-    assert len(ein[1]) == 729
+    assert len(str(ein[1])) == 726
 
 
 @pytest.mark.parametrize("string", tests)
@@ -222,6 +222,20 @@ def test_contract_expression_with_constants(string, constants):
     print(expr)
     out = expr(*ctrc_args)
     assert np.allclose(expected, out)
+
+
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal'])
+@pytest.mark.parametrize("n", [3, 5])
+@pytest.mark.parametrize("reg", [3, 4])
+@pytest.mark.parametrize("n_out", [0, 2, 4])
+def test_rand_equation(optimize, n, reg, n_out):
+    eq, shapes = helpers.rand_equation(n, reg, n_out, d_min=2, d_max=5, seed=42)
+    views = [np.random.rand(*s) for s in shapes]
+
+    expected = contract(eq, *views, optimize=False)
+    actual = contract(eq, *views, optimize=optimize)
+
+    assert np.allclose(expected, actual)
 
 
 @pytest.mark.parametrize('equation', tests)
