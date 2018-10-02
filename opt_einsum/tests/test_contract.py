@@ -2,12 +2,11 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
-import sys
-
 import numpy as np
 import pytest
 
 from opt_einsum import compat, contract, contract_path, helpers, contract_expression
+from opt_einsum.paths import linear_to_ssa, ssa_to_linear
 
 tests = [
     # Test hadamard-like products
@@ -223,3 +222,12 @@ def test_contract_expression_with_constants(string, constants):
     print(expr)
     out = expr(*ctrc_args)
     assert np.allclose(expected, out)
+
+
+@pytest.mark.parametrize('equation', tests)
+def test_linear_vs_ssa(equation):
+    views = helpers.build_views(equation)
+    linear_path, _ = contract_path(equation, *views)
+    ssa_path = linear_to_ssa(linear_path)
+    linear_path2 = ssa_to_linear(ssa_path)
+    assert linear_path2 == linear_path
