@@ -98,7 +98,7 @@ tests = [
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'eager'])
 def test_compare(optimize, string):
     views = helpers.build_views(string)
 
@@ -115,7 +115,7 @@ def test_drop_in_replacement(string):
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'eager'])
 def test_compare_greek(optimize, string):
     views = helpers.build_views(string)
 
@@ -129,7 +129,7 @@ def test_compare_greek(optimize, string):
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'eager'])
 def test_compare_blas(optimize, string):
     views = helpers.build_views(string)
 
@@ -139,7 +139,7 @@ def test_compare_blas(optimize, string):
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'eager'])
 def test_compare_blas_greek(optimize, string):
     views = helpers.build_views(string)
 
@@ -170,7 +170,7 @@ def test_printing():
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'cheap'])
+@pytest.mark.parametrize("optimize", ['greedy', 'optimal', 'eager'])
 @pytest.mark.parametrize("use_blas", [False, True])
 @pytest.mark.parametrize("out_spec", [False, True])
 def test_contract_expressions(string, optimize, use_blas, out_spec):

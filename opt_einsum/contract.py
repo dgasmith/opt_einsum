@@ -99,7 +99,7 @@ def contract_path(*operands, **kwargs):
         - 'optimal' An algorithm that tries all possible ways of
           contracting the listed tensors. Scales exponentially with
           the number of terms in the contraction.
-        - 'cheap' An approximate algorithm that is cheaper than 'greedy' for
+        - 'eager' An approximate algorithm that is cheaper than 'greedy' for
           very large contractions.
         - 'auto' Use the optimal approach for a small number of terms (currently
           4 or less), else use the greedy approach.
@@ -255,8 +255,8 @@ def contract_path(*operands, **kwargs):
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type in ("greedy", "opportunistic", "auto"):
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type == 'cheap':
-        path = paths.cheap(input_sets, output_set, dimension_dict)
+    elif path_type == 'eager':
+        path = paths.eager(input_sets, output_set, dimension_dict)
     else:
         raise KeyError("Path name '{}' not found".format(path_type))
 
@@ -394,7 +394,7 @@ def contract(*operands, **kwargs):
         - 'optimal' An algorithm that tries all possible ways of
           contracting the listed tensors. Scales exponentially with
           the number of terms in the contraction.
-        - 'cheap' An approximate algorithm that is cheaper than 'greedy'
+        - 'eager' An approximate algorithm that is cheaper than 'greedy'
           for very large contractions.
 
     memory_limit : {None, int, 'max_input'} (default: None)

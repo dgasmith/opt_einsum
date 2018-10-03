@@ -11,7 +11,7 @@ import numpy as np
 
 from . import helpers
 
-__all__ = ["optimal", "greedy", "cheap"]
+__all__ = ["optimal", "greedy", "eager"]
 
 
 def optimal(input_sets, output_set, idx_dict, memory_limit):
@@ -350,7 +350,7 @@ def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
 
 def _ssa_optimize(inputs, output, sizes):
     """
-    This has an interface similar to :func:`cheap` but produces a path with
+    This has an interface similar to :func:`eager` but produces a path with
     static single assignment ids rather than recycled linear ids.
     SSA ids are cheaper to work with and easier to reason about.
     """
@@ -439,7 +439,7 @@ def _ssa_optimize(inputs, output, sizes):
     return ssa_path
 
 
-def cheap(inputs, output, idx_dict):
+def eager(inputs, output, idx_dict):
     """
     Finds the path by a quick-and-dirty method.
 
@@ -472,7 +472,7 @@ def cheap(inputs, output, idx_dict):
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('')
     >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> cheap(isets, oset, idx_sizes)
+    >>> eager(isets, oset, idx_sizes)
     [(0, 2), (0, 1)]
     """
     ssa_path = _ssa_optimize(inputs, output, idx_dict)
