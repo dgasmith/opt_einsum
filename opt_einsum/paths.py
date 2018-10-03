@@ -312,12 +312,12 @@ def linear_to_ssa(path):
     return ssa_path
 
 
-def _get_candidate(output, sizes, remaining, dim_ref_counts, k1, k2):
+def _get_candidate(output, sizes, remaining, costs, dim_ref_counts, k1, k2):
     either = k1 | k2
     two = k1 & k2
     one = either - two
     k12 = (either & output) | (two & dim_ref_counts[3]) | (one & dim_ref_counts[2])
-    cost = helpers.compute_size_by_dict(k12, sizes)
+    cost = costs[k1] + costs[k2] + 2 * helpers.compute_size_by_dict(k12, sizes)
     id1 = remaining[k1]
     id2 = remaining[k2]
     if id1 > id2:
@@ -326,10 +326,10 @@ def _get_candidate(output, sizes, remaining, dim_ref_counts, k1, k2):
     return cost, k1, k2, k12
 
 
-def _push_candidate(output, sizes, remaining, dim_ref_counts, k1, k2s, queue):
+def _push_candidate(output, sizes, remaining, costs, dim_ref_counts, k1, k2s, queue):
     if not k2s:
         return
-    candidate = min(_get_candidate(output, sizes, remaining, dim_ref_counts, k1, k2)
+    candidate = min(_get_candidate(output, sizes, remaining, costs, dim_ref_counts, k1, k2)
                     for k2 in k2s)
     heapq.heappush(queue, candidate)
 
@@ -389,13 +389,16 @@ def _ssa_optimize(inputs, output, sizes):
         count: set(dim for dim, keys in dim_to_keys.items() if len(keys) >= count) - output
         for count in [2, 3]}
 
+    # Compute separable part of the objective function for contractions.
+    costs = {key: -helpers.compute_size_by_dict(key, sizes) for key in remaining}
+
     # Find initial candidate contractions.
     queue = []
     for dim, keys in dim_to_keys.items():
         keys = sorted(keys, key=remaining.__getitem__)
         for i, k1 in enumerate(keys):
             k2s = keys[1 + i:]
-            _push_candidate(output, sizes, remaining, dim_ref_counts, k1, k2s, queue)
+            _push_candidate(output, sizes, remaining, costs, dim_ref_counts, k1, k2s, queue)
 
     # Greedily contract pairs of tensors.
     while queue:
@@ -417,11 +420,12 @@ def _ssa_optimize(inputs, output, sizes):
                 dim_to_keys[dim].add(k12)
         remaining[k12] = next(ssa_ids)
         _update_ref_counts(dim_to_keys, dim_ref_counts, k1 | k2 - output)
+        costs[k12] = -helpers.compute_size_by_dict(k12, sizes)
 
         # Find new candidate contractions.
         k1 = k12
         k2s = set(k2 for dim in k1 for k2 in dim_to_keys[dim] if k2 != k1)
-        _push_candidate(output, sizes, remaining, dim_ref_counts, k1, k2s, queue)
+        _push_candidate(output, sizes, remaining, costs, dim_ref_counts, k1, k2s, queue)
 
     # Greedily compute pairwise outer products.
     queue = [(helpers.compute_size_by_dict(key, sizes), ssa_id, key)

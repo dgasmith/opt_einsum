@@ -32,10 +32,10 @@ path_edge_tests = [
     ['eager', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['greedy', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['optimal', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
-    ['eager', 'bca,cdb,dbf,afc->', ((0, 3), (0, 1), (0, 1))],
+    ['eager', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['greedy', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['optimal', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
-    ['eager', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
+    ['eager', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
     ['greedy', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
     ['optimal', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
 ]
