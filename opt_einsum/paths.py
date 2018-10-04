@@ -286,7 +286,7 @@ def ssa_to_linear(ssa_path):
     Convert a path with static single assignment ids to a path with recycled
     linear ids. For example::
 
-        >>> ssa_to_linear([(0, 3), (1, 4), (2, 5)])
+        >>> ssa_to_linear([(0, 3), (2, 4), (1, 5)])
         [(0, 3), (1, 2), (0, 1)]
     """
     ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
@@ -304,7 +304,7 @@ def linear_to_ssa(path):
     assignment ids. For example::
 
         >>> linear_to_ssa([(0, 3), (1, 2), (0, 1)])
-        [(0, 3), (1, 4), (2, 5)]
+        [(0, 3), (2, 4), (1, 5)]
     """
     num_inputs = sum(map(len, path)) - len(path) + 1
     linear_to_ssa = list(range(num_inputs))
