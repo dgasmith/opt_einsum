@@ -289,10 +289,10 @@ def ssa_to_linear(ssa_path):
         >>> ssa_to_linear([(0, 3), (1, 4), (2, 5)])
         [(0, 3), (1, 2), (0, 1)]
     """
-    ids = np.arange(sum(map(len, ssa_path)), dtype=np.int64)
+    ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
     path = []
-    for i, ssa_ids in enumerate(ssa_path):
-        path.append(tuple(ids[ssa_id] for ssa_id in ssa_ids))
+    for ssa_ids in ssa_path:
+        path.append(tuple(int(ids[ssa_id]) for ssa_id in ssa_ids))
         for ssa_id in ssa_ids:
             ids[ssa_id:] -= 1
     return path
@@ -451,12 +451,11 @@ def _ssa_optimize(inputs, output, sizes):
 
 def eager(inputs, output, idx_dict):
     """
-    Finds the path by a quick-and-dirty method.
+    Finds the path by a three stage algorithm:
 
     1. Eagerly compute Hadamard products.
     2. Greedily compute contractions to maximize ``removed_size``
     3. Greedily compute outer products.
-    4. Finally call einsum with a single arg to fix output shape.
 
     This algorithm scales quadratically with respect to the
     maximum number of elements sharing a common dim.
