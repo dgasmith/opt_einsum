@@ -42,23 +42,23 @@ class PathInfo(object):
         header = ("scaling", "BLAS", "current", "remaining")
 
         path_print = [
-            "  Complete contraction:  {}\n".format(overall_contraction),
-            "         Naive scaling:  {}\n".format(len(self.indices)),
-            "     Optimized scaling:  {}\n".format(max(self.scale_list)),
-            "      Naive FLOP count:  {:.3e}\n".format(naive_cost),
-            "  Optimized FLOP count:  {:.3e}\n".format(opt_cost),
-            "   Theoretical speedup:  {:3.3f}\n".format(speedup),
-            "  Largest intermediate:  {:.3e} elements\n".format(largest_intermediate),
-            "-" * 80 + "\n",
-            "{:>6} {:>11} {:>22} {:>37}\n".format(*header),
-            "-" * 80
+            u"  Complete contraction:  {}\n".format(overall_contraction),
+            u"         Naive scaling:  {}\n".format(len(self.indices)),
+            u"     Optimized scaling:  {}\n".format(max(self.scale_list)),
+            u"      Naive FLOP count:  {:.3e}\n".format(naive_cost),
+            u"  Optimized FLOP count:  {:.3e}\n".format(opt_cost),
+            u"   Theoretical speedup:  {:3.3f}\n".format(speedup),
+            u"  Largest intermediate:  {:.3e} elements\n".format(largest_intermediate),
+            u"-" * 80 + "\n",
+            u"{:>6} {:>11} {:>22} {:>37}\n".format(*header),
+            u"-" * 80
         ]
 
         for n, contraction in enumerate(self.contraction_list):
             inds, idx_rm, einsum_str, remaining, do_blas = contraction
             remaining_str = ",".join(remaining) + "->" + self.output_subscript
             path_run = (self.scale_list[n], do_blas, einsum_str, remaining_str)
-            path_print.append("\n{:>4} {:>14} {:>22} {:>37}".format(*path_run))
+            path_print.append(u"\n{:>4} {:>14} {:>22} {:>37}".format(*path_run))
 
         return "".join(path_print)
 
