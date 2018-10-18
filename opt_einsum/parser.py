@@ -235,7 +235,6 @@ def parse_einsum_input(operands):
     >>> parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
     ('za,xza', 'xz', [a, b])
     """
-    #import ipdb; ipdb.set_trace()
 
     if len(operands) == 0:
         raise ValueError("No input operands")
