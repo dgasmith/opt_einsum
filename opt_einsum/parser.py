@@ -4,7 +4,8 @@
 A functionally equivalent parser of the numpy.einsum input parser
 """
 
-from collections import OrderedDict
+import itertools
+from collections import OrderedDict, defaultdict
 
 import numpy as np
 
@@ -187,6 +188,28 @@ def possibly_convert_to_numpy(x):
         return x
 
 
+def convert_subscripts(old_sub, symbol_map):
+    """Convert user custom subscripts list to subscript string according to `symbol_map`. Raises TypeError if any subscripts is not hashable.
+
+    Examples
+    --------
+    >>>  oe.parser.convert_subscripts(['abc', 'def'], {'abc':'a', 'def':'b'})
+    'ab'
+    >>> oe.parser.convert_subscripts([Ellipsis, object], {object:'a'})
+    '...a'
+    """
+    new_sub = ""
+    for s in old_sub:
+        if s is Ellipsis:
+            new_sub += "..."
+        else:
+            try:
+                new_sub += symbol_map[s]
+            except TypeError:
+                raise TypeError("For this input type lists must contain either hashable object or Ellipsis")
+    return new_sub
+
+
 def parse_einsum_input(operands):
     """
     A reproduction of einsum c side einsum parsing in python.
@@ -212,6 +235,7 @@ def parse_einsum_input(operands):
     >>> parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
     ('za,xza', 'xz', [a, b])
     """
+    #import ipdb; ipdb.set_trace()
 
     if len(operands) == 0:
         raise ValueError("No input operands")
@@ -230,28 +254,12 @@ def parse_einsum_input(operands):
 
         output_list = tmp_operands[-1] if len(tmp_operands) else None
         operands = [possibly_convert_to_numpy(x) for x in operand_list]
-        subscripts = ""
-        last = len(subscript_list) - 1
-        for num, sub in enumerate(subscript_list):
-            for s in sub:
-                if s is Ellipsis:
-                    subscripts += "..."
-                elif isinstance(s, int):
-                    subscripts += get_symbol(s)
-                else:
-                    raise TypeError("For this input type lists must contain either int or Ellipsis")
-            if num != last:
-                subscripts += ","
-
+        symbols = (get_symbol(i) for i in itertools.count())
+        symbol_map = defaultdict(lambda: next(symbols))
+        subscripts = ','.join(convert_subscripts(sub, symbol_map) for sub in subscript_list)
         if output_list is not None:
             subscripts += "->"
-            for s in output_list:
-                if s is Ellipsis:
-                    subscripts += "..."
-                elif isinstance(s, int):
-                    subscripts += get_symbol(s)
-                else:
-                    raise TypeError("For this input type lists must contain either int or Ellipsis")
+            subscripts += convert_subscripts(output_list, symbol_map)
 
     # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):
