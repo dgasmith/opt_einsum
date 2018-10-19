@@ -5,7 +5,7 @@ A functionally equivalent parser of the numpy.einsum input parser
 """
 
 import itertools
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 
 import numpy as np
 
@@ -251,16 +251,23 @@ def parse_einsum_input(operands):
 
         output_list = tmp_operands[-1] if len(tmp_operands) else None
         operands = [possibly_convert_to_numpy(x) for x in operand_list]
+
+        # build a map from user symbols to single-character symbols based on `get_symbol`
+        # The map retains the intrinsic order of user symbols
         try:
+            # collect all user symbols
             symbol_set = set(itertools.chain.from_iterable(subscript_list))
-        except TypeError:
+        except TypeError:  # unhashable object
             raise TypeError("For this input type lists must contain either Ellipsis or hashable and comparable object (e.g. int, str)")
+        # remove Ellipsis because it can not be compared with other objects
         if Ellipsis in symbol_set:
             symbol_set.remove(Ellipsis)
         try:
+            # build the map based on sorted user symbols, retaining the order we lost in the `set`
             symbol_map = {symbol: get_symbol(idx) for idx, symbol in enumerate(sorted(symbol_set))}
-        except TypeError:
+        except TypeError:  # uncomparable object
             raise TypeError("For this input type lists must contain either Ellipsis or hashable and comparable object (e.g. int, str)")
+
         subscripts = ','.join(convert_subscripts(sub, symbol_map) for sub in subscript_list)
         if output_list is not None:
             subscripts += "->"
