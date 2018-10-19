@@ -189,7 +189,7 @@ def possibly_convert_to_numpy(x):
 
 
 def convert_subscripts(old_sub, symbol_map):
-    """Convert user custom subscripts list to subscript string according to `symbol_map`. Raises TypeError if any subscripts is not hashable.
+    """Convert user custom subscripts list to subscript string according to `symbol_map`.
 
     Examples
     --------
@@ -203,10 +203,8 @@ def convert_subscripts(old_sub, symbol_map):
         if s is Ellipsis:
             new_sub += "..."
         else:
-            try:
-                new_sub += symbol_map[s]
-            except TypeError:
-                raise TypeError("For this input type lists must contain either hashable object or Ellipsis")
+            # no need to try/except here because symbol_map has already been checked
+            new_sub += symbol_map[s]
     return new_sub
 
 
@@ -253,8 +251,16 @@ def parse_einsum_input(operands):
 
         output_list = tmp_operands[-1] if len(tmp_operands) else None
         operands = [possibly_convert_to_numpy(x) for x in operand_list]
-        symbols = (get_symbol(i) for i in itertools.count())
-        symbol_map = defaultdict(lambda: next(symbols))
+        try:
+            symbol_set = set(itertools.chain.from_iterable(subscript_list))
+        except TypeError:
+            raise TypeError("For this input type lists must contain either Ellipsis or hashable and comparable object (e.g. int, str)")
+        if Ellipsis in symbol_set:
+            symbol_set.remove(Ellipsis)
+        try:
+            symbol_map = {symbol: get_symbol(idx) for idx, symbol in enumerate(sorted(symbol_set))}
+        except TypeError:
+            raise TypeError("For this input type lists must contain either Ellipsis or hashable and comparable object (e.g. int, str)")
         subscripts = ','.join(convert_subscripts(sub, symbol_map) for sub in subscript_list)
         if output_list is not None:
             subscripts += "->"

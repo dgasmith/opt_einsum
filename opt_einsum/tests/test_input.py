@@ -73,7 +73,7 @@ def test_type_errors():
     string = '...a->...a'
     views = build_views(string)
 
-    # Subscript list must contain Ellipsis or hashable object
+    # Subscript list must contain Ellipsis or (hashable && comparable) object
     with pytest.raises(TypeError):
         contract(views[0], [Ellipsis, 0], [Ellipsis, ['a']])
 
@@ -237,6 +237,9 @@ def test_large_int_input_format():
     string_output = contract(string, x, y, z)
     int_output = contract(x, (1000, 1001), y, (1001, 1002), z, (1002, 1003))
     assert np.allclose(string_output, int_output)
+    for i in range(10):
+        transpose_output = contract(x, (i+1, i))
+        assert np.allclose(transpose_output, x.T)
 
 
 def test_hashable_object_input_format():
@@ -245,4 +248,6 @@ def test_hashable_object_input_format():
     string_output = contract(string, x, y, z)
     hash_output = contract(x, ('left', 'bond1'), y, ('bond1', 'bond2'), z, ('bond2', 'right'))
     assert np.allclose(string_output, hash_output)
-
+    for i in range(1, 10):
+        transpose_output = contract(x, ('b' * i, 'a' * i))
+        assert np.allclose(transpose_output, x.T)
