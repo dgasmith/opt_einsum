@@ -805,6 +805,9 @@ def contract_expression(subscripts, *shapes, **kwargs):
             raise ValueError("'{}' should only be specified when calling a "
                              "`ContractExpression`, not when building it.".format(arg))
 
+    if not isinstance(subscripts, compat.strings):
+        subscripts, shapes = parser.convert_interleaved_input((subscripts, *shapes))
+
     kwargs['_gen_expression'] = True
 
     # build dict of constant indices mapped to arrays
