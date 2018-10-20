@@ -4,6 +4,7 @@
 A functionally equivalent parser of the numpy.einsum input parser
 """
 
+import itertools
 from collections import OrderedDict
 
 import numpy as np
@@ -187,6 +188,26 @@ def possibly_convert_to_numpy(x):
         return x
 
 
+def convert_subscripts(old_sub, symbol_map):
+    """Convert user custom subscripts list to subscript string according to `symbol_map`.
+
+    Examples
+    --------
+    >>>  oe.parser.convert_subscripts(['abc', 'def'], {'abc':'a', 'def':'b'})
+    'ab'
+    >>> oe.parser.convert_subscripts([Ellipsis, object], {object:'a'})
+    '...a'
+    """
+    new_sub = ""
+    for s in old_sub:
+        if s is Ellipsis:
+            new_sub += "..."
+        else:
+            # no need to try/except here because symbol_map has already been checked
+            new_sub += symbol_map[s]
+    return new_sub
+
+
 def parse_einsum_input(operands):
     """
     A reproduction of einsum c side einsum parsing in python.
@@ -230,28 +251,27 @@ def parse_einsum_input(operands):
 
         output_list = tmp_operands[-1] if len(tmp_operands) else None
         operands = [possibly_convert_to_numpy(x) for x in operand_list]
-        subscripts = ""
-        last = len(subscript_list) - 1
-        for num, sub in enumerate(subscript_list):
-            for s in sub:
-                if s is Ellipsis:
-                    subscripts += "..."
-                elif isinstance(s, int):
-                    subscripts += get_symbol(s)
-                else:
-                    raise TypeError("For this input type lists must contain either int or Ellipsis")
-            if num != last:
-                subscripts += ","
 
+        # build a map from user symbols to single-character symbols based on `get_symbol`
+        # The map retains the intrinsic order of user symbols
+        try:
+            # collect all user symbols
+            symbol_set = set(itertools.chain.from_iterable(subscript_list))
+        except TypeError:  # unhashable object
+            raise TypeError("For this input type lists must contain either Ellipsis or hashable and comparable object (e.g. int, str)")
+        # remove Ellipsis because it can not be compared with other objects
+        if Ellipsis in symbol_set:
+            symbol_set.remove(Ellipsis)
+        try:
+            # build the map based on sorted user symbols, retaining the order we lost in the `set`
+            symbol_map = {symbol: get_symbol(idx) for idx, symbol in enumerate(sorted(symbol_set))}
+        except TypeError:  # uncomparable object
+            raise TypeError("For this input type lists must contain either Ellipsis or hashable and comparable object (e.g. int, str)")
+
+        subscripts = ','.join(convert_subscripts(sub, symbol_map) for sub in subscript_list)
         if output_list is not None:
             subscripts += "->"
-            for s in output_list:
-                if s is Ellipsis:
-                    subscripts += "..."
-                elif isinstance(s, int):
-                    subscripts += get_symbol(s)
-                else:
-                    raise TypeError("For this input type lists must contain either int or Ellipsis")
+            subscripts += convert_subscripts(output_list, symbol_map)
 
     # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):

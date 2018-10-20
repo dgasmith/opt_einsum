@@ -147,5 +147,6 @@ Table of Contents
    :maxdepth: 1
    :caption: Help & Reference:
 
+   input_format
    api
    changelog
