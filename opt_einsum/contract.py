@@ -806,7 +806,7 @@ def contract_expression(subscripts, *shapes, **kwargs):
                              "`ContractExpression`, not when building it.".format(arg))
 
     if not isinstance(subscripts, compat.strings):
-        subscripts, shapes = parser.convert_interleaved_input((subscripts, *shapes))
+        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)
 
     kwargs['_gen_expression'] = True
 
