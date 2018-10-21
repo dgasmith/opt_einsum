@@ -194,6 +194,15 @@ def test_contract_expressions(string, optimize, use_blas, out_spec):
     assert string in expr.__str__()
 
 
+def test_contract_expression_interleaved_input():
+    x, y, z = (np.random.randn(2, 2) for _ in 'xyz')
+    expected = np.einsum(x, [0, 1], y, [1, 2], z, [2, 3], [3, 0])
+    xshp, yshp, zshp = ((2, 2) for _ in 'xyz')
+    expr = contract_expression(xshp, [0, 1], yshp, [1, 2], zshp, [2, 3], [3, 0])
+    out = expr(x, y, z)
+    assert np.allclose(out, expected)
+
+
 @pytest.mark.parametrize("string,constants", [
     ('hbc,bdef,cdkj,ji,ikeh,lfo', [1, 2, 3, 4]),
     ('bdef,cdkj,ji,ikeh,hbc,lfo', [0, 1, 2, 3]),

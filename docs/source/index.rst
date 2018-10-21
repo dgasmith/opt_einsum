@@ -123,6 +123,7 @@ Table of Contents
    :caption: Getting Started
 
    install
+   input_format
    backends
    reusing_paths
    sharing_intermediates
@@ -147,6 +148,5 @@ Table of Contents
    :maxdepth: 1
    :caption: Help & Reference:
 
-   input_format
    api
    changelog
