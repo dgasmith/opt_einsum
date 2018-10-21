@@ -24,8 +24,8 @@ followed by the array arguments:
     >>> z.shape
     (5, 2)
 
-The main difference is that thousands of symbols in the form of unicode
-characters can be used:
+However, in addition to the standard alphabet, ``opt_einsum`` also supports
+unicode characters:
 
 .. code:: python
 
@@ -33,7 +33,8 @@ characters can be used:
     >>> oe.contract(eq, x, y).shape
     (5, 2)
 
-One way to access these programmatically is through the function
+This enables access to thousands of possible index labels. One way to access
+these programmatically is through the function
 :func:`~opt_einsum.parser.get_symbol`:
 
     >>> oe.get_symbol(805)
