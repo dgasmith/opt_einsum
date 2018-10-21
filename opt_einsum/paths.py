@@ -3,6 +3,7 @@ Contains the path technology behind opt_einsum in addition to several path helpe
 """
 from __future__ import absolute_import, division, print_function
 
+import math
 import heapq
 import itertools
 from collections import defaultdict
@@ -86,6 +87,62 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
 
     path = min(full_results, key=lambda x: x[0])[1]
     return path
+
+
+def _calc_k12_flops(inputs, output, remaining, i, j, size_dict):
+    k1, k2 = inputs[i], inputs[j]
+    either = k1 | k2
+    two = k1 & k2
+    one = either - two
+    keep = frozenset.union(output, *(inputs[p] for p in remaining if p not in (i, j)))
+
+    k12 = one | (two & keep)
+    cost = helpers.flop_count(either, two - keep, 2, size_dict)
+    return k12, cost
+
+
+def roptimal(inputs, output, size_dict, memory_limit=math.inf):
+
+    inputs = tuple(map(frozenset, inputs))
+    output = frozenset(output)
+
+    best = {'flops': math.inf, 'path': (tuple(range(len(inputs))),)}
+
+    def _iterate(path, remaining, inputs, flops):
+
+        # reached end of path -> assess it
+        if len(remaining) == 1:
+            if flops < best['flops']:
+                best['flops'] = flops
+                best['path'] = path
+            return
+
+        # check all possible remaining paths
+        for i, j in itertools.combinations(remaining, 2):
+            k12, flops12 = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+
+            # sieve based on current best flops
+            new_flops = flops + flops12
+            if new_flops > best['flops']:
+                continue
+
+            # sieve based on memory limit
+            if memory_limit is not math.inf:
+                size12 = helpers.compute_size_by_dict(k12, size_dict)
+                if size12 > memory_limit:
+                    continue
+
+            _iterate(path=path + ((i, j),),
+                     remaining=remaining - {i, j} | {len(inputs)},
+                     inputs=inputs + (k12,),
+                     flops=new_flops)
+
+    _iterate(path=(),
+             remaining=set(range(len(inputs))),
+             inputs=inputs,
+             flops=0)
+
+    return ssa_to_linear(best['path'])
 
 
 def _parse_possible_contraction(positions, input_sets, output_set, idx_dict, memory_limit, path_cost, naive_cost):

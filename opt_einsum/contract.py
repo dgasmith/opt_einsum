@@ -253,6 +253,8 @@ def contract_path(*operands, **kwargs):
         path = [tuple(range(num_ops))]
     elif path_type == "optimal" or (path_type == "auto" and num_ops <= 4):
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
+    elif path_type == "roptimal":
+        path = paths.roptimal(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type in ("greedy", "opportunistic", "auto"):
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type == 'eager':
