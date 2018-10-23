@@ -3,7 +3,6 @@ Contains the path technology behind opt_einsum in addition to several path helpe
 """
 from __future__ import absolute_import, division, print_function
 
-import math
 import heapq
 import itertools
 from collections import defaultdict
@@ -13,6 +12,9 @@ import numpy as np
 from . import helpers
 
 __all__ = ["optimal", "greedy", "eager"]
+
+
+inf = float('inf')
 
 
 def optimal(input_sets, output_set, idx_dict, memory_limit):
@@ -92,55 +94,158 @@ def optimal(input_sets, output_set, idx_dict, memory_limit):
 def _calc_k12_flops(inputs, output, remaining, i, j, size_dict):
     k1, k2 = inputs[i], inputs[j]
     either = k1 | k2
-    two = k1 & k2
-    one = either - two
-    keep = frozenset.union(output, *(inputs[p] for p in remaining if p not in (i, j)))
+    shared = k1 & k2
 
-    k12 = one | (two & keep)
-    cost = helpers.flop_count(either, two - keep, 2, size_dict)
+    other_inputs = tuple(inputs[p] for p in remaining - {i, j})
+    keep = frozenset.union(output, *other_inputs)
+
+    cost = helpers.flop_count(either, shared - keep, 2, size_dict)
+
+    k12 = either & keep
     return k12, cost
 
 
-def roptimal(inputs, output, size_dict, memory_limit=math.inf):
+def roptimal(inputs, output, size_dict, memory_limit=None):
 
     inputs = tuple(map(frozenset, inputs))
     output = frozenset(output)
 
-    best = {'flops': math.inf, 'path': (tuple(range(len(inputs))),)}
+    best = {'flops': inf, 'path': (tuple(range(len(inputs))),)}
+    size_cache = {}
+    result_cache = {}
 
-    def _iterate(path, remaining, inputs, flops):
+    def _optimal_iterate(path, remaining, inputs, flops):
 
-        # reached end of path -> assess it
+        # reached end of path (only ever get here if flops is best found so far)
         if len(remaining) == 1:
-            if flops < best['flops']:
-                best['flops'] = flops
-                best['path'] = path
-            return
+            best['flops'] = flops
+            best['path'] = path
 
         # check all possible remaining paths
         for i, j in itertools.combinations(remaining, 2):
-            k12, flops12 = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+            k1, k2 = inputs[i], inputs[j]
+            try:
+                k12, flops12 = result_cache[k1, k2]
+            except KeyError:
+                k12, flops12 = result_cache[k1, k2] = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
 
             # sieve based on current best flops
             new_flops = flops + flops12
-            if new_flops > best['flops']:
+            if new_flops >= best['flops']:
                 continue
 
             # sieve based on memory limit
-            if memory_limit is not math.inf:
-                size12 = helpers.compute_size_by_dict(k12, size_dict)
+            if memory_limit is not None:
+                try:
+                    size12 = size_cache[k12]
+                except KeyError:
+                    size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
+
                 if size12 > memory_limit:
                     continue
 
-            _iterate(path=path + ((i, j),),
-                     remaining=remaining - {i, j} | {len(inputs)},
-                     inputs=inputs + (k12,),
-                     flops=new_flops)
+            _optimal_iterate(path=path + ((i, j),),
+                             inputs=inputs + (k12,),
+                             remaining=remaining - {i, j} | {len(inputs)},
+                             flops=new_flops)
 
-    _iterate(path=(),
-             remaining=set(range(len(inputs))),
-             inputs=inputs,
-             flops=0)
+    _optimal_iterate(path=(),
+                     inputs=inputs,
+                     remaining=set(range(len(inputs))),
+                     flops=0)
+
+    return ssa_to_linear(best['path'])
+
+
+def rgreedy(inputs, output, size_dict, memory_limit=None, nbranch=None):
+
+    inputs = tuple(map(frozenset, inputs))
+    output = frozenset(output)
+
+    best = {'flops': inf, 'path': (tuple(range(len(inputs))),)}
+    best_progress = defaultdict(lambda: inf)
+
+    size_cache = {k: helpers.compute_size_by_dict(k, size_dict) for k in inputs}
+    result_cache = {}
+
+    def _greedy_iterate(path, inputs, remaining, flops):
+
+        # reached end of path (only ever get here if flops is best found so far)
+        if len(remaining) == 1:
+            best['flops'] = flops
+            best['path'] = path
+
+        def _assess_candidate(k1, k2, i, j):
+            # find resulting indices and cost
+            try:
+                k12, flops12 = result_cache[k1, k2]
+            except KeyError:
+                k12, flops12 = result_cache[k1, k2] = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+
+            # sieve based on current best flops
+            new_flops = flops + flops12
+            if new_flops >= best['flops']:
+                return None
+
+            # compare to how the best method was doing as this point
+            if new_flops < best_progress[len(inputs)]:
+                best_progress[len(inputs)] = new_flops
+            # sieve based on current progress relative to best
+            elif new_flops > 2 * best_progress[len(inputs)]:
+                return None
+
+            # create a sort order based on cost
+            size1, size2 = size_cache[inputs[i]], size_cache[inputs[j]]
+            try:
+                size12 = size_cache[k12]
+            except KeyError:
+                size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
+
+            # sieve based on memory limit
+            if (memory_limit is not None) and (size12 > memory_limit):
+                return None
+
+            # set cost heuristic in order to locally sort possible contractions
+            cost = size12 - size1 - size2
+
+            return cost, flops12, new_flops, (i, j), k12
+
+        # check all possible remaining paths
+        candidates = []
+        for i, j in itertools.combinations(remaining, 2):
+
+            k1, k2 = inputs[i], inputs[j]
+
+            # initially ignore outer products
+            if k1.isdisjoint(k2):
+                continue
+
+            candidate = _assess_candidate(k1, k2, i, j)
+            if candidate:
+                heapq.heappush(candidates, candidate)
+
+        # assess outer products if nothing left
+        if not candidates:
+            for i, j in itertools.combinations(remaining, 2):
+                k1, k2 = inputs[i], inputs[j]
+                candidate = _assess_candidate(k1, k2, i, j)
+                if candidate:
+                    heapq.heappush(candidates, candidate)
+
+        # recurse into all or some of the best candidate contractions
+        bi = 0
+        while (nbranch is None or bi < nbranch) and candidates:
+            new_flops, (i, j), k12 = heapq.heappop(candidates)[2:]
+            _greedy_iterate(path=path + ((i, j),),
+                            inputs=inputs + (k12,),
+                            remaining=remaining - {i, j} | {len(inputs)},
+                            flops=new_flops)
+            bi += 1
+
+    _greedy_iterate(path=(),
+                    inputs=inputs,
+                    remaining=set(range(len(inputs))),
+                    flops=0)
 
     return ssa_to_linear(best['path'])
 
