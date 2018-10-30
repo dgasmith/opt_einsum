@@ -70,11 +70,11 @@ def _choose_memory_arg(memory_limit, size_list):
         return max(size_list)
 
     if memory_limit is None:
-        return int(1e20)
+        return None
 
     if memory_limit < 1:
         if memory_limit == -1:
-            return int(1e20)
+            return None
         else:
             raise ValueError("Memory limit must be larger than 0, or -1")
 
@@ -257,7 +257,7 @@ def contract_path(*operands, **kwargs):
     elif path_type == 'branch-2' or (path_type == "auto" and num_ops <= 8):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=2)
     elif path_type in ("auto", "greedy", "eager", "opportunistic"):
-        path = paths.eager(input_sets, output_set, dimension_dict)
+        path = paths.eager(input_sets, output_set, dimension_dict, memory_arg)
     else:
         raise KeyError("Path name '{}' not found".format(path_type))
 

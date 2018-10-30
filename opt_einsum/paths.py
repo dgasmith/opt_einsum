@@ -14,6 +14,9 @@ from . import helpers
 __all__ = ["optimal", "branch", "greedy", "eager"]
 
 
+_UNLIMITED_MEM = {-1, None, float('inf')}
+
+
 def ssa_to_linear(ssa_path):
     """
     Convert a path with static single assignment ids to a path with recycled
@@ -91,6 +94,13 @@ def _calc_k12_flops(inputs, output, remaining, i, j, size_dict):
     return k12, cost
 
 
+def _compute_oversize_flops(inputs, remaining, output, size_dict):
+    idx_contraction = frozenset.union(*map(inputs.__getitem__, remaining))
+    inner = idx_contraction - output
+    num_terms = len(remaining)
+    return helpers.flop_count(idx_contraction, inner, num_terms, size_dict)
+
+
 def optimal(inputs, output, size_dict, memory_limit=None):
     """
     Computes all possible pair contractions in a depth-first recursive manner,
@@ -139,6 +149,8 @@ def optimal(inputs, output, size_dict, memory_limit=None):
 
         # check all possible remaining paths
         for i, j in itertools.combinations(remaining, 2):
+            if i > j:
+                i, j = j, i
             key = (inputs[i], inputs[j])
             try:
                 k12, flops12 = result_cache[key]
@@ -151,13 +163,18 @@ def optimal(inputs, output, size_dict, memory_limit=None):
                 continue
 
             # sieve based on memory limit
-            if memory_limit is not None:
+            if memory_limit not in _UNLIMITED_MEM:
                 try:
                     size12 = size_cache[k12]
                 except KeyError:
                     size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
 
+                # possibly terminate this path with an all-terms einsum
                 if size12 > memory_limit:
+                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
+                    if new_flops < best['flops']:
+                        best['flops'] = new_flops
+                        best['path'] = path + (tuple(remaining),)
                     continue
 
             # add contraction and recurse into all remaining
@@ -257,7 +274,12 @@ def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
                 size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
 
             # sieve based on memory limit
-            if (memory_limit is not None) and (size12 > memory_limit):
+            if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):
+                # terminate path here, but check all-terms contract first
+                new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
+                if new_flops < best['flops']:
+                    best['flops'] = new_flops
+                    best['path'] = path + (tuple(remaining),)
                 return None
 
             # set cost heuristic in order to locally sort possible contractions
@@ -268,7 +290,8 @@ def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
         # check all possible remaining paths
         candidates = []
         for i, j in itertools.combinations(remaining, 2):
-
+            if i > j:
+                i, j = j, i
             k1, k2 = inputs[i], inputs[j]
 
             # initially ignore outer products
@@ -439,7 +462,7 @@ def _ssa_optimize(inputs, output, sizes):
     return ssa_path
 
 
-def eager(inputs, output, idx_dict):
+def eager(inputs, output, idx_dict, memory_limit=None):
     """
     Finds the path by a three stage algorithm:
 
@@ -474,6 +497,9 @@ def eager(inputs, output, idx_dict):
     >>> eager(isets, oset, idx_sizes)
     [(0, 2), (0, 1)]
     """
+    if memory_limit not in _UNLIMITED_MEM:
+        return branch(inputs, output, idx_dict, memory_limit, nbranch=1)
+
     ssa_path = _ssa_optimize(inputs, output, idx_dict)
     return ssa_to_linear(ssa_path)
 
