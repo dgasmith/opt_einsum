@@ -2,6 +2,8 @@
 Contains the primary optimization and contraction routines.
 """
 
+from collections import namedtuple
+
 import numpy as np
 
 from . import backends
@@ -248,19 +250,13 @@ def contract_path(*operands, **kwargs):
     elif num_ops == 2:
         # Nothing to be optimized
         path = [(0, 1)]
-    elif indices == output_set:
-        # If no rank reduction leave it to einsum
-        path = [tuple(range(num_ops))]
     elif path_type == "optimal" or (path_type == "auto" and num_ops <= 4):
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
-    elif "roptimal" in path_type:
-        path = paths.roptimal(input_sets, output_set, dimension_dict, memory_arg)
-    elif "rgreedy" in path_type:
-        nbranch = None if path_type == 'rgreedy' else int(path_type.strip("rgreedy"))
-        path = paths.rgreedy(input_sets, output_set, dimension_dict, memory_arg, nbranch=nbranch)
-    elif path_type in ("greedy", "opportunistic", "auto"):
-        path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type == 'eager':
+    elif path_type == 'branch-all' or (path_type == "auto" and num_ops <= 6):
+        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=None)
+    elif path_type == 'branch-2' or (path_type == "auto" and num_ops <= 8):
+        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=2)
+    elif path_type in ("auto", "greedy", "eager", "opportunistic"):
         path = paths.eager(input_sets, output_set, dimension_dict)
     else:
         raise KeyError("Path name '{}' not found".format(path_type))
@@ -735,11 +731,14 @@ class ContractExpression:
         return "".join(s)
 
 
+Shaped = namedtuple('Shaped', ['shape'])
+
+
 def shape_only(shape):
     """Dummy ``numpy.ndarray`` which has a shape only - for generating
     contract expressions.
     """
-    return np.broadcast_to(np.nan, shape)
+    return Shaped(shape)
 
 
 def contract_expression(subscripts, *shapes, **kwargs):
