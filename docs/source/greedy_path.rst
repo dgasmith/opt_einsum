@@ -2,21 +2,41 @@
 The Greedy Path
 ===============
 
-The ``greedy`` path iterates through the possible pair contractions and chooses the "best" contraction at every step until all contractions are considered.
-The "best" contraction pair is determined by the smallest of the tuple ``(-removed_size, cost)`` where ``removed_size`` is the size of the contracted tensors minus the size of the tensor created and ``cost`` is the cost of the contraction.
-Effectively, the algorithm chooses the best inner or dot product, Hadamard product, and then outer product at each iteration with a sieve to prevent large outer products.
-This algorithm has proven to be quite successful for general production and only misses a few complex cases that make it slightly worse than the ``optimal`` algorithm.
-Fortunately, these often only lead to increases in prefactor than missing the optimal scaling.
+The ``'greedy'`` approach provides a very efficient strategy for finding
+contraction paths for expressions with large numbers of tensors.
+It does this by eagerly choosing contractions in three stages:
 
-The ``greedy`` approach scales like N^2 rather than factorially, making ``greedy`` much more suitable for large numbers of contractions where the lower prefactor helps decrease latency.
-As :mod:`opt_einsum` can handle an arbitrary number of indices the low scaling is necessary for extensive contraction networks.
-The ``greedy`` functionality is provided by :func:`~opt_einsum.paths.greedy`.
+  1. Eagerly compute any **Hadamard** products (in arbitrary order -- this is
+     commutative).
+  2. Greedily contract pairs of remaining tensors, at each step choosing the
+     pair that maximizes ``reduced_size`` -- these are generally **inner**
+     products.
+  3. Greedily compute any pairwise **outer** products, at each step choosing
+     the pair that minimizes ``sum(input_sizes)``.
+
+The cost heuristic ``reduced_size`` is simply the size of the pair of potential
+tensors to be contracted, minus the size of the resulting tensor.
+
+The ``greedy`` algorithm has space and time complexity ``O(n * k)`` where ``n``
+is the number of input tensors and ``k`` is the maximum number of tensors that
+share any dimension (excluding dimensions that occur in the output or in every
+tensor). As such, the algorithm scales well to very large sparse contractions
+of low-rank tensors, and indeed, often finds the optimal, or close to optimal
+path in such cases.
+
+The ``greedy`` functionality is provided by :func:`~opt_einsum.paths.greedy`,
+and is selected by the default ``optimize='auto'`` mode of ``opt_einsum`` for
+expressions with more than 8 inputs. Expressions of up to a thousand tensors
+should still take well less than a second to find paths for.
+
 
 Optimal Scaling Misses
 ----------------------
+
 The greedy algorithm, while inexpensive, can occasionally miss optimal scaling in some circumstances as seen below. The ``greedy`` algorithm prioritizes expressions which remove the largest indices first, in this particular case this is the incorrect choice and it is difficult for any heuristic algorithm to "see ahead" as would be needed here.
 
-It should be stressed these cases are quite rare and by default ``contract`` uses the ``optimal`` path for four and fewer inputs as the cost of evaluating the ``optimal`` path is similar to that of the ``greedy`` path.
+It should be stressed these cases are quite rare and by default ``contract`` uses the ``optimal`` path for four and fewer inputs as the cost of evaluating the ``optimal`` path is similar to that of the ``greedy`` path. Similarly, for 5-8 inputs, ``contract`` uses one of the
+branching strategies which can find higher quality paths.
 
 .. code:: python
 
@@ -57,3 +77,10 @@ It should be stressed these cases are quite rare and by default ``contract`` use
        4          False           xtf,xyf->tfy                      ytpf,fr,tfy->tpr
        4          False          tfy,ytpf->tfp                           fr,tfp->tpr
        4           TDOT            tfp,fr->tpr                              tpr->tpr
+
+
+So we can see that the ``greedy`` algorithm finds a path which is about 16
+times slower than the ``optimal`` one. In such cases, it might be worth using
+one of the more exhaustive optimization strategies: ``'optimal'``,
+``'branch-all'`` or ``branch-2`` (all of which will find the optimal path in
+this example).

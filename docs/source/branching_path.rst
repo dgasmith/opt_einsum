@@ -1,0 +1,34 @@
+==================
+The Branching Path
+==================
+
+While the ``optimal`` path is guaranteed to find the smallest estimate FLOP
+cost, it spends a lot of time exploring paths which are not likely to result in
+an optimal path. For instance, outer products are usually not advantageous
+unless absolutely necessary. Additionally, by trying a 'good' path first, it
+should be possible to quickly establish a threshold FLOP cost which can then be
+used to prune many bad paths.
+
+The **branching** strategy (provided by :func:`~opt_einsum.paths.branch`) does
+this by taking the recursive, depth-first approach of
+:func:`~opt_einsum.paths.optimal`, whilst also sorting potential contractions
+based on a heuristic cost, as in :func:`~opt_einsum.paths.greedy`.
+
+There are two flavours:
+
+    - ``optimize='branch-all'``: explore **all** inner products, starting with
+      those that look best according to the cost heuristic.
+    - ``optimize='branch-2'``: similar, but at each step only explore the
+      estimated best **two** possible contractions, leading to a maximum of
+      2^N paths assessed.
+
+In both cases, :func:`~opt_einsum.paths.branch` takes an active approach to
+pruning paths well before they hit the best *total* FLOP count, by comparing
+them to the FLOP count (times some factor) achieved by the best path at the
+same point in the contraction.
+
+The default ``optimize='auto'`` mode of ``opt_einsum`` will use
+``'branch-all'`` for 5 or 6 tensors, though it should be able to handle
+12-13 tensors in a matter or seconds. Likewise, ``'branch-2'`` will be used for
+7 or 8 tensors, though it should be able to handle 20-22 tensors in a matter of
+seconds.

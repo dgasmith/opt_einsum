@@ -263,7 +263,7 @@ def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
             if new_flops < best_progress[len(inputs)]:
                 best_progress[len(inputs)] = new_flops
             # sieve based on current progress relative to best
-            elif new_flops > 2 * best_progress[len(inputs)]:
+            elif new_flops > 4 * best_progress[len(inputs)]:
                 return None
 
             # create a sort order based on cost

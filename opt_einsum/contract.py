@@ -18,6 +18,18 @@ __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpr
 
 
 class PathInfo(object):
+    """A printable object to contain information about a contraction path.
+
+    Attributes
+    ----------
+    naive_cost : int
+        The estimate FLOP cost of a naive einsum contraction.
+    opt_cost : int
+        The estimate FLOP cost of this optimized contraction path.
+    largest_intermediate : int
+        The number of elements in the largest intermediate array that will be
+        produced during the contraction.
+    """
 
     def __init__(self, contraction_list, input_subscripts, output_subscript,
                  indices, scale_list, naive_cost, opt_cost, size_list):
@@ -83,7 +95,7 @@ def _choose_memory_arg(memory_limit, size_list):
 
 def contract_path(*operands, **kwargs):
     """
-    Evaluates the lowest cost einsum-like contraction order.
+    Find a contraction order 'path', without performing the contraction.
 
     Parameters
     ----------
@@ -91,32 +103,34 @@ def contract_path(*operands, **kwargs):
         Specifies the subscripts for summation.
     *operands : list of array_like
         These are the arrays for the operation.
-    optimize : bool or list, optional (default: ``auto``)
+    optimize : str, list or bool, optional (default: ``auto``)
         Choose the type of path.
 
         - if a list is given uses this as the path.
-        - 'greedy' An algorithm that chooses the best pair contraction
-          at each step. Scales cubically with the number of terms in the
-          contraction.
-        - 'optimal' An algorithm that tries all possible ways of
-          contracting the listed tensors. Scales exponentially with
-          the number of terms in the contraction.
-        - 'eager' An approximate algorithm that is cheaper than 'greedy' for
-          very large contractions.
-        - 'auto' Use the optimal approach for a small number of terms (currently
-          4 or less), else use the greedy approach.
+        - ``'optimal'`` An algorithm that explores all possible ways of
+          contracting the listed tensors. Scales factorially with the number of
+          terms in the contraction.
+        - ``'branch-all'`` An algorithm like optimal but that restricts itself
+          to searching 'likely' paths. Still scales factorially.
+        - ``'branch-2'`` An even more restricted version of 'branch-all' that
+          only searches the best two options at each step. Scales exponentially
+          with the number of terms in the contraction.
+        - ``'greedy'`` An algorithm that heuristically chooses the best pair
+          contraction at each step.
+        - ``'auto'`` Choose the best of the above algorithms whilst aiming to
+          keep the path finding time below 1ms.
 
     use_blas : bool
         Use BLAS functions or not
-    memory_limit : int, optional (default: largest input or output array size)
+    memory_limit : int, optional (default: None)
         Maximum number of elements allowed in intermediate arrays.
 
     Returns
     -------
     path : list of tuples
         The einsum path
-    string_repr : str
-        A printable representation of the path
+    PathInfo : str
+        A printable object containing various information about the path found.
 
     Notes
     -----
@@ -257,7 +271,7 @@ def contract_path(*operands, **kwargs):
     elif path_type == 'branch-2' or (path_type == "auto" and num_ops <= 8):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=2)
     elif path_type in ("auto", "greedy", "eager", "opportunistic"):
-        path = paths.eager(input_sets, output_set, dimension_dict, memory_arg)
+        path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:
         raise KeyError("Path name '{}' not found".format(path_type))
 
@@ -386,18 +400,22 @@ def contract(*operands, **kwargs):
         The casting procedure for operations of different dtype, see np.einsum.
     use_blas : bool
         Do you use BLAS for valid operations, may use extra memory for more intermediates.
-    optimize : bool, str, or list, optional (default: ``greedy``)
+    optimize : str, list or bool, optional (default: ``auto``)
         Choose the type of path.
 
         - if a list is given uses this as the path.
-        - 'greedy' An algorithm that chooses the best pair contraction
-          at each step. Scales cubically with the number of terms in the
-          contraction.
-        - 'optimal' An algorithm that tries all possible ways of
-          contracting the listed tensors. Scales exponentially with
-          the number of terms in the contraction.
-        - 'eager' An approximate algorithm that is cheaper than 'greedy'
-          for very large contractions.
+        - ``'optimal'`` An algorithm that explores all possible ways of
+          contracting the listed tensors. Scales factorially with the number of
+          terms in the contraction.
+        - ``'branch-all'`` An algorithm like optimal but that restricts itself
+          to searching 'likely' paths. Still scales factorially.
+        - ``'branch-2'`` An even more restricted version of 'branch-all' that
+          only searches the best two options at each step. Scales exponentially
+          with the number of terms in the contraction.
+        - ``'greedy'`` An algorithm that heuristically chooses the best pair
+          contraction at each step.
+        - ``'auto'`` Choose the best of the above algorithms whilst aiming to
+          keep the path finding time below 1ms.
 
     memory_limit : {None, int, 'max_input'} (default: None)
         Give the upper bound of the largest intermediate tensor contract will build.
@@ -441,7 +459,7 @@ def contract(*operands, **kwargs):
     """
     optimize_arg = kwargs.pop('optimize', True)
     if optimize_arg is True:
-        optimize_arg = 'greedy'
+        optimize_arg = 'auto'
 
     valid_einsum_kwargs = ['out', 'dtype', 'order', 'casting']
     einsum_kwargs = {k: v for (k, v) in kwargs.items() if k in valid_einsum_kwargs}
