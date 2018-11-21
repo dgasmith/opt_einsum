@@ -23,13 +23,15 @@ _aliases = {
 }
 
 
-def _import_func(func, backend):
-    """Try and import ``{backend}.{func}``, raise an error if library is
-    installed but can't find that particular function.
+def _import_func(func, backend, default=None):
+    """Try and import ``{backend}.{func}``.
+    If library is installed and func is found, return the func;
+    otherwise if default is provided, return default;
+    otherwise raise an error.
     """
     try:
         lib = importlib.import_module(_aliases.get(backend, backend))
-        return getattr(lib, func)
+        return getattr(lib, func) if default is None else getattr(lib, func, default)
     except AttributeError:
         raise AttributeError("{} doesn't seem to provide the function {}".format(backend, func))
 
@@ -43,13 +45,14 @@ _cached_funcs = {
 }
 
 
-def get_func(func, backend='numpy'):
-    """Return ``{backend}.{func}``, e.g. ``numpy.einsum``, cache result.
+def get_func(func, backend='numpy', default=None):
+    """Return ``{backend}.{func}``, e.g. ``numpy.einsum``,
+    or a default func if provided. Cache result.
     """
     try:
         return _cached_funcs[func, backend]
     except KeyError:
-        fn = _import_func(func, backend)
+        fn = _import_func(func, backend, default)
         _cached_funcs[func, backend] = fn
         return fn
 

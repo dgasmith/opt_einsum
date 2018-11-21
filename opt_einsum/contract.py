@@ -339,16 +339,17 @@ def _einsum(*operands, **kwargs):
     return fn(einsum_str, *operands, **kwargs)
 
 
+def _default_transpose(x, axes):
+    #  most libraries implement a method version
+    return x.transpose(axes)
+
+
 @sharing.transpose_cache_wrap
 def _transpose(x, axes, backend='numpy'):
     """Base transpose.
     """
-    try:
-        return x.transpose(axes)
-    except (AttributeError, TypeError):
-        # some libraries don't implement method version
-        fn = backends.get_func('transpose', backend)
-        return fn(x, axes)
+    fn = backends.get_func('transpose', backend, _default_transpose)
+    return fn(x, axes)
 
 
 @sharing.tensordot_cache_wrap
