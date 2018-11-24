@@ -134,8 +134,8 @@ Table of Contents
 
    path_finding
    optimal_path
-   greedy_path
    branching_path
+   greedy_path
 
 .. toctree::
    :maxdepth: 1

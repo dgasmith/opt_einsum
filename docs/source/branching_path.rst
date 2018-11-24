@@ -14,7 +14,7 @@ this by taking the recursive, depth-first approach of
 :func:`~opt_einsum.paths.optimal`, whilst also sorting potential contractions
 based on a heuristic cost, as in :func:`~opt_einsum.paths.greedy`.
 
-There are two flavours:
+There are two main flavours:
 
     - ``optimize='branch-all'``: explore **all** inner products, starting with
       those that look best according to the cost heuristic.
@@ -27,8 +27,16 @@ pruning paths well before they hit the best *total* FLOP count, by comparing
 them to the FLOP count (times some factor) achieved by the best path at the
 same point in the contraction.
 
+There is also ``'branch-1'``, which, since it only explores a single path at
+each step does not really 'branch' - this is essentially the approach of
+``'greedy'``.
+In comparison, ``'branch-1'`` will be slower for large expressions, but for
+small to medium exressions it might find slightly higher quality contractions
+due to considering individual flop costs at each step.
+
 The default ``optimize='auto'`` mode of ``opt_einsum`` will use
 ``'branch-all'`` for 5 or 6 tensors, though it should be able to handle
 12-13 tensors in a matter or seconds. Likewise, ``'branch-2'`` will be used for
 7 or 8 tensors, though it should be able to handle 20-22 tensors in a matter of
-seconds.
+seconds. Finally, ``'branch-1'`` will be used by ``'auto'`` for expressions of
+up to 14 tensors.

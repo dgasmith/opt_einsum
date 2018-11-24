@@ -26,7 +26,7 @@ path in such cases.
 
 The ``greedy`` functionality is provided by :func:`~opt_einsum.paths.greedy`,
 and is selected by the default ``optimize='auto'`` mode of ``opt_einsum`` for
-expressions with more than 8 inputs. Expressions of up to a thousand tensors
+expressions with many inputs. Expressions of up to a thousand tensors
 should still take well less than a second to find paths for.
 
 

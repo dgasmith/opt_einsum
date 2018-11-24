@@ -97,7 +97,7 @@ tests = [
 ]
 
 
-all_optimizers = ['optimal', 'branch-all', 'branch-2', 'greedy']
+all_optimizers = ['optimal', 'branch-all', 'branch-2', 'branch-1', 'greedy']
 
 
 @pytest.mark.parametrize("string", tests)
@@ -237,12 +237,13 @@ def test_contract_expression_with_constants(string, constants):
 
 
 @pytest.mark.parametrize("optimize", ['greedy', 'optimal'])
-@pytest.mark.parametrize("n", [3, 5])
-@pytest.mark.parametrize("reg", [3, 4])
+@pytest.mark.parametrize("n", [4, 5])
+@pytest.mark.parametrize("reg", [2, 3])
 @pytest.mark.parametrize("n_out", [0, 2, 4])
-def test_rand_equation(optimize, n, reg, n_out):
-    eq, shapes = helpers.rand_equation(n, reg, n_out, d_min=2, d_max=5, seed=42)
-    views = [np.random.rand(*s) for s in shapes]
+@pytest.mark.parametrize("global_dim", [False, True])
+def test_rand_equation(optimize, n, reg, n_out, global_dim):
+    eq, _, size_dict = helpers.rand_equation(n, reg, n_out, d_min=2, d_max=5, seed=42, return_size_dict=True)
+    views = helpers.build_views(eq, size_dict)
 
     expected = contract(eq, *views, optimize=False)
     actual = contract(eq, *views, optimize=optimize)

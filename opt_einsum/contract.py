@@ -270,6 +270,8 @@ def contract_path(*operands, **kwargs):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=None)
     elif path_type == 'branch-2' or (path_type == "auto" and num_ops <= 8):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=2)
+    elif path_type == 'branch-1' or (path_type == "auto" and num_ops <= 14):
+        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=1)
     elif path_type in ("auto", "greedy", "eager", "opportunistic"):
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:

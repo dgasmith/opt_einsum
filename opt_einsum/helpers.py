@@ -170,7 +170,8 @@ def flop_count(idx_contraction, inner, num_terms, size_dictionary):
     return overall_size * op_factor
 
 
-def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None):
+def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None,
+                  global_dim=False, return_size_dict=False):
     """Generate a random contraction and shapes.
 
     Parameters
@@ -189,6 +190,10 @@ def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None):
         Maximum dimension size.
     seed: int, optional
         If not None, seed numpy's random generator with this.
+    global_dim : bool, optional
+        Add a global, 'broadcast', dimension to every operand.
+    return_size_dict : bool, optional
+        Return the mapping of indices to sizes.
 
     Returns
     -------
@@ -196,6 +201,8 @@ def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None):
         The equation string.
     shapes : list[tuple[int]]
         The array shapes.
+    size_dict : dict[str, int]
+        The dict of index sizes, only returned if ``return_size_dict=True``.
 
     Examples
     --------
@@ -224,14 +231,14 @@ def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None):
     inputs = ["" for _ in range(n)]
     output = []
 
-    ix_szs = {
+    size_dict = {
         get_symbol(i): np.random.randint(d_min, d_max + 1)
         for i in range(num_inds)
     }
 
     # generate a list of indices to place either once or twice
     def gen():
-        for i, ix in enumerate(ix_szs):
+        for i, ix in enumerate(size_dict):
             # generate an outer index
             if i < n_out:
                 output.append(ix)
@@ -254,11 +261,24 @@ def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None):
 
             inputs[where] += ix
 
+    # possibly add the same global dim to every arg
+    if global_dim:
+        gdim = get_symbol(num_inds)
+        size_dict[gdim] = np.random.randint(d_min, d_max + 1)
+        for i in range(n):
+            inputs[i] += gdim
+        output += gdim
+
     # randomly transpose the output indices and form equation
     output = "".join(np.random.permutation(output))
     eq = "{}->{}".format(",".join(inputs), output)
 
     # make the shapes
-    shapes = [tuple(ix_szs[ix] for ix in op) for op in inputs]
+    shapes = [tuple(size_dict[ix] for ix in op) for op in inputs]
 
-    return eq, shapes
+    ret = (eq, shapes)
+
+    if return_size_dict:
+        ret += (size_dict,)
+
+    return ret
