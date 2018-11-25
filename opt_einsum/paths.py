@@ -11,7 +11,7 @@ import numpy as np
 
 from . import helpers
 
-__all__ = ["optimal", "branch", "greedy", "eager"]
+__all__ = ["optimal", "branch", "greedy"]
 
 
 _UNLIMITED_MEM = {-1, None, float('inf')}
@@ -55,7 +55,8 @@ def linear_to_ssa(path):
 
 
 def _calc_k12_flops(inputs, output, remaining, i, j, size_dict):
-    """Calculate the resulting indices and flops for a potential pairwise
+    """
+    Calculate the resulting indices and flops for a potential pairwise
     contraction - used in the recursive (optimal/branch) algorithms.
 
     Parameters
@@ -95,6 +96,10 @@ def _calc_k12_flops(inputs, output, remaining, i, j, size_dict):
 
 
 def _compute_oversize_flops(inputs, remaining, output, size_dict):
+    """
+    Compute the flop count for a contraction of all remaining arguments. This
+    is used when a memory limit means that no pairwise contractions can be made.
+    """
     idx_contraction = frozenset.union(*map(inputs.__getitem__, remaining))
     inner = idx_contraction - output
     num_terms = len(remaining)
@@ -110,14 +115,14 @@ def optimal(inputs, output, size_dict, memory_limit=None):
 
     Parameters
     ----------
-    input_sets : list
-        List of sets that represent the lhs side of the einsum subscript
-    output_set : set
-        Set that represents the rhs side of the overall einsum subscript
-    idx_dict : dictionary
-        Dictionary of index sizes
+    inputs : list
+        List of sets that represent the lhs side of the einsum subscript.
+    output : set
+        Set that represents the rhs side of the overall einsum subscript.
+    size_dict : dictionary
+        Dictionary of index sizes.
     memory_limit : int
-        The maximum number of elements in a temporary array
+        The maximum number of elements in a temporary array.
 
     Returns
     -------
@@ -203,11 +208,11 @@ def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
 
     Parameters
     ----------
-    input_sets : list
+    inputs : list
         List of sets that represent the lhs side of the einsum subscript
-    output_set : set
+    output : set
         Set that represents the rhs side of the overall einsum subscript
-    idx_dict : dictionary
+    size_dict : dictionary
         Dictionary of index sizes
     memory_limit : int
         The maximum number of elements in a temporary array
@@ -226,7 +231,7 @@ def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('')
     >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> optimal(isets, oset, idx_sizes, 5000)
+    >>> branch(isets, oset, idx_sizes, 5000)
     [(0, 2), (0, 1)]
     """
 
@@ -284,7 +289,6 @@ def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
 
             # set cost heuristic in order to locally sort possible contractions
             cost = size12 - size1 - size2
-
             return cost, flops12, new_flops, (i, j), k12
 
         # check all possible remaining paths
@@ -310,10 +314,10 @@ def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
                 if candidate:
                     heapq.heappush(candidates, candidate)
 
-        # recurse into all or some of the best candidate contractions
         if not candidates:
             return
 
+        # recurse into all or some of the best candidate contractions
         bi = 0
         while (nbranch is None or bi < nbranch) and candidates:
             _, _, new_flops, (i, j), k12 = heapq.heappop(candidates)
@@ -367,7 +371,7 @@ def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
 
 def _ssa_optimize(inputs, output, sizes):
     """
-    This has an interface similar to :func:`eager` but produces a path with
+    This is the core function for :func:`greedy` but produces a path with
     static single assignment ids rather than recycled linear ids.
     SSA ids are cheaper to work with and easier to reason about.
     """
@@ -462,7 +466,7 @@ def _ssa_optimize(inputs, output, sizes):
     return ssa_path
 
 
-def eager(inputs, output, idx_dict, memory_limit=None):
+def greedy(inputs, output, size_dict, memory_limit=None):
     """
     Finds the path by a three stage algorithm:
 
@@ -475,11 +479,11 @@ def eager(inputs, output, idx_dict, memory_limit=None):
 
     Parameters
     ----------
-    input_sets : list
+    inputs : list
         List of sets that represent the lhs side of the einsum subscript
-    output_set : set
+    output : set
         Set that represents the rhs side of the overall einsum subscript
-    idx_dict : dictionary
+    size_dict : dictionary
         Dictionary of index sizes
     memory_limit : int
         The maximum number of elements in a temporary array
@@ -494,14 +498,11 @@ def eager(inputs, output, idx_dict, memory_limit=None):
     >>> isets = [set('abd'), set('ac'), set('bdc')]
     >>> oset = set('')
     >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> eager(isets, oset, idx_sizes)
+    >>> greedy(isets, oset, idx_sizes)
     [(0, 2), (0, 1)]
     """
     if memory_limit not in _UNLIMITED_MEM:
-        return branch(inputs, output, idx_dict, memory_limit, nbranch=1)
+        return branch(inputs, output, size_dict, memory_limit, nbranch=1)
 
-    ssa_path = _ssa_optimize(inputs, output, idx_dict)
+    ssa_path = _ssa_optimize(inputs, output, size_dict)
     return ssa_to_linear(ssa_path)
-
-
-greedy = eager

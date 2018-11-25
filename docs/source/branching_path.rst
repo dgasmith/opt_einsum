@@ -31,7 +31,7 @@ There is also ``'branch-1'``, which, since it only explores a single path at
 each step does not really 'branch' - this is essentially the approach of
 ``'greedy'``.
 In comparison, ``'branch-1'`` will be slower for large expressions, but for
-small to medium exressions it might find slightly higher quality contractions
+small to medium expressions it might find slightly higher quality contractions
 due to considering individual flop costs at each step.
 
 The default ``optimize='auto'`` mode of ``opt_einsum`` will use
