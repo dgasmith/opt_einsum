@@ -9,8 +9,9 @@ Function Reference
     opt_einsum.contract_path
     opt_einsum.contract_expression
     opt_einsum.contract.ContractExpression
+    opt_einsum.contract.PathInfo
     opt_einsum.paths.optimal
     opt_einsum.paths.greedy
-    opt_einsum.paths.eager
+    opt_einsum.paths.branch
     opt_einsum.parser.get_symbol
     opt_einsum.sharing.shared_intermediates

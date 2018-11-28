@@ -26,17 +26,21 @@ explicit_path_tests = {
 }
 
 path_edge_tests = [
-    ['eager', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
     ['greedy', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
+    ['branch-all', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
+    ['branch-2', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
     ['optimal', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
-    ['eager', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['greedy', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
+    ['branch-all', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
+    ['branch-2', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['optimal', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
-    ['eager', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['greedy', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
+    ['branch-all', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
+    ['branch-2', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['optimal', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
-    ['eager', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
     ['greedy', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
+    ['branch-all', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
+    ['branch-2', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
     ['optimal', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
 ]
 
@@ -176,7 +180,7 @@ def test_greedy_edge_cases():
     assert check_path(path, [(0, 1), (0, 2), (0, 1)])
 
 
-@pytest.mark.parametrize("optimize", ['greedy', 'eager'])
+@pytest.mark.parametrize("optimize", ['greedy', 'branch-2', 'branch-all', 'optimal'])
 def test_can_optimize_outer_products(optimize):
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
     d = np.random.randn(10, 2)
@@ -187,7 +191,7 @@ def test_can_optimize_outer_products(optimize):
 def test_large_path(num_symbols):
     symbols = ''.join(oe.get_symbol(i) for i in range(num_symbols))
     dimension_dict = dict(zip(symbols, itertools.cycle([2, 3, 4])))
-    expression = ','.join(symbols[t:t+2] for t in range(num_symbols - 1))
+    expression = ','.join(symbols[t:t + 2] for t in range(num_symbols - 1))
     tensors = oe.helpers.build_views(expression, dimension_dict=dimension_dict)
 
     # Check that path construction does not crash
