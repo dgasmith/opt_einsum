@@ -2,8 +2,6 @@
 Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 """
 
-import sys
-
 import numpy as np
 import pytest
 
