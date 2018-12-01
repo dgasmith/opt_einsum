@@ -3,6 +3,7 @@ Contains helper functions for opt_einsum testing scripts
 """
 
 import numpy as np
+
 from .parser import get_symbol
 
 __all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
@@ -18,9 +19,9 @@ def build_views(string, dimension_dict=None):
 
     Parameters
     ----------
-    tensor_list : list of str
+    string : list of str
         List of tensor strings to build
-    dimension_dictionary : dictionary
+    dimension_dict : dictionary
         Dictionary of index _sizes
 
     Returns

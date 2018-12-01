@@ -96,7 +96,6 @@ tests = [
     'aef,fbc,dca->bde',
 ]
 
-
 all_optimizers = ['optimal', 'branch-all', 'branch-2', 'branch-1', 'greedy']
 
 
@@ -181,8 +180,7 @@ def test_contract_expressions(string, optimize, use_blas, out_spec):
     shapes = [view.shape for view in views]
     expected = contract(string, *views, optimize=False, use_blas=False)
 
-    expr = contract_expression(
-        string, *shapes, optimize=optimize, use_blas=use_blas)
+    expr = contract_expression(string, *shapes, optimize=optimize, use_blas=use_blas)
 
     if out_spec and ("->" in string) and (string[-2:] != "->"):
         out, = helpers.build_views(string.split('->')[1])

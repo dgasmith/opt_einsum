@@ -1,7 +1,34 @@
 Changelog
 =========
 
-2.2.0 / 2018-MM-DD
+2.3.0 / 2018-12-01
+------------------
+
+This release primarily focuses on expanding the suite of available path
+technologies to provide better optimization characistics for 4-20 tensors while
+decreasing the time to find paths for 50-200+ tensors. See `Path Overview <path_finding.html#performance-comparison>`_ for more information.
+
+New Features
+++++++++++++
+- (:pr:`60`) A new ``greedy`` implementation has been added which is up to two orders of magnitude faster for 200 tensors.
+- (:pr:`73`) Adds a new ``branch`` path that uses ``greedy`` ideas to prune the ``optimal`` exploration space to provide a better path than ``greedy`` at sub ``optimal`` cost.
+- (:pr:`73`) Adds a new ``auto`` keyword to the :func:`opt_einsum.contract` ``path`` option. This keyword automatically chooses the best path technology that takes under 1ms to execute.
+
+Enhancements
+++++++++++++
+- (:pr:`61`) The :func:`opt_einsum.contract` ``path`` keyword has been changed to ``optimize`` to more closely match NumPy. ``path`` will be deprecated in the future.
+- (:pr:`61`) The :func:`opt_einsum.contract_path` now returns a :func:`opt_einsum.contract.PathInfo` object that can be queried for the scaling, flops, and intermediates of the path. The print representation of this object is identical to before. 
+- (:pr:`61`) The default ``memory_limit`` is now unlimited by default based on community feedback.
+- (:pr:`66`) The Torch backend will now use ``tensordot`` when using a version of Torch which includes this functionality.
+- (:pr:`68`) Indices can now be any hashable object when provided in the `"Interleaved Input" <input_format.html#interleaved-input>`_ syntax.
+- (:pr:`74`) Allows the default `transpose` operation to be overridden to take advantage of more advanced tensor transpose libraries.
+- (:pr:`73`) The ``optimal`` path is now significantly faster.
+
+Bug fixes
++++++++++
+- (:pr:`72`) Fixes the `"Interleaved Input" <input_format.html#interleaved-input>`_ syntax and adds documentation.
+
+2.2.0 / 2018-07-29
 ------------------
 
 New Features
