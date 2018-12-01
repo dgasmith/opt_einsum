@@ -4,8 +4,8 @@
 ```
 conda update setuptools wheel
 
-python3 setup.py sdist
-twine upload --repository-url https://test.pypi.org/legacy/ sdist/
+python setup.py sdist
+twine upload --repository-url https://test.pypi.org/legacy/ dist/
 ```
 
 ### Update conda-forge:
