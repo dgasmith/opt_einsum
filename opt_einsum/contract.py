@@ -230,7 +230,7 @@ def contract_path(*operands, **kwargs):
             raise ValueError("Einstein sum subscript '{}' does not contain the "
                              "correct number of indices for operand {}.".format(input_subscripts[tnum], tnum))
         for cnum, char in enumerate(term):
-            dim = sh[cnum]
+            dim = int(sh[cnum])
 
             if char in dimension_dict:
                 # For broadcasting cases we always want the largest dim size
