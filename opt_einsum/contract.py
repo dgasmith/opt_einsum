@@ -256,7 +256,7 @@ def contract_path(*operands, **kwargs):
     naive_cost = helpers.flop_count(indices, inner_product, num_ops, dimension_dict)
 
     # Compute the path
-    if not isinstance(path_type, compat.strings):
+    if not isinstance(path_type, (compat.strings, paths.PathOptimizer)):
         path = path_type
     elif num_ops == 1:
         # Nothing to be optimized
@@ -264,6 +264,8 @@ def contract_path(*operands, **kwargs):
     elif num_ops == 2:
         # Nothing to be optimized
         path = [(0, 1)]
+    elif isinstance(path_type, paths.PathOptimizer):
+        path = path_type(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type == "optimal" or (path_type == "auto" and num_ops <= 4):
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type == 'branch-all' or (path_type == "auto" and num_ops <= 6):
@@ -272,6 +274,8 @@ def contract_path(*operands, **kwargs):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=2)
     elif path_type == 'branch-1' or (path_type == "auto" and num_ops <= 14):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=1)
+    elif path_type == 'random-greedy':
+        path = paths.random_greedy(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type in ("auto", "greedy", "eager", "opportunistic"):
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:

@@ -3,18 +3,35 @@ Contains the path technology behind opt_einsum in addition to several path helpe
 """
 from __future__ import absolute_import, division, print_function
 
+import math
 import heapq
+import random
 import itertools
+import functools
 from collections import defaultdict
 
 import numpy as np
 
 from . import helpers
 
-__all__ = ["optimal", "branch", "greedy"]
+__all__ = ["optimal", "BranchOptimizer", "branch", "greedy", "RandomOptimizer", "random_greedy"]
 
 
 _UNLIMITED_MEM = {-1, None, float('inf')}
+
+
+class PathOptimizer(object):
+    """Base class for different path optimizers to inherit from.
+
+    Subclassed optimizers should define a call method with signature::
+
+        def __call__(self, inputs, output, size_dict, memory_limit=None):
+            # ... compute path here ...
+            return path
+
+    where ``path`` is a list of int-tuples specifiying a contraction order.
+    """
+    pass
 
 
 def ssa_to_linear(ssa_path):
@@ -140,7 +157,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
     inputs = tuple(map(frozenset, inputs))
     output = frozenset(output)
 
-    best = {'flops': float('inf'), 'path': (tuple(range(len(inputs))),)}
+    best = {'flops': float('inf'), 'ssa_path': (tuple(range(len(inputs))),)}
     size_cache = {}
     result_cache = {}
 
@@ -149,7 +166,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
         # reached end of path (only ever get here if flops is best found so far)
         if len(remaining) == 1:
             best['flops'] = flops
-            best['path'] = path
+            best['ssa_path'] = path
             return
 
         # check all possible remaining paths
@@ -179,7 +196,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
                     new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
                     if new_flops < best['flops']:
                         best['flops'] = new_flops
-                        best['path'] = path + (tuple(remaining),)
+                        best['ssa_path'] = path + (tuple(remaining),)
                     continue
 
             # add contraction and recurse into all remaining
@@ -193,154 +210,213 @@ def optimal(inputs, output, size_dict, memory_limit=None):
                      remaining=set(range(len(inputs))),
                      flops=0)
 
-    return ssa_to_linear(best['path'])
+    return ssa_to_linear(best['ssa_path'])
 
 
-def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
+def better_flops_first(flops, size, best_flops, best_size):
+    return (flops, size) < (best_flops, best_size)
+
+
+def better_size_first(flops, size, best_flops, best_size):
+    return (size, flops) < (best_size, best_flops)
+
+
+_BETTER_FNS = {
+    'flops': better_flops_first,
+    'size': better_size_first,
+}
+
+
+class BranchOptimizer(PathOptimizer):
     """
     Explores possible pair contractions in a depth-first recursive manner like
-    the ``optimal`` approach, but with extra heuristic early pruning of
-    branches as well sieving by ``memory_limit`` and the best path found so far.
-    Returns the lowest cost path. This algorithm still scales factorially with
-    respect to the elements in the list ``input_sets`` if ``nbranch`` is not
-    set, but it scales exponentially like ``nbranch**len(input_sets)``
-    otherwise.
+    the ``optimal`` approach, but with extra heuristic early pruning of branches
+    as well sieving by ``memory_limit`` and the best path found so far. Returns
+    the lowest cost path. This algorithm still scales factorially with respect
+    to the elements in the list ``input_sets`` if ``nbranch`` is not set, but it
+    scales exponentially like ``nbranch**len(input_sets)`` otherwise.
 
     Parameters
     ----------
-    inputs : list
-        List of sets that represent the lhs side of the einsum subscript
-    output : set
-        Set that represents the rhs side of the overall einsum subscript
-    size_dict : dictionary
-        Dictionary of index sizes
-    memory_limit : int
-        The maximum number of elements in a temporary array
     nbranch : None or int, optional
         How many branches to explore at each contraction step. If None, explore
         all possible branches. If an integer, branch into this many paths at
-        each step.
-
-    Returns
-    -------
-    path : list
-        The contraction order within the memory limit constraint.
-
-    Examples
-    --------
-    >>> isets = [set('abd'), set('ac'), set('bdc')]
-    >>> oset = set('')
-    >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> branch(isets, oset, idx_sizes, 5000)
-    [(0, 2), (0, 1)]
+        each step. Defaults to None.
+    cutoff_flops_factor : float, optional
+        If at any point, a path is doing this much worse than the best path
+        found so far was, terminate it. The larger this is made, the more paths
+        will be fully explored and the slower the algorithm. Defaults to 4.
+    minimize : {'flops', 'size'}, optional
+        Whether to optimize the path with regard primarily to the total
+        estimated flop-count, or the size of the largest intermediate. The
+        option not chosen will still be used as a secondary criterion.
+    cost_fn : callable, optional
+        A function that returns a heuristic 'cost' of a potential contraction
+        with which to sort candidates. Should have signature
+        ``cost_fn(size12, size1, size2, k12, k1, k2)``.
     """
 
-    inputs = tuple(map(frozenset, inputs))
-    output = frozenset(output)
+    def __init__(self, nbranch=None, cutoff_flops_factor=4, minimize='flops', cost_fn=None):
+        self.nbranch = nbranch
+        self.cutoff_flops_factor = cutoff_flops_factor
+        self.minimize = minimize
+        self.cost_fn = cost_fn
 
-    best = {'flops': float('inf'), 'path': (tuple(range(len(inputs))),)}
-    best_progress = defaultdict(lambda: float('inf'))
+        self.better = _BETTER_FNS[minimize]
+        self.best = {'flops': float('inf'), 'size': float('inf')}
+        self.best_progress = defaultdict(lambda: float('inf'))
 
-    size_cache = {k: helpers.compute_size_by_dict(k, size_dict) for k in inputs}
-    result_cache = {}
+    @property
+    def path(self):
+        return ssa_to_linear(self.best['ssa_path'])
 
-    def _branch_iterate(path, inputs, remaining, flops):
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+        """
 
-        # reached end of path (only ever get here if flops is best found so far)
-        if len(remaining) == 1:
-            best['flops'] = flops
-            best['path'] = path
-            return
+        Parameters
+        ----------
+        input_sets : list
+            List of sets that represent the lhs side of the einsum subscript
+        output_set : set
+            Set that represents the rhs side of the overall einsum subscript
+        idx_dict : dictionary
+            Dictionary of index sizes
+        memory_limit : int
+            The maximum number of elements in a temporary array
 
-        def _assess_candidate(k1, k2, i, j):
-            # find resulting indices and cost
-            try:
-                k12, flops12 = result_cache[k1, k2]
-            except KeyError:
-                k12, flops12 = result_cache[k1, k2] = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+        Returns
+        -------
+        path : list
+            The contraction order within the memory limit constraint.
 
-            # sieve based on current best flops
-            new_flops = flops + flops12
-            if new_flops >= best['flops']:
-                return None
+        Examples
+        --------
+        >>> isets = [set('abd'), set('ac'), set('bdc')]
+        >>> oset = set('')
+        >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
+        >>> optimal(isets, oset, idx_sizes, 5000)
+        [(0, 2), (0, 1)]
+        """
 
-            # compare to how the best method was doing as this point
-            if new_flops < best_progress[len(inputs)]:
-                best_progress[len(inputs)] = new_flops
-            # sieve based on current progress relative to best
-            elif new_flops > 4 * best_progress[len(inputs)]:
-                return None
+        inputs = tuple(map(frozenset, inputs))
+        output = frozenset(output)
 
-            # create a sort order based on cost
-            size1, size2 = size_cache[inputs[i]], size_cache[inputs[j]]
-            try:
-                size12 = size_cache[k12]
-            except KeyError:
-                size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
+        size_cache = {k: helpers.compute_size_by_dict(k, size_dict) for k in inputs}
+        result_cache = {}
 
-            # sieve based on memory limit
-            if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):
-                # terminate path here, but check all-terms contract first
-                new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
-                if new_flops < best['flops']:
-                    best['flops'] = new_flops
-                    best['path'] = path + (tuple(remaining),)
-                return None
+        def _branch_iterate(path, inputs, remaining, flops, size):
 
-            # set cost heuristic in order to locally sort possible contractions
-            cost = size12 - size1 - size2
-            return cost, flops12, new_flops, (i, j), k12
+            # reached end of path (only ever get here if flops is best found so far)
+            if len(remaining) == 1:
+                self.best['size'] = size
+                self.best['flops'] = flops
+                self.best['ssa_path'] = path
+                return
 
-        # check all possible remaining paths
-        candidates = []
-        for i, j in itertools.combinations(remaining, 2):
-            if i > j:
-                i, j = j, i
-            k1, k2 = inputs[i], inputs[j]
+            def _assess_candidate(k1, k2, i, j):
+                # find resulting indices and flops
+                try:
+                    k12, flops12 = result_cache[k1, k2]
+                except KeyError:
+                    k12, flops12 = result_cache[k1, k2] = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
 
-            # initially ignore outer products
-            if k1.isdisjoint(k2):
-                continue
+                try:
+                    size12 = size_cache[k12]
+                except KeyError:
+                    size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
 
-            candidate = _assess_candidate(k1, k2, i, j)
-            if candidate:
-                heapq.heappush(candidates, candidate)
+                new_flops = flops + flops12
+                new_size = max(size, size12)
 
-        # assess outer products if nothing left
-        if not candidates:
+                # sieve based on current best i.e. check flops and size still better
+                if not self.better(new_flops, new_size, self.best['flops'], self.best['size']):
+                    return None
+
+                # compare to how the best method was doing as this point
+                if new_flops < self.best_progress[len(inputs)]:
+                    self.best_progress[len(inputs)] = new_flops
+                # sieve based on current progress relative to best
+                elif new_flops > self.cutoff_flops_factor * self.best_progress[len(inputs)]:
+                    return None
+
+                # sieve based on memory limit
+                if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):
+                    # terminate path here, but check all-terms contract first
+                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
+                    if new_flops < self.best['flops']:
+                        self.best['flops'] = new_flops
+                        self.best['ssa_path'] = path + (tuple(remaining),)
+                    return None
+
+                # set cost heuristic in order to locally sort possible contractions
+                size1, size2 = size_cache[inputs[i]], size_cache[inputs[j]]
+
+                if self.cost_fn is None:
+                    cost = size12 - size1 - size2
+                else:
+                    cost = self.cost_fn(size12, size1, size2, k12, k1, k2)
+
+                return cost, flops12, new_flops, new_size, (i, j), k12
+
+            # check all possible remaining paths
+            candidates = []
             for i, j in itertools.combinations(remaining, 2):
+                if i > j:
+                    i, j = j, i
                 k1, k2 = inputs[i], inputs[j]
+
+                # initially ignore outer products
+                if k1.isdisjoint(k2):
+                    continue
+
                 candidate = _assess_candidate(k1, k2, i, j)
                 if candidate:
                     heapq.heappush(candidates, candidate)
 
-        if not candidates:
-            return
+            # assess outer products if nothing left
+            if not candidates:
+                for i, j in itertools.combinations(remaining, 2):
+                    if i > j:
+                        i, j = j, i
+                    k1, k2 = inputs[i], inputs[j]
+                    candidate = _assess_candidate(k1, k2, i, j)
+                    if candidate:
+                        heapq.heappush(candidates, candidate)
 
-        # recurse into all or some of the best candidate contractions
-        bi = 0
-        while (nbranch is None or bi < nbranch) and candidates:
-            _, _, new_flops, (i, j), k12 = heapq.heappop(candidates)
-            _branch_iterate(path=path + ((i, j),),
-                            inputs=inputs + (k12,),
-                            remaining=remaining - {i, j} | {len(inputs)},
-                            flops=new_flops)
-            bi += 1
+            # recurse into all or some of the best candidate contractions
+            bi = 0
+            while (self.nbranch is None or bi < self.nbranch) and candidates:
+                _, _, new_flops, new_size, (i, j), k12 = heapq.heappop(candidates)
+                _branch_iterate(path=path + ((i, j),),
+                                inputs=inputs + (k12,),
+                                remaining=remaining - {i, j} | {len(inputs)},
+                                flops=new_flops,
+                                size=new_size)
+                bi += 1
 
-    _branch_iterate(path=(),
-                    inputs=inputs,
-                    remaining=set(range(len(inputs))),
-                    flops=0)
+        _branch_iterate(path=(),
+                        inputs=inputs,
+                        remaining=set(range(len(inputs))),
+                        flops=0,
+                        size=0)
 
-    return ssa_to_linear(best['path'])
+        return self.path
 
 
-def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2):
+def branch(inputs, output, size_dict, memory_limit=None, **optimizer_kwargs):
+    optimizer = BranchOptimizer(**optimizer_kwargs)
+    return optimizer(inputs, output, size_dict, memory_limit)
+
+
+def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn=None):
     either = k1 | k2
     two = k1 & k2
     one = either - two
     k12 = (either & output) | (two & dim_ref_counts[3]) | (one & dim_ref_counts[2])
-    cost = helpers.compute_size_by_dict(k12, sizes) - footprints[k1] - footprints[k2]
+    if cost_fn is None:
+        cost = helpers.compute_size_by_dict(k12, sizes) - footprints[k1] - footprints[k2]
+    else:
+        cost = cost_fn(helpers.compute_size_by_dict(k12, sizes), footprints[k1], footprints[k2], k12, k1, k2)
     id1 = remaining[k1]
     id2 = remaining[k2]
     if id1 > id2:
@@ -349,10 +425,14 @@ def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2)
     return cost, k1, k2, k12
 
 
-def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue):
-    candidate = min(_get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2)
-                    for k2 in k2s)
-    heapq.heappush(queue, candidate)
+def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all=False, cost_fn=None):
+    candidates = (_get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn) for k2 in k2s)
+    if push_all:
+        # want to do this if we e.g. are using a custom 'choose_fn'
+        for candidate in candidates:
+            heapq.heappush(queue, candidate)
+    else:
+        heapq.heappush(queue, min(candidates))
 
 
 def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
@@ -369,7 +449,7 @@ def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
             dim_ref_counts[3].add(dim)
 
 
-def _ssa_optimize(inputs, output, sizes):
+def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn=None):
     """
     This is the core function for :func:`greedy` but produces a path with
     static single assignment ids rather than recycled linear ids.
@@ -413,19 +493,29 @@ def _ssa_optimize(inputs, output, sizes):
     # Compute separable part of the objective function for contractions.
     footprints = {key: helpers.compute_size_by_dict(key, sizes) for key in remaining}
 
+    # if we not just choosing the minimum contraction make sure to add all candidates to queue
+    push_all = choose_fn is not None
+
     # Find initial candidate contractions.
     queue = []
     for dim, keys in dim_to_keys.items():
         keys = sorted(keys, key=remaining.__getitem__)
         for i, k1 in enumerate(keys[:-1]):
             k2s = keys[1 + i:]
-            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue)
+            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn)
 
     # Greedily contract pairs of tensors.
     while queue:
-        cost, k1, k2, k12 = heapq.heappop(queue)
-        if k1 not in remaining or k2 not in remaining:
-            continue  # candidate is obsolete
+
+        if choose_fn is None:
+            cost, k1, k2, k12 = heapq.heappop(queue)
+            if k1 not in remaining or k2 not in remaining:
+                continue  # candidate is obsolete
+        else:
+            con = choose_fn(queue, remaining)
+            if con is None:
+                continue  # allow choose_fn to flag all candidates obsolete
+            cost, k1, k2, k12 = con
 
         ssa_id1 = remaining.pop(k1)
         ssa_id2 = remaining.pop(k2)
@@ -448,7 +538,7 @@ def _ssa_optimize(inputs, output, sizes):
         k2s = set(k2 for dim in k1 for k2 in dim_to_keys[dim])
         k2s.discard(k1)
         if k2s:
-            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue)
+            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn)
 
     # Greedily compute pairwise outer products.
     queue = [(helpers.compute_size_by_dict(key & output, sizes), ssa_id, key)
@@ -506,3 +596,257 @@ def greedy(inputs, output, size_dict, memory_limit=None):
 
     ssa_path = _ssa_optimize(inputs, output, size_dict)
     return ssa_to_linear(ssa_path)
+
+
+def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=True):
+    """A contraction 'chooser' that weights possible contractions using a
+    Boltzmann distribution. Explicitly, given costs ``c_i`` (with ``c_0`` the
+    smallest), the relative weights, ``w_i``, are computed as:
+
+        w_i = exp( -(c_i - c_0) / temperature)
+
+    Additionally, if ``rel_temperature`` is set, scale ``temperature`` by
+    ``abs(c_0)`` to account for likely fluctuating cost magnitudes during the
+    course of a contraction.
+
+    Parameters
+    ----------
+    queue : list
+        The heapified list of candidate contractions.
+    remaining : dict[str, int]
+        Mapping of remaining inputs' indices to the ssa id.
+    temperature : float, optional
+        When choosing a possible contraction, its relative probability will be
+        proportional to ``exp(-cost / temperature)``. Thus the larger
+        ``temperature`` is, the further random paths will stray from the normal
+        'greedy' path. Conversely, if set to zero, only paths with exactly the
+        same cost as the best at each step will be explored.
+    rel_temperature : bool, optional
+        Whether to normalize the ``temperature`` at each step to the scale of
+        the best cost. This is generally beneficial as the magnitude of costs
+        can vary significantly throughout a contraction.
+    nbranch : int, optional
+        How many potential paths to calculate probability for and choose from
+        at each step.
+
+    Returns
+    -------
+    cost, k1, k2, k12
+    """
+    n = 0
+    choices = []
+    while queue and n < nbranch:
+        cost, k1, k2, k12 = heapq.heappop(queue)
+        if k1 not in remaining or k2 not in remaining:
+            continue  # candidate is obsolete
+        choices.append((cost, k1, k2, k12))
+        n += 1
+
+    if n == 0:
+        return None
+    if n == 1:
+        return choices[0]
+
+    costs = [choice[0][0] for choice in choices]
+    cmin = costs[0]
+
+    # adjust by the overall scale to account for fluctuating absolute costs
+    if rel_temperature:
+        temperature *= max(1, abs(cmin))
+
+    # compute relative probability for each potential contraction
+    if temperature == 0.0:
+        energies = [1 if cost == cmin else 0 for cost in costs]
+    else:
+        # shift by cmin for numerical reasons
+        energies = [math.exp(-(c - cmin) / temperature) for c in costs]
+
+    # randomly choose a contraction based on energies
+    chosen, = random.choices(range(n), weights=energies, k=1)
+    cost, k1, k2, k12 = choices.pop(chosen)
+
+    # put the other choise back in the heap
+    for other in choices:
+        heapq.heappush(queue, other)
+
+    return cost, k1, k2, k12
+
+
+def _ssa_path_compute_cost(ssa_path, inputs, output, size_dict):
+    """Compute the flops and max size of an ssa path.
+    """
+    inputs = list(map(frozenset, inputs))
+    output = frozenset(output)
+    remaining = set(range(len(inputs)))
+    total_cost = 0
+    max_size = 0
+
+    for i, j in ssa_path:
+        k12, flops12 = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+        remaining.discard(i)
+        remaining.discard(j)
+        remaining.add(len(inputs))
+        inputs.append(k12)
+        total_cost += flops12
+        max_size = max(max_size, helpers.compute_size_by_dict(k12, size_dict))
+
+    return total_cost, max_size
+
+
+def _trial_ssa_path_and_cost(r, inputs, output, size_dict, choose_fn, cost_fn):
+    """A single, repeatable, trial run. Returns ``ssa_path`` and cost.
+    """
+    if r == 0:
+        # always start with the standard greedy approach
+        choose_fn = None
+    else:
+        random.seed(r)
+
+    ssa_path = _ssa_optimize(inputs, output, size_dict, choose_fn, cost_fn)
+    cost, size = _ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
+
+    return ssa_path, cost, size
+
+
+class RandomOptimizer(PathOptimizer):
+    """
+
+    Parameters
+    ----------
+    max_repeats : int, optional
+        The maximum number of repeat trials to have.
+    max_time : float, optional
+        The maximum amount of time to run the algorithm for.
+    minimize : {'flops', 'size'}, optional
+        Whether to favour paths that minimize the total estimated flop-count or
+        the size of the largest intermediate created.
+    cost_fn : callable, optional
+        A function that returns a heuristic 'cost' of a potential contraction
+        with which to sort candidates. Should have signature
+        ``cost_fn(size12, size1, size2, k12, k1, k2)``.
+    temperature : float, optional
+        When choosing a possible contraction, its relative probability will be
+        proportional to ``exp(-cost / temperature)``. Thus the larger
+        ``temperature`` is, the further random paths will stray from the normal
+        'greedy' path. Conversely, if set to zero, only paths with exactly the
+        same cost as the best at each step will be explored.
+    rel_temperature : bool, optional
+        Whether to normalize the ``temperature`` at each step to the scale of
+        the best cost. This is generally beneficial as the magnitude of costs
+        can vary significantly throughout a contraction. If False, the
+        algorithm will end up branching when the absolute cost is low, but
+        stick to the 'greedy' path when the cost is high - this can also be
+        beneficial.
+    nbranch : int, optional
+        How many potential paths to calculate probability for and choose from
+        at each step.
+    executor : executor-pool like, optional
+        An executor-pool to optionally parallelize repeat trials over. The pool
+        should have an api matching those found in the python 3 standard library
+        module ``concurrent.futures``. Namely, a ``submit`` method that returns
+        ``Future`` objects, themselves with ``result`` and ``cancel`` methods.
+        Note that if you set ``max_repeats`` very high, that many trials will
+        be submitted to the pool, resulting in a possibly significant slowdown.
+
+    Attributes
+    ----------
+    path : list[tuple[int]]
+        The best path found so far.
+    costs : list[int]
+        The list of trials costs found so far.
+    """
+
+    def __init__(self, max_repeats=32, max_time=None, minimize='flops', cost_fn=None,
+                 temperature=1.0, rel_temperature=True, nbranch=8, executor=None):
+
+        if minimize not in ('flops', 'size'):
+            raise ValueError("`minimize` should be one of {'flops', 'size'}.")
+
+        self.max_repeats = max_repeats
+        self.max_time = max_time
+        self.minimize = minimize
+        self.cost_fn = cost_fn
+        self.better = _BETTER_FNS[minimize]
+        self.temperature = temperature
+        self.rel_temperature = rel_temperature
+        self.nbranch = nbranch
+        self.executor = executor
+
+        self.costs = []
+        self.sizes = []
+        self.best = {'cost': float('inf'), 'size': float('inf')}
+
+        # this keeps track of how many trials we have submitted so that (a)
+        # each trial has a different seed, and (b) the very first trial can be
+        # made to always be the standard greedy one
+        self._r0 = 0
+
+    @property
+    def choose_fn(self):
+        """The function that chooses which contraction to take - make this a
+        property so that ``temperature`` and ``nbranch`` etc. can be updated
+        between runs.
+        """
+        if self.nbranch == 1:
+            return None
+
+        return functools.partial(thermal_chooser, temperature=self.temperature,
+                                 nbranch=self.nbranch, rel_temperature=self.rel_temperature)
+
+    @property
+    def path(self):
+        """The best path found so far.
+        """
+        return ssa_to_linear(self.best['ssa_path'])
+
+    def __call__(self, inputs, output, size_dict, memory_limit):
+        import time
+
+        # start a timer?
+        if self.max_time is not None:
+            t0 = time.time()
+
+        args = (inputs, output, size_dict, self.choose_fn, self.cost_fn)
+        repeats = range(self._r0, self._r0 + self.max_repeats)
+        self._r0 += self.max_repeats
+
+        # create the trials lazily
+        if self.executor is not None:
+            # eagerly submit
+            fs = [self.executor.submit(_trial_ssa_path_and_cost, r, *args) for r in repeats]
+            # lazily retrieve
+            trials = (f.result() for f in fs)
+        else:
+            trials = (_trial_ssa_path_and_cost(r, *args) for r in repeats)
+
+        # assess the trials
+        for ssa_path, cost, size in trials:
+
+            # keep track of all costs and sizes
+            self.costs.append(cost)
+            self.sizes.append(size)
+
+            # check if we have found a new best
+            found_new_best = self.better(cost, size, self.best['cost'], self.best['size'])
+
+            if found_new_best:
+                self.best['cost'] = cost
+                self.best['size'] = size
+                self.best['ssa_path'] = ssa_path
+
+            # check if we have run out of time
+            if (self.max_time is not None) and (time.time() > t0 + self.max_time):
+                # possibly cancel remaining futures
+                if self.executor is not None:
+                    for f in fs:
+                        f.cancel()
+                break
+
+        return self.path
+
+
+def random_greedy(inputs, output, idx_dict, memory_limit=None, **optimizer_kwargs):
+    """
+    """
+    optimizer = RandomOptimizer(**optimizer_kwargs)
+    return optimizer(inputs, output, idx_dict, memory_limit)

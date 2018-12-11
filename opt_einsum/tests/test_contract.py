@@ -96,7 +96,8 @@ tests = [
     'aef,fbc,dca->bde',
 ]
 
-all_optimizers = ['optimal', 'branch-all', 'branch-2', 'branch-1', 'greedy']
+
+all_optimizers = ['optimal', 'branch-all', 'branch-2', 'branch-1', 'greedy', 'random-greedy']
 
 
 @pytest.mark.parametrize("string", tests)
