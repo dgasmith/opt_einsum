@@ -844,7 +844,7 @@ class RandomOptimizer(PathOptimizer):
         # create the trials lazily
         if self.executor is not None:
             # eagerly submit
-            fs = [self.executor.submit(_trial_ssa_path_and_cost, r, *args) for r in repeats]
+            fs = iter([self.executor.submit(_trial_ssa_path_and_cost, r, *args) for r in repeats])
             # lazily retrieve
             trials = (f.result() for f in fs)
         else:
@@ -867,11 +867,12 @@ class RandomOptimizer(PathOptimizer):
 
             # check if we have run out of time
             if (self.max_time is not None) and (time.time() > t0 + self.max_time):
-                # possibly cancel remaining futures
-                if self.executor is not None:
-                    for f in fs:
-                        f.cancel()
                 break
+
+        # possibly cancel remaining futures
+        if self.executor is not None:
+            for f in fs:
+                f.cancel()
 
         return self.path
 
