@@ -213,6 +213,8 @@ def optimal(inputs, output, size_dict, memory_limit=None):
     return ssa_to_linear(best['ssa_path'])
 
 
+# functions for comparing which of two paths is 'better'
+
 def better_flops_first(flops, size, best_flops, best_size):
     return (flops, size) < (best_flops, best_size)
 
@@ -224,6 +226,28 @@ def better_size_first(flops, size, best_flops, best_size):
 _BETTER_FNS = {
     'flops': better_flops_first,
     'size': better_size_first,
+}
+
+
+# functions for assigning a heuristic 'cost' to a potential contraction
+
+def cost_memory_removed(size12, size1, size2, k12, k1, k2):
+    """The default heuristic cost, corresponding to the total reduction in
+    memory of performing a contraction.
+    """
+    return size12 - size1 - size2
+
+
+def cost_memory_removed_jitter(size12, size1, size2, k12, k1, k2):
+    """Like memory-removed, but with a slight amount of noise that breaks ties
+    and thus jumbles the contractions a bit.
+    """
+    return random.gauss(1.0, 0.01) * (size12 - size1 - size2)
+
+
+_COST_FNS = {
+    'memory-removed': cost_memory_removed,
+    'memory-removed-jitter': cost_memory_removed_jitter,
 }
 
 
@@ -256,11 +280,11 @@ class BranchOptimizer(PathOptimizer):
         ``cost_fn(size12, size1, size2, k12, k1, k2)``.
     """
 
-    def __init__(self, nbranch=None, cutoff_flops_factor=4, minimize='flops', cost_fn=None):
+    def __init__(self, nbranch=None, cutoff_flops_factor=4, minimize='flops', cost_fn='memory-removed'):
         self.nbranch = nbranch
         self.cutoff_flops_factor = cutoff_flops_factor
         self.minimize = minimize
-        self.cost_fn = cost_fn
+        self.cost_fn = _COST_FNS.get(cost_fn, cost_fn)
 
         self.better = _BETTER_FNS[minimize]
         self.best = {'flops': float('inf'), 'size': float('inf')}
@@ -350,11 +374,7 @@ class BranchOptimizer(PathOptimizer):
 
                 # set cost heuristic in order to locally sort possible contractions
                 size1, size2 = size_cache[inputs[i]], size_cache[inputs[j]]
-
-                if self.cost_fn is None:
-                    cost = size12 - size1 - size2
-                else:
-                    cost = self.cost_fn(size12, size1, size2, k12, k1, k2)
+                cost = self.cost_fn(size12, size1, size2, k12, k1, k2)
 
                 return cost, flops12, new_flops, new_size, (i, j), k12
 
@@ -408,15 +428,12 @@ def branch(inputs, output, size_dict, memory_limit=None, **optimizer_kwargs):
     return optimizer(inputs, output, size_dict, memory_limit)
 
 
-def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn=None):
+def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn):
     either = k1 | k2
     two = k1 & k2
     one = either - two
     k12 = (either & output) | (two & dim_ref_counts[3]) | (one & dim_ref_counts[2])
-    if cost_fn is None:
-        cost = helpers.compute_size_by_dict(k12, sizes) - footprints[k1] - footprints[k2]
-    else:
-        cost = cost_fn(helpers.compute_size_by_dict(k12, sizes), footprints[k1], footprints[k2], k12, k1, k2)
+    cost = cost_fn(helpers.compute_size_by_dict(k12, sizes), footprints[k1], footprints[k2], k12, k1, k2)
     id1 = remaining[k1]
     id2 = remaining[k2]
     if id1 > id2:
@@ -425,7 +442,7 @@ def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2,
     return cost, k1, k2, k12
 
 
-def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all=False, cost_fn=None):
+def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn):
     candidates = (_get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn) for k2 in k2s)
     if push_all:
         # want to do this if we e.g. are using a custom 'choose_fn'
@@ -449,7 +466,16 @@ def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
             dim_ref_counts[3].add(dim)
 
 
-def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn=None):
+def _simple_chooser(queue, remaining):
+    """Default contraction chooser that simply takes the minimum cost option.
+    """
+    cost, k1, k2, k12 = heapq.heappop(queue)
+    if k1 not in remaining or k2 not in remaining:
+        return None  # candidate is obsolete
+    return cost, k1, k2, k12
+
+
+def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-removed'):
     """
     This is the core function for :func:`greedy` but produces a path with
     static single assignment ids rather than recycled linear ids.
@@ -458,6 +484,17 @@ def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn=None):
     if len(inputs) == 1:
         # Perform a single contraction to match output shape.
         return [(0,)]
+
+    # set the function that assigns a heuristic cost to a possible contraction
+    cost_fn = _COST_FNS.get(cost_fn, cost_fn)
+
+    # set the function that chooses which contraction to take
+    if choose_fn is None:
+        choose_fn = _simple_chooser
+        push_all = False
+    else:
+        # assume chooser wants access to all possible contractions
+        push_all = True
 
     # A dim that is common to all tensors might as well be an output dim, since it
     # cannot be contracted until the final step. This avoids an expensive all-pairs
@@ -493,9 +530,6 @@ def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn=None):
     # Compute separable part of the objective function for contractions.
     footprints = {key: helpers.compute_size_by_dict(key, sizes) for key in remaining}
 
-    # if we not just choosing the minimum contraction make sure to add all candidates to queue
-    push_all = choose_fn is not None
-
     # Find initial candidate contractions.
     queue = []
     for dim, keys in dim_to_keys.items():
@@ -507,15 +541,10 @@ def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn=None):
     # Greedily contract pairs of tensors.
     while queue:
 
-        if choose_fn is None:
-            cost, k1, k2, k12 = heapq.heappop(queue)
-            if k1 not in remaining or k2 not in remaining:
-                continue  # candidate is obsolete
-        else:
-            con = choose_fn(queue, remaining)
-            if con is None:
-                continue  # allow choose_fn to flag all candidates obsolete
-            cost, k1, k2, k12 = con
+        con = choose_fn(queue, remaining)
+        if con is None:
+            continue  # allow choose_fn to flag all candidates obsolete
+        cost, k1, k2, k12 = con
 
         ssa_id1 = remaining.pop(k1)
         ssa_id2 = remaining.pop(k2)
@@ -556,7 +585,7 @@ def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn=None):
     return ssa_path
 
 
-def greedy(inputs, output, size_dict, memory_limit=None):
+def greedy(inputs, output, size_dict, memory_limit=None, cost_fn='memory-removed'):
     """
     Finds the path by a three stage algorithm:
 
@@ -592,9 +621,9 @@ def greedy(inputs, output, size_dict, memory_limit=None):
     [(0, 2), (0, 1)]
     """
     if memory_limit not in _UNLIMITED_MEM:
-        return branch(inputs, output, size_dict, memory_limit, nbranch=1)
+        return branch(inputs, output, size_dict, memory_limit, nbranch=1, cost_fn=cost_fn)
 
-    ssa_path = _ssa_optimize(inputs, output, size_dict)
+    ssa_path = _ssa_optimize(inputs, output, size_dict, cost_fn=cost_fn)
     return ssa_to_linear(ssa_path)
 
 
@@ -753,10 +782,12 @@ class RandomOptimizer(PathOptimizer):
     path : list[tuple[int]]
         The best path found so far.
     costs : list[int]
-        The list of trials costs found so far.
+        The list of each trial's costs found so far.
+    sizes : list[int]
+        The list of each trial's largest intermediate size so far.
     """
 
-    def __init__(self, max_repeats=32, max_time=None, minimize='flops', cost_fn=None,
+    def __init__(self, max_repeats=32, max_time=None, minimize='flops', cost_fn='memory-removed-jitter',
                  temperature=1.0, rel_temperature=True, nbranch=8, executor=None):
 
         if minimize not in ('flops', 'size'):
