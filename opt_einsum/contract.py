@@ -31,15 +31,21 @@ class PathInfo(object):
         produced during the contraction.
     """
 
-    def __init__(self, contraction_list, input_subscripts, output_subscript,
-                 indices, scale_list, naive_cost, opt_cost, size_list):
+    def __init__(self, contraction_list, input_subscripts, output_subscript, indices,
+                 path, scale_list, naive_cost, opt_cost, size_list, size_dict):
         self.contraction_list = contraction_list
         self.input_subscripts = input_subscripts
         self.output_subscript = output_subscript
+        self.path = path
         self.indices = indices
         self.scale_list = scale_list
         self.naive_cost = naive_cost
         self.opt_cost = opt_cost
+        self.size_list = size_list
+        self.size_dict = size_dict
+
+        self.shapes = [tuple(size_dict[k] for k in ks) for ks in input_subscripts.split(',')]
+        self.eq = "{}->{}".format(input_subscripts, output_subscript)
         self.largest_intermediate = max(size_list)
 
     def __repr__(self):
@@ -52,11 +58,10 @@ class PathInfo(object):
         largest_intermediate = Decimal(self.largest_intermediate)
 
         # Return the path along with a nice string representation
-        overall_contraction = self.input_subscripts + "->" + self.output_subscript
         header = ("scaling", "BLAS", "current", "remaining")
 
         path_print = [
-            u"  Complete contraction:  {}\n".format(overall_contraction),
+            u"  Complete contraction:  {}\n".format(self.eq),
             u"         Naive scaling:  {}\n".format(len(self.indices)),
             u"     Optimized scaling:  {}\n".format(max(self.scale_list)),
             u"      Naive FLOP count:  {:.3e}\n".format(naive_cost),
@@ -331,8 +336,8 @@ def contract_path(*operands, **kwargs):
     if einsum_call_arg:
         return operands, contraction_list
 
-    path_print = PathInfo(contraction_list, input_subscripts, output_subscript,
-                          indices, scale_list, naive_cost, opt_cost, size_list)
+    path_print = PathInfo(contraction_list, input_subscripts, output_subscript, indices,
+                          path, scale_list, naive_cost, opt_cost, size_list, dimension_dict)
 
     return path, path_print
 
