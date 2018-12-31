@@ -8,7 +8,7 @@ import heapq
 import random
 import itertools
 import functools
-from collections import defaultdict
+from collections import defaultdict, deque
 
 import numpy as np
 
@@ -774,8 +774,10 @@ class RandomOptimizer(PathOptimizer):
         should have an api matching those found in the python 3 standard library
         module ``concurrent.futures``. Namely, a ``submit`` method that returns
         ``Future`` objects, themselves with ``result`` and ``cancel`` methods.
-        Note that if you set ``max_repeats`` very high, that many trials will
-        be submitted to the pool, resulting in a possibly significant slowdown.
+    pre_dispatch : int, optional
+        If using an ``executor``, how many jobs to pre-dispatch so as to avoid
+        submitting all jobs at once. Should also be more than twice the number
+        of workers to avoid under-subscription. Default: 128.
 
     Attributes
     ----------
@@ -788,7 +790,7 @@ class RandomOptimizer(PathOptimizer):
     """
 
     def __init__(self, max_repeats=32, max_time=None, minimize='flops', cost_fn='memory-removed-jitter',
-                 temperature=1.0, rel_temperature=True, nbranch=8, executor=None):
+                 temperature=1.0, rel_temperature=True, nbranch=8, executor=None, pre_dispatch=128):
 
         if minimize not in ('flops', 'size'):
             raise ValueError("`minimize` should be one of {'flops', 'size'}.")
@@ -802,6 +804,7 @@ class RandomOptimizer(PathOptimizer):
         self.rel_temperature = rel_temperature
         self.nbranch = nbranch
         self.executor = executor
+        self.pre_dispatch = pre_dispatch
 
         self.costs = []
         self.sizes = []
@@ -830,6 +833,25 @@ class RandomOptimizer(PathOptimizer):
         """
         return ssa_to_linear(self.best['ssa_path'])
 
+    def _gen_results_executor(self, repeats, args):
+        """Lazily generate results from an executor without submitting all jobs at once.
+        """
+        self._futures = deque()
+
+        for r in repeats:
+            if len(self._futures) < self.pre_dispatch:
+                self._futures.append(self.executor.submit(_trial_ssa_path_and_cost, r, *args))
+                continue
+            yield self._futures.popleft().result()
+
+        while self._futures:
+            yield self._futures.popleft().result()
+
+    def _cancel_futures(self):
+        if self.executor is not None:
+            for f in self._futures:
+                f.cancel()
+
     def __call__(self, inputs, output, size_dict, memory_limit):
         import time
 
@@ -843,10 +865,7 @@ class RandomOptimizer(PathOptimizer):
 
         # create the trials lazily
         if self.executor is not None:
-            # eagerly submit
-            fs = iter([self.executor.submit(_trial_ssa_path_and_cost, r, *args) for r in repeats])
-            # lazily retrieve
-            trials = (f.result() for f in fs)
+            trials = self._gen_results_executor(repeats, args)
         else:
             trials = (_trial_ssa_path_and_cost(r, *args) for r in repeats)
 
@@ -869,11 +888,7 @@ class RandomOptimizer(PathOptimizer):
             if (self.max_time is not None) and (time.time() > t0 + self.max_time):
                 break
 
-        # possibly cancel remaining futures
-        if self.executor is not None:
-            for f in fs:
-                f.cancel()
-
+        self._cancel_futures()
         return self.path
 
 
