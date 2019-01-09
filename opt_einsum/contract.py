@@ -12,6 +12,7 @@ from . import compat
 from . import helpers
 from . import parser
 from . import paths
+from . import path_random
 from . import sharing
 
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only", "shape_only"]
@@ -280,7 +281,7 @@ def contract_path(*operands, **kwargs):
     elif path_type == 'branch-1' or (path_type == "auto" and num_ops <= 14):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=1)
     elif path_type == 'random-greedy':
-        path = paths.random_greedy(input_sets, output_set, dimension_dict, memory_arg)
+        path = path_random.random_greedy(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type in ("auto", "greedy", "eager", "opportunistic"):
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:
