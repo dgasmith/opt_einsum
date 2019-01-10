@@ -3,6 +3,7 @@ Tests the accuracy of the opt_einsum paths in addition to unit tests for
 the various path helper functions.
 """
 
+import sys
 import itertools
 
 import numpy as np
@@ -196,3 +197,151 @@ def test_large_path(num_symbols):
 
     # Check that path construction does not crash
     oe.contract_path(expression, *tensors, optimize='greedy')
+
+
+def test_custom_random_greedy():
+    eq, shapes = oe.helpers.rand_equation(10, 4, seed=42)
+    views = list(map(np.ones, shapes))
+
+    with pytest.raises(ValueError):
+        oe.RandomGreedy(minimize='something')
+
+    optimizer = oe.RandomGreedy(max_repeats=10, minimize='flops')
+    path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
+
+    assert len(optimizer.costs) == 10
+    assert len(optimizer.sizes) == 10
+
+    assert path == optimizer.path
+    assert optimizer.best['flops'] == min(optimizer.costs)
+    assert path_info.largest_intermediate == optimizer.best['size']
+    assert path_info.opt_cost == optimizer.best['flops']
+
+    # check can change settings and run again
+    optimizer.temperature = 0.0
+    optimizer.max_repeats = 6
+    path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
+
+    assert len(optimizer.costs) == 16
+    assert len(optimizer.sizes) == 16
+
+    assert path == optimizer.path
+    assert optimizer.best['size'] == min(optimizer.sizes)
+    assert path_info.largest_intermediate == optimizer.best['size']
+    assert path_info.opt_cost == optimizer.best['flops']
+
+
+def test_custom_branchbound():
+    eq, shapes = oe.helpers.rand_equation(8, 4, seed=42)
+    views = list(map(np.ones, shapes))
+    optimizer = oe.BranchBound(nbranch=2, cutoff_flops_factor=10, minimize='size')
+
+    path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
+
+    assert path == optimizer.path
+    assert path_info.largest_intermediate == optimizer.best['size']
+    assert path_info.opt_cost == optimizer.best['flops']
+
+    # tweak settings and run again
+    optimizer.nbranch = 3
+    optimizer.cutoff_flops_factor = 4
+    path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
+
+    assert path == optimizer.path
+    assert path_info.largest_intermediate == optimizer.best['size']
+    assert path_info.opt_cost == optimizer.best['flops']
+
+
+@pytest.mark.skipif(sys.version_info < (3, 2), reason="requires python3.2 or higher")
+def test_parallel_random_greedy():
+    from concurrent.futures import ProcessPoolExecutor
+    pool = ProcessPoolExecutor(2)
+
+    eq, shapes = oe.helpers.rand_equation(10, 4, seed=42)
+    views = list(map(np.ones, shapes))
+
+    optimizer = oe.RandomGreedy(max_repeats=10, executor=pool)
+    path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
+
+    assert len(optimizer.costs) == 10
+    assert len(optimizer.sizes) == 10
+
+    assert path == optimizer.path
+    assert optimizer.best['flops'] == min(optimizer.costs)
+    assert path_info.largest_intermediate == optimizer.best['size']
+    assert path_info.opt_cost == optimizer.best['flops']
+
+    # now switch to max time algorithm
+    optimizer.max_repeats = int(1e6)
+    optimizer.max_time = 0.2
+
+    path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
+
+    assert len(optimizer.costs) > 10
+    assert len(optimizer.sizes) > 10
+
+    assert path == optimizer.path
+    assert optimizer.best['flops'] == min(optimizer.costs)
+    assert path_info.largest_intermediate == optimizer.best['size']
+    assert path_info.opt_cost == optimizer.best['flops']
+
+    are_done = [f.running() or f.done() for f in optimizer._futures]
+    assert all(are_done)
+
+
+def test_custom_path_optimizer():
+
+    class NaiveOptimizer(oe.paths.PathOptimizer):
+
+        def __call__(self, inputs, output, size_dict, memory_limit=None):
+            self.was_used = True
+            return [(0, 1)] * (len(inputs) - 1)
+
+    eq, shapes = oe.helpers.rand_equation(5, 3, seed=42, d_max=3)
+    views = list(map(np.ones, shapes))
+
+    exp = oe.contract(eq, *views, optimize=False)
+
+    optimizer = NaiveOptimizer()
+    out = oe.contract(eq, *views, optimize=optimizer)
+    assert exp == out
+    assert optimizer.was_used
+
+
+def test_custom_random_optimizer():
+
+    def random_path(r, n, inputs, output, size_dict):
+        """Picks a completely random contraction order.
+        """
+        np.random.seed(r)
+        ssa_path = []
+        remaining = set(range(n))
+        while len(remaining) > 1:
+            i, j = np.random.choice(list(remaining), size=2, replace=False)
+            remaining.add(n + len(ssa_path))
+            remaining.remove(i)
+            remaining.remove(j)
+            ssa_path.append((i, j))
+        cost, size = oe.path_random._ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
+        return ssa_path, cost, size
+
+    class NaiveRandomOptimizer(oe.path_random.RandomOptimizer):
+
+        def setup(self, inputs, output, size_dict):
+            self.was_used = True
+            n = len(inputs)
+            trial_fn = random_path
+            trial_args = (n, inputs, output, size_dict)
+            return trial_fn, trial_args
+
+    eq, shapes = oe.helpers.rand_equation(5, 3, seed=42, d_max=3)
+    views = list(map(np.ones, shapes))
+
+    exp = oe.contract(eq, *views, optimize=False)
+
+    optimizer = NaiveRandomOptimizer(max_repeats=16)
+    out = oe.contract(eq, *views, optimize=optimizer)
+    assert exp == out
+    assert optimizer.was_used
+
+    assert len(optimizer.costs) == 16

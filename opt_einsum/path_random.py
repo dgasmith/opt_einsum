@@ -79,7 +79,7 @@ class RandomOptimizer(PathOptimizer):
 
         self.costs = []
         self.sizes = []
-        self.best = {'cost': float('inf'), 'size': float('inf')}
+        self.best = {'flops': float('inf'), 'size': float('inf')}
 
     @property
     def path(self):
@@ -129,10 +129,10 @@ class RandomOptimizer(PathOptimizer):
             self.sizes.append(size)
 
             # check if we have found a new best
-            found_new_best = self.better(cost, size, self.best['cost'], self.best['size'])
+            found_new_best = self.better(cost, size, self.best['flops'], self.best['size'])
 
             if found_new_best:
-                self.best['cost'] = cost
+                self.best['flops'] = cost
                 self.best['size'] = size
                 self.best['ssa_path'] = ssa_path
 
