@@ -136,6 +136,8 @@ Table of Contents
    optimal_path
    branching_path
    greedy_path
+   random_greedy_path
+   custom_paths
 
 .. toctree::
    :maxdepth: 1

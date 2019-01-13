@@ -23,9 +23,14 @@ These are:
 
 By default (``optimize='auto'``), :func:`~opt_einsum.contract` will select the
 best of these it can while aiming to keep path finding times below around 1ms.
-An analysis of each's performance can be found at the bottom of this page.
+An analysis of each of these approaches' performance can be found at the bottom
+of this page.
 
-Additionally, if you want to find the path separately to performing the
+Finally, for large and complex contractions, there is the
+``'random-greedy'`` approach, which samples many greedy paths and can be
+customized to explicitly spend a maximum amount of time searching.
+
+If you want to find the path separately to performing the
 contraction, or just inspect information about the path found, you can use the
 function :func:`~opt_einsum.contract_path`.
 
@@ -158,7 +163,9 @@ in the expression:
 
 Clearly the exhaustive (``'optimal'``, ``'branch-all'``) and exponential
 (``'branch-2'``) searches eventually scale badly, but for modest amounts of
-terms they incur only a small overhead.
+terms they incur only a small overhead. The ``'random-greedy'`` approach is not
+shown here as it is simply ``max_repeats`` times slower than the ``'greedy'``
+approach - at least if not parallelized.
 
 Next we can look at the average FLOP speedup (as compared to the easiest path
 to find, ``'greedy'``):
@@ -174,6 +181,11 @@ One can see that the heirarchy of path qualities is:
 3. ``'branch-2'`` (used by auto for ``n <= 8``)
 4. ``'branch-1'`` (used by auto for ``n <= 14``)
 5. ``'greedy'`` (used by auto for anything larger)
+
+.. note::
+
+    The performance of the ``'random=greedy'`` approach (which is never used
+    automatically) can be found separately in :ref:`RandomGreedyPathPage` section.
 
 There are a few important caveats to note with this graph. Firstly, the
 benefits of more advanced path finding are very dependent on the complexity of

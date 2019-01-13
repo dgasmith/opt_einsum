@@ -84,3 +84,13 @@ times slower than the ``optimal`` one. In such cases, it might be worth using
 one of the more exhaustive optimization strategies: ``'optimal'``,
 ``'branch-all'`` or ``branch-2`` (all of which will find the optimal path in
 this example).
+
+
+Customizing the Greedy Path
+---------------------------
+
+The greedy path is a local optimizer in that it only ever assesses pairs of
+tensors to contract, assigning each a heuristic 'cost' and then choosing the
+'best' of these. Custom greedy approaches can be implemented by supplying
+callables to the ``cost_fn`` and ``choose_fn`` arguments of
+:func:`~opt_einsum.paths.greedy`.

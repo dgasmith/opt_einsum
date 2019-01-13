@@ -40,3 +40,23 @@ The default ``optimize='auto'`` mode of ``opt_einsum`` will use
 7 or 8 tensors, though it should be able to handle 20-22 tensors in a matter of
 seconds. Finally, ``'branch-1'`` will be used by ``'auto'`` for expressions of
 up to 14 tensors.
+
+
+Customizing the Branching Path
+------------------------------
+
+The 'branch and bound' path can be customized by creating a custom
+:class:`~opt_einsum.paths.BranchBound` instance. For example:
+
+.. code:: python
+
+    optimizer = oe.BranchBound(nbranch=3, minimize='size', cutoff_flops_factor=None)
+    path, path_info = oe.contract_path(eq, *arrays, optimize=optimizer)
+
+You could then tweak the settings (e.g. ``optimizer.nbranch = 4``) and the best
+bound found so far will persist and be used to prune paths on the next call:
+
+.. code:: python
+
+    optimizer.nbranch = 4
+    path, path_info = oe.contract_path(eq, *arrays, optimize=optimizer)

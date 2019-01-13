@@ -24,6 +24,18 @@ class PathOptimizer(object):
     Subclassed optimizers should define a call method with signature::
 
         def __call__(self, inputs, output, size_dict, memory_limit=None):
+            \"\"\"
+            Parameters
+            ----------
+            inputs : list[set[str]]
+                The indices of each input array.
+            outputs : set[str]
+                The output indices
+            size_dict : dict[str, int]
+                The size of each index
+            memory_limit : int, optional
+                If given, the maximum allowed memory.
+            \"\"\"
             # ... compute path here ...
             return path
 
@@ -583,7 +595,7 @@ def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-removed
     return ssa_path
 
 
-def greedy(inputs, output, size_dict, memory_limit=None, cost_fn='memory-removed'):
+def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn='memory-removed'):
     """
     Finds the path by a three stage algorithm:
 
@@ -604,6 +616,10 @@ def greedy(inputs, output, size_dict, memory_limit=None, cost_fn='memory-removed
         Dictionary of index sizes
     memory_limit : int
         The maximum number of elements in a temporary array
+    choose_fn : callable, optional
+        A function that chooses which contraction to perform from the queu
+    cost_fn : callable, optional
+        A function that assigns a potential contraction a cost.
 
     Returns
     -------
@@ -621,5 +637,5 @@ def greedy(inputs, output, size_dict, memory_limit=None, cost_fn='memory-removed
     if memory_limit not in _UNLIMITED_MEM:
         return branch(inputs, output, size_dict, memory_limit, nbranch=1, cost_fn=cost_fn)
 
-    ssa_path = _ssa_optimize(inputs, output, size_dict, cost_fn=cost_fn)
+    ssa_path = _ssa_optimize(inputs, output, size_dict, cost_fn=cost_fn, choose_fn=choose_fn)
     return ssa_to_linear(ssa_path)
