@@ -81,7 +81,7 @@ def linear_to_ssa(path):
     return ssa_path
 
 
-def _calc_k12_flops(inputs, output, remaining, i, j, size_dict):
+def calc_k12_flops(inputs, output, remaining, i, j, size_dict):
     """
     Calculate the resulting indices and flops for a potential pairwise
     contraction - used in the recursive (optimal/branch) algorithms.
@@ -187,7 +187,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
             try:
                 k12, flops12 = result_cache[key]
             except KeyError:
-                k12, flops12 = result_cache[key] = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+                k12, flops12 = result_cache[key] = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
 
             # sieve based on current best flops
             new_flops = flops + flops12
@@ -237,6 +237,10 @@ _BETTER_FNS = {
     'flops': better_flops_first,
     'size': better_size_first,
 }
+
+
+def get_better_fn(key):
+    return _BETTER_FNS[key]
 
 
 # functions for assigning a heuristic 'cost' to a potential contraction
@@ -296,7 +300,7 @@ class BranchBound(PathOptimizer):
         self.minimize = minimize
         self.cost_fn = _COST_FNS.get(cost_fn, cost_fn)
 
-        self.better = _BETTER_FNS[minimize]
+        self.better = get_better_fn(minimize)
         self.best = {'flops': float('inf'), 'size': float('inf')}
         self.best_progress = defaultdict(lambda: float('inf'))
 
@@ -352,7 +356,7 @@ class BranchBound(PathOptimizer):
                 try:
                     k12, flops12 = result_cache[k1, k2]
                 except KeyError:
-                    k12, flops12 = result_cache[k1, k2] = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+                    k12, flops12 = result_cache[k1, k2] = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
 
                 try:
                     size12 = size_cache[k12]
@@ -419,7 +423,7 @@ class BranchBound(PathOptimizer):
                 _, _, new_flops, new_size, (i, j), k12 = heapq.heappop(candidates)
                 _branch_iterate(path=path + ((i, j),),
                                 inputs=inputs + (k12,),
-                                remaining=remaining - {i, j} | {len(inputs)},
+                                remaining=(remaining - {i, j}) | {len(inputs)},
                                 flops=new_flops,
                                 size=new_size)
                 bi += 1
@@ -485,7 +489,7 @@ def _simple_chooser(queue, remaining):
     return cost, k1, k2, k12
 
 
-def _ssa_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-removed'):
+def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-removed'):
     """
     This is the core function for :func:`greedy` but produces a path with
     static single assignment ids rather than recycled linear ids.
@@ -637,5 +641,5 @@ def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn
     if memory_limit not in _UNLIMITED_MEM:
         return branch(inputs, output, size_dict, memory_limit, nbranch=1, cost_fn=cost_fn)
 
-    ssa_path = _ssa_optimize(inputs, output, size_dict, cost_fn=cost_fn, choose_fn=choose_fn)
+    ssa_path = ssa_greedy_optimize(inputs, output, size_dict, cost_fn=cost_fn, choose_fn=choose_fn)
     return ssa_to_linear(ssa_path)

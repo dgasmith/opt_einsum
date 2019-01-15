@@ -1,3 +1,7 @@
+"""
+Support for random optimizers, including the random-greedy path.
+"""
+
 import math
 import time
 import heapq
@@ -6,7 +10,7 @@ import functools
 from collections import deque
 
 from . import helpers
-from .paths import PathOptimizer, _ssa_optimize, _BETTER_FNS, ssa_to_linear, _calc_k12_flops
+from .paths import PathOptimizer, ssa_greedy_optimize, get_better_fn, ssa_to_linear, calc_k12_flops
 
 
 __all__ = ["RandomGreedy", "random_greedy"]
@@ -73,7 +77,7 @@ class RandomOptimizer(PathOptimizer):
         self.max_repeats = max_repeats
         self.max_time = max_time
         self.minimize = minimize
-        self.better = _BETTER_FNS[minimize]
+        self.better = get_better_fn(minimize)
         self.executor = executor
         self.pre_dispatch = pre_dispatch
 
@@ -92,6 +96,8 @@ class RandomOptimizer(PathOptimizer):
         """
         self._futures = deque()
 
+        # the idea here is to submit at least ``pre_dispatch`` jobs *before* we
+        # yield any results, then do both in tandem, before draining the queue
         for r in repeats:
             if len(self._futures) < self.pre_dispatch:
                 self._futures.append(self.executor.submit(trial_fn, r, *args))
@@ -208,7 +214,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
         energies = [math.exp(-(c - cmin) / temperature) for c in costs]
 
     # randomly choose a contraction based on energies
-    chosen, = random.choices(range(n), weights=energies, k=1)
+    chosen, = random.choices(range(n), weights=energies)
     cost, k1, k2, k12 = choices.pop(chosen)
 
     # put the other choise back in the heap
@@ -218,7 +224,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
     return cost, k1, k2, k12
 
 
-def _ssa_path_compute_cost(ssa_path, inputs, output, size_dict):
+def ssa_path_compute_cost(ssa_path, inputs, output, size_dict):
     """Compute the flops and max size of an ssa path.
     """
     inputs = list(map(frozenset, inputs))
@@ -228,7 +234,7 @@ def _ssa_path_compute_cost(ssa_path, inputs, output, size_dict):
     max_size = 0
 
     for i, j in ssa_path:
-        k12, flops12 = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+        k12, flops12 = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
         remaining.discard(i)
         remaining.discard(j)
         remaining.add(len(inputs))
@@ -248,8 +254,8 @@ def _trial_greedy_ssa_path_and_cost(r, inputs, output, size_dict, choose_fn, cos
     else:
         random.seed(r)
 
-    ssa_path = _ssa_optimize(inputs, output, size_dict, choose_fn, cost_fn)
-    cost, size = _ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
+    ssa_path = ssa_greedy_optimize(inputs, output, size_dict, choose_fn, cost_fn)
+    cost, size = ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
 
     return ssa_path, cost, size
 

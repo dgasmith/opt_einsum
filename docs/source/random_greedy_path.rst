@@ -82,12 +82,16 @@ maximum time to terminate the search:
     for T in [1000, 100, 10, 1, 0.1]:
         optimizer.temperature = T
         path_rand_greedy = oe.contract_path(eq, *arrays, optimize=optimizer)[1]
+        print(math.log2(optimizer.best['flops']))
+
+    # 32.81709395639357
+    # 32.67625007170783
+    # 31.719756871539033
+    # 31.62043317835677
+    # 31.253305891247
 
     print(len(optimizer.costs))  # the total number of trials so far
     # 2555
-
-    print(math.log2(optimizer.best['flops']))
-    # 31.253582357751892
 
 So we have improved a bit on the standard ``'random-greedy'`` (which does 32
 repeats by default). The ``optimizer`` object now stores both the best path

@@ -325,7 +325,7 @@ def test_custom_random_optimizer():
                 remaining.remove(i)
                 remaining.remove(j)
                 ssa_path.append((i, j))
-            cost, size = oe.path_random._ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
+            cost, size = oe.path_random.ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
             return ssa_path, cost, size
 
         def setup(self, inputs, output, size_dict):

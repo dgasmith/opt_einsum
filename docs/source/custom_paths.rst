@@ -34,7 +34,7 @@ Once defined we can use this as:
     print(path)
     # [(0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)]
 
-    print(path_info.naive_cost / path_info.opt_cost)
+    print(path_info.speedup)
     # 133.21363671496357
 
 Note that though we still get a considerable speedup over ``einsum`` this is
@@ -59,7 +59,7 @@ not a good strategy to take in general):
 
 .. code:: python
 
-    from opt_einsum.path_random import _ssa_path_compute_cost
+    from opt_einsum.path_random import ssa_path_compute_cost
 
     class MyRandomOptimizer(oe.path_random.RandomOptimizer):
 
@@ -76,7 +76,7 @@ not a good strategy to take in general):
                 remaining.remove(i)
                 remaining.remove(j)
                 ssa_path.append((i, j))
-            cost, size = _ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
+            cost, size = ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
             return ssa_path, cost, size
 
         def setup(self, inputs, output, size_dict):
@@ -101,7 +101,7 @@ Which we can now instantiate using various other options:
     print(path)
     # [(3, 4), (1, 3), (0, 3), (3, 5), (3, 4), (3, 4), (1, 0), (0, 1), (0, 1)]
 
-    print(path_info.naive_cost / path_info.opt_cost)
+    print(path_info.speedup)
     # 712829.9451056132
 
 There are a few things to note here:

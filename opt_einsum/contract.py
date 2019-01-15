@@ -3,6 +3,7 @@ Contains the primary optimization and contraction routines.
 """
 
 from collections import namedtuple
+from decimal import Decimal
 
 import numpy as np
 
@@ -40,24 +41,17 @@ class PathInfo(object):
         self.path = path
         self.indices = indices
         self.scale_list = scale_list
-        self.naive_cost = naive_cost
-        self.opt_cost = opt_cost
+        self.naive_cost = Decimal(naive_cost)
+        self.opt_cost = Decimal(opt_cost)
+        self.speedup = self.naive_cost / self.opt_cost
         self.size_list = size_list
         self.size_dict = size_dict
 
         self.shapes = [tuple(size_dict[k] for k in ks) for ks in input_subscripts.split(',')]
         self.eq = "{}->{}".format(input_subscripts, output_subscript)
-        self.largest_intermediate = max(size_list)
+        self.largest_intermediate = Decimal(max(size_list))
 
     def __repr__(self):
-        from decimal import Decimal
-
-        # naive costs / speedups can easily reach >~ 1e308, need exact arithmetic
-        naive_cost = Decimal(self.naive_cost)
-        opt_cost = Decimal(self.opt_cost)
-        speedup = naive_cost / opt_cost
-        largest_intermediate = Decimal(self.largest_intermediate)
-
         # Return the path along with a nice string representation
         header = ("scaling", "BLAS", "current", "remaining")
 
@@ -65,10 +59,10 @@ class PathInfo(object):
             u"  Complete contraction:  {}\n".format(self.eq),
             u"         Naive scaling:  {}\n".format(len(self.indices)),
             u"     Optimized scaling:  {}\n".format(max(self.scale_list)),
-            u"      Naive FLOP count:  {:.3e}\n".format(naive_cost),
-            u"  Optimized FLOP count:  {:.3e}\n".format(opt_cost),
-            u"   Theoretical speedup:  {:3.3f}\n".format(speedup),
-            u"  Largest intermediate:  {:.3e} elements\n".format(largest_intermediate),
+            u"      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
+            u"  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
+            u"   Theoretical speedup:  {:3.3f}\n".format(self.speedup),
+            u"  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate),
             u"-" * 80 + "\n",
             u"{:>6} {:>11} {:>22} {:>37}\n".format(*header),
             u"-" * 80
