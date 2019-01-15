@@ -104,8 +104,28 @@ Parallelizing the Random-Greedy Search
 --------------------------------------
 
 Since each greedy attempt is independent, the random-greedy approach is
-naturally suited to parallelization. This is achieved by supplying a
-pool-executor like object, which should have an api matching the python 3
+naturally suited to parallelization. This can be automatically handled by
+specifying the ``parallel`` keyword like so:
+
+.. code:: python
+
+    # use same number of processes as cores
+    optimizer = oe.RandomGreedy(parallel=True)
+
+    # or use specific number of processes
+    optimizer = oe.RandomGreedy(parallel=4)
+
+.. warning::
+
+    The pool-executor used to perform this parallelization is the
+    ``ProcessPoolExecutor`` from the ``concurrent.futures``
+    `module <https://docs.python.org/3/library/concurrent.futures.html>`_. This
+    is only part of the standard library in Python 3. For Python 2 consider
+    installing the
+    `backport of this module <https://pypi.org/project/futures/>`_ or see below.
+
+For full control over the parallelization you can supply any
+pool-executor like object, which should have an API matching the Python 3
 `concurrent.futures <https://docs.python.org/3/library/concurrent.futures.html>`_
 module:
 
@@ -113,8 +133,8 @@ module:
 
     from concurrent.futures import ProcessPoolExecutor
 
-    executor = ProcessPoolExecutor()
-    optimizer = oe.RandomGreedy(executor=executor, max_repeats=128)
+    pool = ProcessPoolExecutor()
+    optimizer = oe.RandomGreedy(parallel=pool, max_repeats=128)
     path_rand_greedy = oe.contract_path(eq, *arrays, optimize=optimizer)[1]
 
     print(math.log2(optimizer.best['flops']))

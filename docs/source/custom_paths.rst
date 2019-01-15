@@ -91,11 +91,8 @@ Which we can now instantiate using various other options:
 
 .. code:: python
 
-    from concurrent.futures import ProcessPoolExecutor
-
-    executor = ProcessPoolExecutor()
     optimizer = MyRandomOptimizer(max_repeats=1000, max_time=10,
-                                  executor=executor, minimize='size')
+                                  parallel=True, minimize='size')
     path, path_info = oe.contract_path(eq, *arrays, optimize=optimizer)
 
     print(path)

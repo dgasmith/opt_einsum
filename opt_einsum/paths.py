@@ -41,7 +41,9 @@ class PathOptimizer(object):
 
     where ``path`` is a list of int-tuples specifiying a contraction order.
     """
-    pass
+
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+        raise NotImplementedError
 
 
 def ssa_to_linear(ssa_path):

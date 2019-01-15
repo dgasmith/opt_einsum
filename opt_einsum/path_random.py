@@ -6,6 +6,7 @@ import math
 import time
 import heapq
 import random
+import numbers
 import functools
 from collections import deque
 
@@ -45,13 +46,16 @@ class RandomOptimizer(PathOptimizer):
     minimize : {'flops', 'size'}, optional
         Whether to favour paths that minimize the total estimated flop-count or
         the size of the largest intermediate created.
-    executor : executor-pool like, optional
-        An executor-pool to optionally parallelize repeat trials over. The pool
-        should have an api matching those found in the python 3 standard library
+    parallel : {bool, int, or executor-pool like}, optional
+        Whether to parallelize the random trials, by default ``False``. If
+        ``True``, use a ``concurrent.futures.ProcessPoolExecutor`` with the same
+        number of processes as cores. If an integer is specified, use that many
+        processes instead. Finally, you can supply a custom executor-pool which
+        should have an API matching that of the python 3 standard library
         module ``concurrent.futures``. Namely, a ``submit`` method that returns
         ``Future`` objects, themselves with ``result`` and ``cancel`` methods.
     pre_dispatch : int, optional
-        If using an ``executor``, how many jobs to pre-dispatch so as to avoid
+        If running in parallel, how many jobs to pre-dispatch so as to avoid
         submitting all jobs at once. Should also be more than twice the number
         of workers to avoid under-subscription. Default: 128.
 
@@ -69,7 +73,7 @@ class RandomOptimizer(PathOptimizer):
     RandomGreedy
     """
 
-    def __init__(self, max_repeats=32, max_time=None, minimize='flops', executor=None, pre_dispatch=128):
+    def __init__(self, max_repeats=32, max_time=None, minimize='flops', parallel=False, pre_dispatch=128):
 
         if minimize not in ('flops', 'size'):
             raise ValueError("`minimize` should be one of {'flops', 'size'}.")
@@ -78,7 +82,7 @@ class RandomOptimizer(PathOptimizer):
         self.max_time = max_time
         self.minimize = minimize
         self.better = get_better_fn(minimize)
-        self.executor = executor
+        self.parallel = parallel
         self.pre_dispatch = pre_dispatch
 
         self.costs = []
@@ -91,7 +95,39 @@ class RandomOptimizer(PathOptimizer):
         """
         return ssa_to_linear(self.best['ssa_path'])
 
-    def _gen_results_executor(self, repeats, trial_fn, args):
+    @property
+    def parallel(self):
+        return self._parallel
+
+    @parallel.setter
+    def parallel(self, parallel):
+        # shutdown any previous executor if we are managing it
+        if getattr(self, '_managing_executor', False):
+            self._executor.shutdown()
+
+        self._parallel = parallel
+        self._managing_executor = False
+
+        if parallel is False:
+            self._executor = None
+            return
+
+        if parallel is True:
+            from concurrent.futures import ProcessPoolExecutor
+            self._executor = ProcessPoolExecutor()
+            self._managing_executor = True
+            return
+
+        if isinstance(parallel, numbers.Number):
+            from concurrent.futures import ProcessPoolExecutor
+            self._executor = ProcessPoolExecutor(parallel)
+            self._managing_executor = True
+            return
+
+        # assume a pool-executor has been supplied
+        self._executor = parallel
+
+    def _gen_results_parallel(self, repeats, trial_fn, args):
         """Lazily generate results from an executor without submitting all jobs at once.
         """
         self._futures = deque()
@@ -100,7 +136,7 @@ class RandomOptimizer(PathOptimizer):
         # yield any results, then do both in tandem, before draining the queue
         for r in repeats:
             if len(self._futures) < self.pre_dispatch:
-                self._futures.append(self.executor.submit(trial_fn, r, *args))
+                self._futures.append(self._executor.submit(trial_fn, r, *args))
                 continue
             yield self._futures.popleft().result()
 
@@ -108,9 +144,12 @@ class RandomOptimizer(PathOptimizer):
             yield self._futures.popleft().result()
 
     def _cancel_futures(self):
-        if self.executor is not None:
+        if self._executor is not None:
             for f in self._futures:
                 f.cancel()
+
+    def setup(self, inputs, output, size_dict):
+        raise NotImplementedError
 
     def __call__(self, inputs, output, size_dict, memory_limit):
         # start a timer?
@@ -122,8 +161,8 @@ class RandomOptimizer(PathOptimizer):
         repeats = range(repeat0, repeat0 + self.max_repeats)
 
         # create the trials lazily
-        if self.executor is not None:
-            trials = self._gen_results_executor(repeats, trial_fn, trial_args)
+        if self._executor is not None:
+            trials = self._gen_results_parallel(repeats, trial_fn, trial_args)
         else:
             trials = (trial_fn(r, *trial_args) for r in repeats)
 
@@ -148,6 +187,11 @@ class RandomOptimizer(PathOptimizer):
 
         self._cancel_futures()
         return self.path
+
+    def __del__(self):
+        # if we created the parallel pool-executor, shut it down
+        if getattr(self, '_managing_executor', False):
+            self._executor.shutdown()
 
 
 def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=True):
