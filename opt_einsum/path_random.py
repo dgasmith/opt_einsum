@@ -89,6 +89,8 @@ class RandomOptimizer(PathOptimizer):
         self.sizes = []
         self.best = {'flops': float('inf'), 'size': float('inf')}
 
+        self._repeats_start = 0
+
     @property
     def path(self):
         """The best path found so far.
@@ -157,8 +159,10 @@ class RandomOptimizer(PathOptimizer):
             t0 = time.time()
 
         trial_fn, trial_args = self.setup(inputs, output, size_dict)
-        repeat0 = len(self.costs)
-        repeats = range(repeat0, repeat0 + self.max_repeats)
+
+        r_start = self._repeats_start + len(self.costs)
+        r_stop = r_start + self.max_repeats
+        repeats = range(r_start, r_stop)
 
         # create the trials lazily
         if self._executor is not None:
