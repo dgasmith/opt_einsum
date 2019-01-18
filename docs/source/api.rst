@@ -15,3 +15,7 @@ Function Reference
     opt_einsum.paths.branch
     opt_einsum.parser.get_symbol
     opt_einsum.sharing.shared_intermediates
+    opt_einsum.paths.PathOptimizer
+    opt_einsum.paths.BranchBound
+    opt_einsum.path_random.RandomOptimizer
+    opt_einsum.path_random.RandomGreedy

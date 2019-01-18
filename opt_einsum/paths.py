@@ -4,6 +4,7 @@ Contains the path technology behind opt_einsum in addition to several path helpe
 from __future__ import absolute_import, division, print_function
 
 import heapq
+import random
 import itertools
 from collections import defaultdict
 
@@ -11,10 +12,38 @@ import numpy as np
 
 from . import helpers
 
-__all__ = ["optimal", "branch", "greedy"]
+__all__ = ["optimal", "BranchBound", "branch", "greedy"]
 
 
 _UNLIMITED_MEM = {-1, None, float('inf')}
+
+
+class PathOptimizer(object):
+    """Base class for different path optimizers to inherit from.
+
+    Subclassed optimizers should define a call method with signature::
+
+        def __call__(self, inputs, output, size_dict, memory_limit=None):
+            \"\"\"
+            Parameters
+            ----------
+            inputs : list[set[str]]
+                The indices of each input array.
+            outputs : set[str]
+                The output indices
+            size_dict : dict[str, int]
+                The size of each index
+            memory_limit : int, optional
+                If given, the maximum allowed memory.
+            \"\"\"
+            # ... compute path here ...
+            return path
+
+    where ``path`` is a list of int-tuples specifiying a contraction order.
+    """
+
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+        raise NotImplementedError
 
 
 def ssa_to_linear(ssa_path):
@@ -54,7 +83,7 @@ def linear_to_ssa(path):
     return ssa_path
 
 
-def _calc_k12_flops(inputs, output, remaining, i, j, size_dict):
+def calc_k12_flops(inputs, output, remaining, i, j, size_dict):
     """
     Calculate the resulting indices and flops for a potential pairwise
     contraction - used in the recursive (optimal/branch) algorithms.
@@ -140,7 +169,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
     inputs = tuple(map(frozenset, inputs))
     output = frozenset(output)
 
-    best = {'flops': float('inf'), 'path': (tuple(range(len(inputs))),)}
+    best = {'flops': float('inf'), 'ssa_path': (tuple(range(len(inputs))),)}
     size_cache = {}
     result_cache = {}
 
@@ -149,7 +178,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
         # reached end of path (only ever get here if flops is best found so far)
         if len(remaining) == 1:
             best['flops'] = flops
-            best['path'] = path
+            best['ssa_path'] = path
             return
 
         # check all possible remaining paths
@@ -160,7 +189,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
             try:
                 k12, flops12 = result_cache[key]
             except KeyError:
-                k12, flops12 = result_cache[key] = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+                k12, flops12 = result_cache[key] = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
 
             # sieve based on current best flops
             new_flops = flops + flops12
@@ -179,7 +208,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
                     new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
                     if new_flops < best['flops']:
                         best['flops'] = new_flops
-                        best['path'] = path + (tuple(remaining),)
+                        best['ssa_path'] = path + (tuple(remaining),)
                     continue
 
             # add contraction and recurse into all remaining
@@ -193,154 +222,234 @@ def optimal(inputs, output, size_dict, memory_limit=None):
                      remaining=set(range(len(inputs))),
                      flops=0)
 
-    return ssa_to_linear(best['path'])
+    return ssa_to_linear(best['ssa_path'])
 
 
-def branch(inputs, output, size_dict, memory_limit=None, nbranch=None):
+# functions for comparing which of two paths is 'better'
+
+def better_flops_first(flops, size, best_flops, best_size):
+    return (flops, size) < (best_flops, best_size)
+
+
+def better_size_first(flops, size, best_flops, best_size):
+    return (size, flops) < (best_size, best_flops)
+
+
+_BETTER_FNS = {
+    'flops': better_flops_first,
+    'size': better_size_first,
+}
+
+
+def get_better_fn(key):
+    return _BETTER_FNS[key]
+
+
+# functions for assigning a heuristic 'cost' to a potential contraction
+
+def cost_memory_removed(size12, size1, size2, k12, k1, k2):
+    """The default heuristic cost, corresponding to the total reduction in
+    memory of performing a contraction.
+    """
+    return size12 - size1 - size2
+
+
+def cost_memory_removed_jitter(size12, size1, size2, k12, k1, k2):
+    """Like memory-removed, but with a slight amount of noise that breaks ties
+    and thus jumbles the contractions a bit.
+    """
+    return random.gauss(1.0, 0.01) * (size12 - size1 - size2)
+
+
+_COST_FNS = {
+    'memory-removed': cost_memory_removed,
+    'memory-removed-jitter': cost_memory_removed_jitter,
+}
+
+
+class BranchBound(PathOptimizer):
     """
     Explores possible pair contractions in a depth-first recursive manner like
-    the ``optimal`` approach, but with extra heuristic early pruning of
-    branches as well sieving by ``memory_limit`` and the best path found so far.
-    Returns the lowest cost path. This algorithm still scales factorially with
-    respect to the elements in the list ``input_sets`` if ``nbranch`` is not
-    set, but it scales exponentially like ``nbranch**len(input_sets)``
-    otherwise.
+    the ``optimal`` approach, but with extra heuristic early pruning of branches
+    as well sieving by ``memory_limit`` and the best path found so far. Returns
+    the lowest cost path. This algorithm still scales factorially with respect
+    to the elements in the list ``input_sets`` if ``nbranch`` is not set, but it
+    scales exponentially like ``nbranch**len(input_sets)`` otherwise.
 
     Parameters
     ----------
-    inputs : list
-        List of sets that represent the lhs side of the einsum subscript
-    output : set
-        Set that represents the rhs side of the overall einsum subscript
-    size_dict : dictionary
-        Dictionary of index sizes
-    memory_limit : int
-        The maximum number of elements in a temporary array
     nbranch : None or int, optional
         How many branches to explore at each contraction step. If None, explore
         all possible branches. If an integer, branch into this many paths at
-        each step.
-
-    Returns
-    -------
-    path : list
-        The contraction order within the memory limit constraint.
-
-    Examples
-    --------
-    >>> isets = [set('abd'), set('ac'), set('bdc')]
-    >>> oset = set('')
-    >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> branch(isets, oset, idx_sizes, 5000)
-    [(0, 2), (0, 1)]
+        each step. Defaults to None.
+    cutoff_flops_factor : float, optional
+        If at any point, a path is doing this much worse than the best path
+        found so far was, terminate it. The larger this is made, the more paths
+        will be fully explored and the slower the algorithm. Defaults to 4.
+    minimize : {'flops', 'size'}, optional
+        Whether to optimize the path with regard primarily to the total
+        estimated flop-count, or the size of the largest intermediate. The
+        option not chosen will still be used as a secondary criterion.
+    cost_fn : callable, optional
+        A function that returns a heuristic 'cost' of a potential contraction
+        with which to sort candidates. Should have signature
+        ``cost_fn(size12, size1, size2, k12, k1, k2)``.
     """
 
-    inputs = tuple(map(frozenset, inputs))
-    output = frozenset(output)
+    def __init__(self, nbranch=None, cutoff_flops_factor=4, minimize='flops', cost_fn='memory-removed'):
+        self.nbranch = nbranch
+        self.cutoff_flops_factor = cutoff_flops_factor
+        self.minimize = minimize
+        self.cost_fn = _COST_FNS.get(cost_fn, cost_fn)
 
-    best = {'flops': float('inf'), 'path': (tuple(range(len(inputs))),)}
-    best_progress = defaultdict(lambda: float('inf'))
+        self.better = get_better_fn(minimize)
+        self.best = {'flops': float('inf'), 'size': float('inf')}
+        self.best_progress = defaultdict(lambda: float('inf'))
 
-    size_cache = {k: helpers.compute_size_by_dict(k, size_dict) for k in inputs}
-    result_cache = {}
+    @property
+    def path(self):
+        return ssa_to_linear(self.best['ssa_path'])
 
-    def _branch_iterate(path, inputs, remaining, flops):
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+        """
 
-        # reached end of path (only ever get here if flops is best found so far)
-        if len(remaining) == 1:
-            best['flops'] = flops
-            best['path'] = path
-            return
+        Parameters
+        ----------
+        input_sets : list
+            List of sets that represent the lhs side of the einsum subscript
+        output_set : set
+            Set that represents the rhs side of the overall einsum subscript
+        idx_dict : dictionary
+            Dictionary of index sizes
+        memory_limit : int
+            The maximum number of elements in a temporary array
 
-        def _assess_candidate(k1, k2, i, j):
-            # find resulting indices and cost
-            try:
-                k12, flops12 = result_cache[k1, k2]
-            except KeyError:
-                k12, flops12 = result_cache[k1, k2] = _calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+        Returns
+        -------
+        path : list
+            The contraction order within the memory limit constraint.
 
-            # sieve based on current best flops
-            new_flops = flops + flops12
-            if new_flops >= best['flops']:
-                return None
+        Examples
+        --------
+        >>> isets = [set('abd'), set('ac'), set('bdc')]
+        >>> oset = set('')
+        >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
+        >>> optimal(isets, oset, idx_sizes, 5000)
+        [(0, 2), (0, 1)]
+        """
 
-            # compare to how the best method was doing as this point
-            if new_flops < best_progress[len(inputs)]:
-                best_progress[len(inputs)] = new_flops
-            # sieve based on current progress relative to best
-            elif new_flops > 4 * best_progress[len(inputs)]:
-                return None
+        inputs = tuple(map(frozenset, inputs))
+        output = frozenset(output)
 
-            # create a sort order based on cost
-            size1, size2 = size_cache[inputs[i]], size_cache[inputs[j]]
-            try:
-                size12 = size_cache[k12]
-            except KeyError:
-                size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
+        size_cache = {k: helpers.compute_size_by_dict(k, size_dict) for k in inputs}
+        result_cache = {}
 
-            # sieve based on memory limit
-            if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):
-                # terminate path here, but check all-terms contract first
-                new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
-                if new_flops < best['flops']:
-                    best['flops'] = new_flops
-                    best['path'] = path + (tuple(remaining),)
-                return None
+        def _branch_iterate(path, inputs, remaining, flops, size):
 
-            # set cost heuristic in order to locally sort possible contractions
-            cost = size12 - size1 - size2
-            return cost, flops12, new_flops, (i, j), k12
+            # reached end of path (only ever get here if flops is best found so far)
+            if len(remaining) == 1:
+                self.best['size'] = size
+                self.best['flops'] = flops
+                self.best['ssa_path'] = path
+                return
 
-        # check all possible remaining paths
-        candidates = []
-        for i, j in itertools.combinations(remaining, 2):
-            if i > j:
-                i, j = j, i
-            k1, k2 = inputs[i], inputs[j]
+            def _assess_candidate(k1, k2, i, j):
+                # find resulting indices and flops
+                try:
+                    k12, flops12 = result_cache[k1, k2]
+                except KeyError:
+                    k12, flops12 = result_cache[k1, k2] = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
 
-            # initially ignore outer products
-            if k1.isdisjoint(k2):
-                continue
+                try:
+                    size12 = size_cache[k12]
+                except KeyError:
+                    size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
 
-            candidate = _assess_candidate(k1, k2, i, j)
-            if candidate:
-                heapq.heappush(candidates, candidate)
+                new_flops = flops + flops12
+                new_size = max(size, size12)
 
-        # assess outer products if nothing left
-        if not candidates:
+                # sieve based on current best i.e. check flops and size still better
+                if not self.better(new_flops, new_size, self.best['flops'], self.best['size']):
+                    return None
+
+                # compare to how the best method was doing as this point
+                if new_flops < self.best_progress[len(inputs)]:
+                    self.best_progress[len(inputs)] = new_flops
+                # sieve based on current progress relative to best
+                elif new_flops > self.cutoff_flops_factor * self.best_progress[len(inputs)]:
+                    return None
+
+                # sieve based on memory limit
+                if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):
+                    # terminate path here, but check all-terms contract first
+                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
+                    if new_flops < self.best['flops']:
+                        self.best['flops'] = new_flops
+                        self.best['ssa_path'] = path + (tuple(remaining),)
+                    return None
+
+                # set cost heuristic in order to locally sort possible contractions
+                size1, size2 = size_cache[inputs[i]], size_cache[inputs[j]]
+                cost = self.cost_fn(size12, size1, size2, k12, k1, k2)
+
+                return cost, flops12, new_flops, new_size, (i, j), k12
+
+            # check all possible remaining paths
+            candidates = []
             for i, j in itertools.combinations(remaining, 2):
+                if i > j:
+                    i, j = j, i
                 k1, k2 = inputs[i], inputs[j]
+
+                # initially ignore outer products
+                if k1.isdisjoint(k2):
+                    continue
+
                 candidate = _assess_candidate(k1, k2, i, j)
                 if candidate:
                     heapq.heappush(candidates, candidate)
 
-        if not candidates:
-            return
+            # assess outer products if nothing left
+            if not candidates:
+                for i, j in itertools.combinations(remaining, 2):
+                    if i > j:
+                        i, j = j, i
+                    k1, k2 = inputs[i], inputs[j]
+                    candidate = _assess_candidate(k1, k2, i, j)
+                    if candidate:
+                        heapq.heappush(candidates, candidate)
 
-        # recurse into all or some of the best candidate contractions
-        bi = 0
-        while (nbranch is None or bi < nbranch) and candidates:
-            _, _, new_flops, (i, j), k12 = heapq.heappop(candidates)
-            _branch_iterate(path=path + ((i, j),),
-                            inputs=inputs + (k12,),
-                            remaining=remaining - {i, j} | {len(inputs)},
-                            flops=new_flops)
-            bi += 1
+            # recurse into all or some of the best candidate contractions
+            bi = 0
+            while (self.nbranch is None or bi < self.nbranch) and candidates:
+                _, _, new_flops, new_size, (i, j), k12 = heapq.heappop(candidates)
+                _branch_iterate(path=path + ((i, j),),
+                                inputs=inputs + (k12,),
+                                remaining=(remaining - {i, j}) | {len(inputs)},
+                                flops=new_flops,
+                                size=new_size)
+                bi += 1
 
-    _branch_iterate(path=(),
-                    inputs=inputs,
-                    remaining=set(range(len(inputs))),
-                    flops=0)
+        _branch_iterate(path=(),
+                        inputs=inputs,
+                        remaining=set(range(len(inputs))),
+                        flops=0,
+                        size=0)
 
-    return ssa_to_linear(best['path'])
+        return self.path
 
 
-def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2):
+def branch(inputs, output, size_dict, memory_limit=None, **optimizer_kwargs):
+    optimizer = BranchBound(**optimizer_kwargs)
+    return optimizer(inputs, output, size_dict, memory_limit)
+
+
+def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn):
     either = k1 | k2
     two = k1 & k2
     one = either - two
     k12 = (either & output) | (two & dim_ref_counts[3]) | (one & dim_ref_counts[2])
-    cost = helpers.compute_size_by_dict(k12, sizes) - footprints[k1] - footprints[k2]
+    cost = cost_fn(helpers.compute_size_by_dict(k12, sizes), footprints[k1], footprints[k2], k12, k1, k2)
     id1 = remaining[k1]
     id2 = remaining[k2]
     if id1 > id2:
@@ -349,10 +458,14 @@ def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2)
     return cost, k1, k2, k12
 
 
-def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue):
-    candidate = min(_get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2)
-                    for k2 in k2s)
-    heapq.heappush(queue, candidate)
+def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn):
+    candidates = (_get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn) for k2 in k2s)
+    if push_all:
+        # want to do this if we e.g. are using a custom 'choose_fn'
+        for candidate in candidates:
+            heapq.heappush(queue, candidate)
+    else:
+        heapq.heappush(queue, min(candidates))
 
 
 def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
@@ -369,7 +482,16 @@ def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
             dim_ref_counts[3].add(dim)
 
 
-def _ssa_optimize(inputs, output, sizes):
+def _simple_chooser(queue, remaining):
+    """Default contraction chooser that simply takes the minimum cost option.
+    """
+    cost, k1, k2, k12 = heapq.heappop(queue)
+    if k1 not in remaining or k2 not in remaining:
+        return None  # candidate is obsolete
+    return cost, k1, k2, k12
+
+
+def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-removed'):
     """
     This is the core function for :func:`greedy` but produces a path with
     static single assignment ids rather than recycled linear ids.
@@ -378,6 +500,17 @@ def _ssa_optimize(inputs, output, sizes):
     if len(inputs) == 1:
         # Perform a single contraction to match output shape.
         return [(0,)]
+
+    # set the function that assigns a heuristic cost to a possible contraction
+    cost_fn = _COST_FNS.get(cost_fn, cost_fn)
+
+    # set the function that chooses which contraction to take
+    if choose_fn is None:
+        choose_fn = _simple_chooser
+        push_all = False
+    else:
+        # assume chooser wants access to all possible contractions
+        push_all = True
 
     # A dim that is common to all tensors might as well be an output dim, since it
     # cannot be contracted until the final step. This avoids an expensive all-pairs
@@ -419,13 +552,15 @@ def _ssa_optimize(inputs, output, sizes):
         keys = sorted(keys, key=remaining.__getitem__)
         for i, k1 in enumerate(keys[:-1]):
             k2s = keys[1 + i:]
-            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue)
+            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn)
 
     # Greedily contract pairs of tensors.
     while queue:
-        cost, k1, k2, k12 = heapq.heappop(queue)
-        if k1 not in remaining or k2 not in remaining:
-            continue  # candidate is obsolete
+
+        con = choose_fn(queue, remaining)
+        if con is None:
+            continue  # allow choose_fn to flag all candidates obsolete
+        cost, k1, k2, k12 = con
 
         ssa_id1 = remaining.pop(k1)
         ssa_id2 = remaining.pop(k2)
@@ -448,7 +583,7 @@ def _ssa_optimize(inputs, output, sizes):
         k2s = set(k2 for dim in k1 for k2 in dim_to_keys[dim])
         k2s.discard(k1)
         if k2s:
-            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue)
+            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn)
 
     # Greedily compute pairwise outer products.
     queue = [(helpers.compute_size_by_dict(key & output, sizes), ssa_id, key)
@@ -466,7 +601,7 @@ def _ssa_optimize(inputs, output, sizes):
     return ssa_path
 
 
-def greedy(inputs, output, size_dict, memory_limit=None):
+def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn='memory-removed'):
     """
     Finds the path by a three stage algorithm:
 
@@ -487,6 +622,10 @@ def greedy(inputs, output, size_dict, memory_limit=None):
         Dictionary of index sizes
     memory_limit : int
         The maximum number of elements in a temporary array
+    choose_fn : callable, optional
+        A function that chooses which contraction to perform from the queu
+    cost_fn : callable, optional
+        A function that assigns a potential contraction a cost.
 
     Returns
     -------
@@ -502,7 +641,7 @@ def greedy(inputs, output, size_dict, memory_limit=None):
     [(0, 2), (0, 1)]
     """
     if memory_limit not in _UNLIMITED_MEM:
-        return branch(inputs, output, size_dict, memory_limit, nbranch=1)
+        return branch(inputs, output, size_dict, memory_limit, nbranch=1, cost_fn=cost_fn)
 
-    ssa_path = _ssa_optimize(inputs, output, size_dict)
+    ssa_path = ssa_greedy_optimize(inputs, output, size_dict, cost_fn=cost_fn, choose_fn=choose_fn)
     return ssa_to_linear(ssa_path)

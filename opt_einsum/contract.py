@@ -3,6 +3,7 @@ Contains the primary optimization and contraction routines.
 """
 
 from collections import namedtuple
+from decimal import Decimal
 
 import numpy as np
 
@@ -12,6 +13,7 @@ from . import compat
 from . import helpers
 from . import parser
 from . import paths
+from . import path_random
 from . import sharing
 
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only", "shape_only"]
@@ -31,38 +33,36 @@ class PathInfo(object):
         produced during the contraction.
     """
 
-    def __init__(self, contraction_list, input_subscripts, output_subscript,
-                 indices, scale_list, naive_cost, opt_cost, size_list):
+    def __init__(self, contraction_list, input_subscripts, output_subscript, indices,
+                 path, scale_list, naive_cost, opt_cost, size_list, size_dict):
         self.contraction_list = contraction_list
         self.input_subscripts = input_subscripts
         self.output_subscript = output_subscript
+        self.path = path
         self.indices = indices
         self.scale_list = scale_list
-        self.naive_cost = naive_cost
-        self.opt_cost = opt_cost
-        self.largest_intermediate = max(size_list)
+        self.naive_cost = Decimal(naive_cost)
+        self.opt_cost = Decimal(opt_cost)
+        self.speedup = self.naive_cost / self.opt_cost
+        self.size_list = size_list
+        self.size_dict = size_dict
+
+        self.shapes = [tuple(size_dict[k] for k in ks) for ks in input_subscripts.split(',')]
+        self.eq = "{}->{}".format(input_subscripts, output_subscript)
+        self.largest_intermediate = Decimal(max(size_list))
 
     def __repr__(self):
-        from decimal import Decimal
-
-        # naive costs / speedups can easily reach >~ 1e308, need exact arithmetic
-        naive_cost = Decimal(self.naive_cost)
-        opt_cost = Decimal(self.opt_cost)
-        speedup = naive_cost / opt_cost
-        largest_intermediate = Decimal(self.largest_intermediate)
-
         # Return the path along with a nice string representation
-        overall_contraction = self.input_subscripts + "->" + self.output_subscript
         header = ("scaling", "BLAS", "current", "remaining")
 
         path_print = [
-            u"  Complete contraction:  {}\n".format(overall_contraction),
+            u"  Complete contraction:  {}\n".format(self.eq),
             u"         Naive scaling:  {}\n".format(len(self.indices)),
             u"     Optimized scaling:  {}\n".format(max(self.scale_list)),
-            u"      Naive FLOP count:  {:.3e}\n".format(naive_cost),
-            u"  Optimized FLOP count:  {:.3e}\n".format(opt_cost),
-            u"   Theoretical speedup:  {:3.3f}\n".format(speedup),
-            u"  Largest intermediate:  {:.3e} elements\n".format(largest_intermediate),
+            u"      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
+            u"  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
+            u"   Theoretical speedup:  {:3.3f}\n".format(self.speedup),
+            u"  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate),
             u"-" * 80 + "\n",
             u"{:>6} {:>11} {:>22} {:>37}\n".format(*header),
             u"-" * 80
@@ -256,7 +256,7 @@ def contract_path(*operands, **kwargs):
     naive_cost = helpers.flop_count(indices, inner_product, num_ops, dimension_dict)
 
     # Compute the path
-    if not isinstance(path_type, compat.strings):
+    if not isinstance(path_type, (compat.strings, paths.PathOptimizer)):
         path = path_type
     elif num_ops == 1:
         # Nothing to be optimized
@@ -264,6 +264,8 @@ def contract_path(*operands, **kwargs):
     elif num_ops == 2:
         # Nothing to be optimized
         path = [(0, 1)]
+    elif isinstance(path_type, paths.PathOptimizer):
+        path = path_type(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type == "optimal" or (path_type == "auto" and num_ops <= 4):
         path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type == 'branch-all' or (path_type == "auto" and num_ops <= 6):
@@ -272,6 +274,8 @@ def contract_path(*operands, **kwargs):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=2)
     elif path_type == 'branch-1' or (path_type == "auto" and num_ops <= 14):
         path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=1)
+    elif path_type == 'random-greedy':
+        path = path_random.random_greedy(input_sets, output_set, dimension_dict, memory_arg)
     elif path_type in ("auto", "greedy", "eager", "opportunistic"):
         path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:
@@ -327,8 +331,8 @@ def contract_path(*operands, **kwargs):
     if einsum_call_arg:
         return operands, contraction_list
 
-    path_print = PathInfo(contraction_list, input_subscripts, output_subscript,
-                          indices, scale_list, naive_cost, opt_cost, size_list)
+    path_print = PathInfo(contraction_list, input_subscripts, output_subscript, indices,
+                          path, scale_list, naive_cost, opt_cost, size_list, dimension_dict)
 
     return path, path_print
 
