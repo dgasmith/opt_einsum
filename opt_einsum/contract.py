@@ -477,7 +477,7 @@ def contract(*operands, **kwargs):
     # Grab non-einsum kwargs
     use_blas = kwargs.pop('use_blas', True)
     memory_limit = kwargs.pop('memory_limit', None)
-    backend = kwargs.pop('backend', 'numpy')
+    backend = kwargs.pop('backend', 'auto')
     gen_expression = kwargs.pop('_gen_expression', False)
     constants_dict = kwargs.pop('_constants_dict', {})
 
@@ -500,7 +500,27 @@ def contract(*operands, **kwargs):
     return _core_contract(operands, contraction_list, backend=backend, **einsum_kwargs)
 
 
-def _core_contract(operands, contraction_list, backend='numpy', evaluate_constants=False, **einsum_kwargs):
+def infer_backend(x):
+    return x.__class__.__module__.split('.')[0]
+
+
+def parse_backend(arrays, backend):
+    """Find out what backend we should use, dipatching based on the first
+    array if ``backend='auto'`` is specified.
+    """
+    if backend != 'auto':
+        return backend
+    backend = infer_backend(arrays[0])
+
+    # some arrays will be defined in modules that don't implement tensordot
+    # etc. so instead default to numpy
+    if not backends.has_tensordot(backend):
+        return 'numpy'
+
+    return backend
+
+
+def _core_contract(operands, contraction_list, backend='auto', evaluate_constants=False, **einsum_kwargs):
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
@@ -508,6 +528,7 @@ def _core_contract(operands, contraction_list, backend='numpy', evaluate_constan
     # Special handling if out is specified
     out_array = einsum_kwargs.pop('out', None)
     specified_out = out_array is not None
+    backend = parse_backend(operands, backend)
 
     # try and do as much as possible without einsum if not available
     no_einsum = not backends.has_einsum(backend)
@@ -619,7 +640,7 @@ class ContractExpression:
         self._evaluated_constants = {}
         self._backend_expressions = {}
 
-    def evaluate_constants(self, backend='numpy'):
+    def evaluate_constants(self, backend='auto'):
         """Convert any constant operands to the correct backend form, and
         perform as many contractions as possible to create a new list of
         operands, stored in ``self._evaluated_constants[backend]``. This also
@@ -628,6 +649,7 @@ class ContractExpression:
         """
         # prepare a list of operands, with `None` for non-consts
         tmp_const_ops = [self._constants_dict.get(i, None) for i in range(self._full_num_args)]
+        backend = parse_backend(tmp_const_ops, backend)
 
         # get the new list of operands with constant operations performed, and remaining contractions
         new_ops, new_contraction_list = self(*tmp_const_ops, backend=backend, evaluate_constants=True)
@@ -653,7 +675,7 @@ class ContractExpression:
             self._backend_expressions[backend] = fn
             return fn
 
-    def _contract(self, arrays, out=None, backend='numpy', evaluate_constants=False):
+    def _contract(self, arrays, out=None, backend='auto', evaluate_constants=False):
         """The normal, core contraction.
         """
         contraction_list = self._full_contraction_list if evaluate_constants else self.contraction_list
@@ -702,7 +724,8 @@ class ContractExpression:
             backend array type.
         """
         out = kwargs.pop('out', None)
-        backend = kwargs.pop('backend', 'numpy')
+        backend = kwargs.pop('backend', 'auto')
+        backend = parse_backend(arrays, backend)
         evaluate_constants = kwargs.pop('evaluate_constants', False)
 
         if kwargs:
