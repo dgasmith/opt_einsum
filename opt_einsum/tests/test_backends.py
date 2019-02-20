@@ -64,7 +64,7 @@ def test_tensorflow(string):
 
     # test non-conversion mode
     tensorflow_views = [backends.to_tensorflow(view) for view in views]
-    expr(*tensorflow_views, backend='tensorflow')
+    expr(*tensorflow_views)
 
 
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
@@ -92,7 +92,7 @@ def test_tensorflow_with_constants():
     assert np.allclose(res_exp, res_got2)
 
     # check tensorflow call returns tensorflow still
-    res_got3 = expr(backends.to_tensorflow(var), backend='tensorflow')
+    res_got3 = expr(backends.to_tensorflow(var))
     assert isinstance(res_got3, tf.Tensor)
 
 
@@ -135,7 +135,7 @@ def test_theano(string):
 
     # test non-conversion mode
     theano_views = [backends.to_theano(view) for view in views]
-    theano_opt = expr(*theano_views, backend='theano')
+    theano_opt = expr(*theano_views)
     assert isinstance(theano_opt, theano.tensor.TensorVariable)
 
 
@@ -161,7 +161,7 @@ def test_theano_with_constants():
     assert np.allclose(res_exp, res_got2)
 
     # check theano call returns theano still
-    res_got3 = expr(backends.to_theano(var), backend='theano')
+    res_got3 = expr(backends.to_theano(var))
     assert isinstance(res_got3, theano.tensor.TensorVariable)
 
 
@@ -202,7 +202,7 @@ def test_cupy(string):  # pragma: no cover
 
     # test non-conversion mode
     cupy_views = [backends.to_cupy(view) for view in views]
-    cupy_opt = expr(*cupy_views, backend='cupy')
+    cupy_opt = expr(*cupy_views)
     assert isinstance(cupy_opt, cupy.ndarray)
     assert np.allclose(ein, cupy.asnumpy(cupy_opt))
 
@@ -230,7 +230,7 @@ def test_cupy_with_constants():  # pragma: no cover
     assert np.allclose(res_exp, res_got2)
 
     # check cupy call returns cupy still
-    res_got3 = expr(cupy.asarray(var), backend='cupy')
+    res_got3 = expr(cupy.asarray(var))
     assert isinstance(res_got3, cupy.ndarray)
     assert np.allclose(res_exp, res_got3.get())
 
@@ -246,7 +246,7 @@ def test_dask(string):
 
     # test non-conversion mode
     da_views = [da.from_array(x, chunks=(2)) for x in views]
-    da_opt = expr(*da_views, backend='dask')
+    da_opt = expr(*da_views)
 
     # check type is maintained when not using numpy arrays
     assert isinstance(da_opt, da.Array)
@@ -254,7 +254,7 @@ def test_dask(string):
     assert np.allclose(ein, np.array(da_opt))
 
     # try raw contract
-    da_opt = contract(string, *da_views, backend='dask')
+    da_opt = contract(string, *da_views)
     assert isinstance(da_opt, da.Array)
     assert np.allclose(ein, np.array(da_opt))
 
@@ -277,7 +277,7 @@ def test_sparse(string):
 
     # test non-conversion mode
     sparse_views = [sparse.COO.from_numpy(x) for x in views]
-    sparse_opt = expr(*sparse_views, backend='sparse')
+    sparse_opt = expr(*sparse_views)
 
     # check type is maintained when not using numpy arrays
     assert isinstance(sparse_opt, sparse.COO)
@@ -285,7 +285,7 @@ def test_sparse(string):
     assert np.allclose(ein, sparse_opt.todense())
 
     # try raw contract
-    sparse_opt = contract(string, *sparse_views, backend='sparse')
+    sparse_opt = contract(string, *sparse_views)
     assert isinstance(sparse_opt, sparse.COO)
     assert np.allclose(ein, sparse_opt.todense())
 
@@ -305,7 +305,7 @@ def test_torch(string):
 
     # test non-conversion mode
     torch_views = [backends.to_torch(view) for view in views]
-    torch_opt = expr(*torch_views, backend='torch')
+    torch_opt = expr(*torch_views)
     assert isinstance(torch_opt, torch.Tensor)
     assert np.allclose(ein, torch_opt.cpu().numpy())
 
@@ -333,7 +333,7 @@ def test_torch_with_constants():
     assert np.allclose(res_exp, res_got2)
 
     # check torch call returns torch still
-    res_got3 = expr(backends.to_torch(var), backend='torch')
+    res_got3 = expr(backends.to_torch(var))
     assert isinstance(res_got3, torch.Tensor)
     res_got3 = res_got3.numpy() if res_got3.device.type == 'cpu' else res_got3.cpu().numpy()
     assert np.allclose(res_exp, res_got3)

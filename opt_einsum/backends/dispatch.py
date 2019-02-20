@@ -13,7 +13,7 @@ from . import tensorflow as _tensorflow
 from . import theano as _theano
 from . import torch as _torch
 
-__all__ = ["get_func", "has_einsum", "build_expression", "evaluate_constants", "has_backend"]
+__all__ = ["get_func", "has_einsum", "has_tensordot", "build_expression", "evaluate_constants", "has_backend"]
 
 # known non top-level imports
 _aliases = {
@@ -74,6 +74,24 @@ def has_einsum(backend):
             _has_einsum[backend] = False
 
         return _has_einsum[backend]
+
+
+_has_tensordot = {}
+
+
+def has_tensordot(backend):
+    """Check if ``{backend}.tensordot`` exists, cache result for performance.
+    """
+    try:
+        return _has_tensordot[backend]
+    except KeyError:
+        try:
+            get_func('tensordot', backend)
+            _has_tensordot[backend] = True
+        except AttributeError:
+            _has_tensordot[backend] = False
+
+        return _has_tensordot[backend]
 
 
 # Dispatch to correct expression backend

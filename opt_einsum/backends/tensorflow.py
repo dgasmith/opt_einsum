@@ -21,9 +21,12 @@ def _get_tensorflow_and_device():
         import tensorflow as tf
 
         try:
-            eager = tf.contrib.eager.in_eager_mode()
+            eager = tf.executing_eagerly()
         except AttributeError:
-            eager = False
+            try:
+                eager = tf.contrib.eager.in_eager_mode()
+            except AttributeError:
+                eager = False
 
         device = tf.test.gpu_device_name()
         if not device:

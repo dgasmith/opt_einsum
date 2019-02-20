@@ -38,10 +38,11 @@ General backend for any ndarray
 
 This 'duck-typing' support just requires specifying the correct ``backend``
 argument for the type of arrays supplied when calling
-:func:`~opt_einsum.contract`. For example, if you had a library installed
+:func:`~opt_einsum.contract` or letting it be automatically discovered based on
+the first array (the default). For example, if you had a library installed
 called ``'foo'`` which provided an :class:`~numpy.ndarray` like object with a
 ``.shape`` attribute as well as ``foo.tensordot`` and ``foo.transpose`` then
-you could contract then with something like:
+you could contract them with something like:
 
 .. code-block:: python
 
@@ -49,7 +50,9 @@ you could contract then with something like:
 
 Behind the scenes :mod:`opt_einsum` will find the contraction path, perform
 pairwise contractions using e.g. ``foo.tensordot`` and finally return whatever
-type those functions return.
+type those functions return. In fact, if you don't want to be explicit you can
+leave ``backend='auto'`` here and ``opt_einsum`` will infer ``'foo'`` by
+itself.
 
 
 Dask
@@ -70,7 +73,7 @@ these requirements. For example:
      dask.array<da.random.normal, shape=(300, 4), dtype=float64, chunksize=(100, 4)>]
 
 
-    >>> dy = oe.contract("ab,bc,cd", *dxs, backend='dask')
+    >>> dy = oe.contract("ab,bc,cd", *dxs)  # will infer backend='dask'
     >>> dy
     dask.array<transpose, shape=(3, 4), dtype=float64, chunksize=(3, 4)>
 
@@ -101,7 +104,7 @@ supported. An example:
      <COO: shape=(200, 300), dtype=float64, nnz=600, sorted=False, duplicates=True>,
      <COO: shape=(300, 4), dtype=float64, nnz=12, sorted=False, duplicates=True>]
 
-    >>> sy = oe.contract("ab,bc,cd", *sxs, backend='sparse')
+    >>> sy = oe.contract("ab,bc,cd", *sxs)
     <COO: shape=(3, 4), dtype=float64, nnz=0, sorted=False, duplicates=False>
 
 
