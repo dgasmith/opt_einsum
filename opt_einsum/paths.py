@@ -685,10 +685,10 @@ _PATH_OPTIONS = {
 }
 
 
-def register_path_fn(name, fn, overwrite=False):
+def register_path_fn(name, fn):
     """Add path finding function ``fn`` as an option with ``name``.
     """
-    if not overwrite and name in _PATH_OPTIONS:
+    if name in _PATH_OPTIONS:
         raise KeyError("Path optimizer '{}' already exists.".format(name))
 
     _PATH_OPTIONS[name.lower()] = fn
