@@ -13,7 +13,6 @@ from . import compat
 from . import helpers
 from . import parser
 from . import paths
-from . import path_random
 from . import sharing
 
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only", "shape_only"]
@@ -257,29 +256,17 @@ def contract_path(*operands, **kwargs):
 
     # Compute the path
     if not isinstance(path_type, (compat.strings, paths.PathOptimizer)):
+        # Custom path supplied
         path = path_type
-    elif num_ops == 1:
+    elif num_ops <= 2:
         # Nothing to be optimized
-        path = [(0, )]
-    elif num_ops == 2:
-        # Nothing to be optimized
-        path = [(0, 1)]
+        path = [tuple(range(num_ops))]
     elif isinstance(path_type, paths.PathOptimizer):
+        # Custom path optimizer supplied
         path = path_type(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type == "optimal" or (path_type == "auto" and num_ops <= 4):
-        path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type == 'branch-all' or (path_type == "auto" and num_ops <= 6):
-        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=None)
-    elif path_type == 'branch-2' or (path_type == "auto" and num_ops <= 8):
-        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=2)
-    elif path_type == 'branch-1' or (path_type == "auto" and num_ops <= 14):
-        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=1)
-    elif path_type == 'random-greedy':
-        path = path_random.random_greedy(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type in ("auto", "greedy", "eager", "opportunistic"):
-        path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:
-        raise KeyError("Path name '{}' not found".format(path_type))
+        path_optimizer = paths.get_path_fn(path_type)
+        path = path_optimizer(input_sets, output_set, dimension_dict, memory_arg)
 
     cost_list = []
     scale_list = []

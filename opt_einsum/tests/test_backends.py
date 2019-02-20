@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from opt_einsum import contract, helpers, contract_expression, backends, sharing
+from opt_einsum.contract import infer_backend, parse_backend, Shaped
 
 try:
     import cupy
@@ -337,3 +338,10 @@ def test_torch_with_constants():
     assert isinstance(res_got3, torch.Tensor)
     res_got3 = res_got3.numpy() if res_got3.device.type == 'cpu' else res_got3.cpu().numpy()
     assert np.allclose(res_exp, res_got3)
+
+
+def test_auto_backend_custom_array_no_tensordot():
+    x = Shaped((1, 2, 3))
+    # Shaped is an array-like object defined by opt_einsum - which has no TDOT
+    assert infer_backend(x) == 'opt_einsum'
+    assert parse_backend([x], 'auto') == 'numpy'

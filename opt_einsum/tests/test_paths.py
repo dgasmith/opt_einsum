@@ -108,6 +108,16 @@ def test_flop_cost():
     assert 2000 == oe.helpers.flop_count("abc", True, 2, size_dict)
 
 
+def test_bad_path_option():
+    with pytest.raises(KeyError):
+        oe.contract("a,b,c", [1], [2], [3], optimize='optimall')
+
+
+def test_explicit_path():
+    x = oe.contract("a,b,c", [1], [2], [3], optimize=[(1, 2), (0, 1)])
+    assert x.item() == 6
+
+
 def test_path_optimal():
 
     test_func = oe.paths.optimal
