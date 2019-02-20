@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function
 
 import heapq
 import random
+import functools
 import itertools
 from collections import defaultdict
 
@@ -12,7 +13,8 @@ import numpy as np
 
 from . import helpers
 
-__all__ = ["optimal", "BranchBound", "branch", "greedy"]
+
+__all__ = ["optimal", "BranchBound", "branch", "greedy", "auto", "get_path_fn"]
 
 
 _UNLIMITED_MEM = {-1, None, float('inf')}
@@ -444,6 +446,11 @@ def branch(inputs, output, size_dict, memory_limit=None, **optimizer_kwargs):
     return optimizer(inputs, output, size_dict, memory_limit)
 
 
+branch_all = functools.partial(branch, nbranch=None)
+branch_2 = functools.partial(branch, nbranch=2)
+branch_1 = functools.partial(branch, nbranch=1)
+
+
 def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn):
     either = k1 | k2
     two = k1 & k2
@@ -645,3 +652,53 @@ def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn
 
     ssa_path = ssa_greedy_optimize(inputs, output, size_dict, cost_fn=cost_fn, choose_fn=choose_fn)
     return ssa_to_linear(ssa_path)
+
+
+_AUTO_CHOICES = {}
+for i in range(1, 5):
+    _AUTO_CHOICES[i] = optimal
+for i in range(5, 7):
+    _AUTO_CHOICES[i] = branch_all
+for i in range(7, 9):
+    _AUTO_CHOICES[i] = branch_2
+for i in range(9, 15):
+    _AUTO_CHOICES[i] = branch_1
+
+
+def auto(inputs, output, size_dict, memory_limit=None):
+    """Finds the contraction path by automatically choosing the method based on
+    how many input arguments there are.
+    """
+    N = len(inputs)
+    return _AUTO_CHOICES.get(N, greedy)(inputs, output, size_dict, memory_limit)
+
+
+_PATH_OPTIONS = {
+    'auto': auto,
+    'optimal': optimal,
+    'branch-all': branch_all,
+    'branch-2': branch_2,
+    'branch-1': branch_1,
+    'greedy': greedy,
+    'eager': greedy,
+    'opportunistic': greedy,
+}
+
+
+def register_path_fn(name, fn):
+    """Add path finding function ``fn`` as an option with ``name``.
+    """
+    if name in _PATH_OPTIONS:
+        raise KeyError("Path optimizer '{}' already exists.".format(name))
+
+    _PATH_OPTIONS[name.lower()] = fn
+
+
+def get_path_fn(path_type):
+    """Get the correct path finding function from str ``path_type``.
+    """
+    if path_type not in _PATH_OPTIONS:
+        raise KeyError("Path optimizer '{}' not found, valid options are {}."
+                       .format(path_type, set(_PATH_OPTIONS.keys())))
+
+    return _PATH_OPTIONS[path_type]

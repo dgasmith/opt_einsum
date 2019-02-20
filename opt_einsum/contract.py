@@ -13,10 +13,9 @@ from . import compat
 from . import helpers
 from . import parser
 from . import paths
-from . import path_random
 from . import sharing
 
-__all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only", "shape_only"]
+__all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only"]
 
 
 class PathInfo(object):
@@ -93,6 +92,9 @@ def _choose_memory_arg(memory_limit, size_list):
     return int(memory_limit)
 
 
+_VALID_CONTRACT_KWARGS = {'optimize', 'path', 'memory_limit', 'einsum_call', 'use_blas', 'shapes'}
+
+
 def contract_path(*operands, **kwargs):
     """
     Find a contraction order 'path', without performing the contraction.
@@ -124,6 +126,9 @@ def contract_path(*operands, **kwargs):
         Use BLAS functions or not
     memory_limit : int, optional (default: None)
         Maximum number of elements allowed in intermediate arrays.
+    shapes : bool, optional
+        Whether ``contract_path`` should assume arrays (the default) or array
+        shapes have been supplied.
 
     Returns
     -------
@@ -193,8 +198,7 @@ def contract_path(*operands, **kwargs):
     """
 
     # Make sure all keywords are valid
-    valid_contract_kwargs = ['optimize', 'path', 'memory_limit', 'einsum_call', 'use_blas']
-    unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_contract_kwargs]
+    unknown_kwargs = set(kwargs) - _VALID_CONTRACT_KWARGS
     if len(unknown_kwargs):
         raise TypeError("einsum_path: Did not understand the following kwargs: {}".format(unknown_kwargs))
 
@@ -206,6 +210,7 @@ def contract_path(*operands, **kwargs):
         path_type = kwargs.pop('optimize', 'auto')
 
     memory_limit = kwargs.pop('memory_limit', None)
+    shapes = kwargs.pop('shapes', False)
 
     # Hidden option, only einsum should call this
     einsum_call_arg = kwargs.pop("einsum_call", False)
@@ -217,7 +222,10 @@ def contract_path(*operands, **kwargs):
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
     input_sets = [set(x) for x in input_list]
-    input_shps = [x.shape for x in operands]
+    if shapes:
+        input_shps = operands
+    else:
+        input_shps = [x.shape for x in operands]
     output_set = set(output_subscript)
     indices = set(input_subscripts.replace(',', ''))
 
@@ -257,29 +265,17 @@ def contract_path(*operands, **kwargs):
 
     # Compute the path
     if not isinstance(path_type, (compat.strings, paths.PathOptimizer)):
+        # Custom path supplied
         path = path_type
-    elif num_ops == 1:
+    elif num_ops <= 2:
         # Nothing to be optimized
-        path = [(0, )]
-    elif num_ops == 2:
-        # Nothing to be optimized
-        path = [(0, 1)]
+        path = [tuple(range(num_ops))]
     elif isinstance(path_type, paths.PathOptimizer):
+        # Custom path optimizer supplied
         path = path_type(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type == "optimal" or (path_type == "auto" and num_ops <= 4):
-        path = paths.optimal(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type == 'branch-all' or (path_type == "auto" and num_ops <= 6):
-        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=None)
-    elif path_type == 'branch-2' or (path_type == "auto" and num_ops <= 8):
-        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=2)
-    elif path_type == 'branch-1' or (path_type == "auto" and num_ops <= 14):
-        path = paths.branch(input_sets, output_set, dimension_dict, memory_arg, nbranch=1)
-    elif path_type == 'random-greedy':
-        path = path_random.random_greedy(input_sets, output_set, dimension_dict, memory_arg)
-    elif path_type in ("auto", "greedy", "eager", "opportunistic"):
-        path = paths.greedy(input_sets, output_set, dimension_dict, memory_arg)
     else:
-        raise KeyError("Path name '{}' not found".format(path_type))
+        path_optimizer = paths.get_path_fn(path_type)
+        path = path_optimizer(input_sets, output_set, dimension_dict, memory_arg)
 
     cost_list = []
     scale_list = []

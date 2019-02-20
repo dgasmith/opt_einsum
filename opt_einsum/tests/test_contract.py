@@ -257,3 +257,9 @@ def test_linear_vs_ssa(equation):
     ssa_path = linear_to_ssa(linear_path)
     linear_path2 = ssa_to_linear(ssa_path)
     assert linear_path2 == linear_path
+
+
+def test_contract_path_supply_shapes():
+    eq = 'ab,bc,cd'
+    shps = [(2, 3), (3, 4), (4, 5)]
+    contract_path(eq, *shps, shapes=True)

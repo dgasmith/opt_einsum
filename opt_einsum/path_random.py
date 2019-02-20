@@ -11,13 +11,13 @@ import functools
 from collections import deque
 
 from . import helpers
-from .paths import PathOptimizer, ssa_greedy_optimize, get_better_fn, ssa_to_linear, calc_k12_flops
+from . import paths
 
 
 __all__ = ["RandomGreedy", "random_greedy"]
 
 
-class RandomOptimizer(PathOptimizer):
+class RandomOptimizer(paths.PathOptimizer):
     """Base class for running any random path finder that benefits
     from repeated calling, possibly in a parallel fashion. Custom random
     optimizers should subclass this, and the ``setup`` method should be
@@ -81,7 +81,7 @@ class RandomOptimizer(PathOptimizer):
         self.max_repeats = max_repeats
         self.max_time = max_time
         self.minimize = minimize
-        self.better = get_better_fn(minimize)
+        self.better = paths.get_better_fn(minimize)
         self.parallel = parallel
         self.pre_dispatch = pre_dispatch
 
@@ -95,7 +95,7 @@ class RandomOptimizer(PathOptimizer):
     def path(self):
         """The best path found so far.
         """
-        return ssa_to_linear(self.best['ssa_path'])
+        return paths.ssa_to_linear(self.best['ssa_path'])
 
     @property
     def parallel(self):
@@ -256,7 +256,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
 
     # compute relative probability for each potential contraction
     if temperature == 0.0:
-        energies = [1 if cost == cmin else 0 for cost in costs]
+        energies = [1 if c == cmin else 0 for c in costs]
     else:
         # shift by cmin for numerical reasons
         energies = [math.exp(-(c - cmin) / temperature) for c in costs]
@@ -282,7 +282,7 @@ def ssa_path_compute_cost(ssa_path, inputs, output, size_dict):
     max_size = 0
 
     for i, j in ssa_path:
-        k12, flops12 = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+        k12, flops12 = paths.calc_k12_flops(inputs, output, remaining, i, j, size_dict)
         remaining.discard(i)
         remaining.discard(j)
         remaining.add(len(inputs))
@@ -302,7 +302,7 @@ def _trial_greedy_ssa_path_and_cost(r, inputs, output, size_dict, choose_fn, cos
     else:
         random.seed(r)
 
-    ssa_path = ssa_greedy_optimize(inputs, output, size_dict, choose_fn, cost_fn)
+    ssa_path = paths.ssa_greedy_optimize(inputs, output, size_dict, choose_fn, cost_fn)
     cost, size = ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
 
     return ssa_path, cost, size
