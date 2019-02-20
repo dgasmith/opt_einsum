@@ -372,6 +372,3 @@ def random_greedy(inputs, output, idx_dict, memory_limit=None, **optimizer_kwarg
     """
     optimizer = RandomGreedy(**optimizer_kwargs)
     return optimizer(inputs, output, idx_dict, memory_limit)
-
-
-paths.add_path_fn('random-greedy', random_greedy)
