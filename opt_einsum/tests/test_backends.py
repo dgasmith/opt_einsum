@@ -33,6 +33,18 @@ try:
 except ImportError:
     found_torch = False
 
+try:
+    import jax
+    found_jax = True
+except ImportError:
+    found_jax = False
+
+try:
+    import autograd
+    found_autograd = True
+except ImportError:
+    found_autograd = False
+
 tests = [
     'ab,bc->ca',
     'abc,bcd,dea',
@@ -69,23 +81,22 @@ def test_tensorflow(string):
 
 
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
-def test_tensorflow_with_constants():
+@pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
+def test_tensorflow_with_constants(constants):
     eq = 'ij,jk,kl->li'
     shapes = (2, 3), (3, 4), (4, 5)
-    constants = {0, 2}
+    non_const, = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
-    var = np.random.rand(*shapes[1])
-
-    res_exp = contract(eq, ops[0], var, ops[2])
+    var = np.random.rand(*shapes[non_const])
+    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
 
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check tensorflow
-    sess = tf.Session(config=_TF_CONFIG)
-    with sess.as_default():
+    with tf.Session(config=_TF_CONFIG).as_default():
         res_got = expr(var, backend='tensorflow')
-    sess.close()
-    assert 'tensorflow' in expr._evaluated_constants
+    assert all(array is None or infer_backend(array) == 'tensorflow'
+               for array in expr._evaluated_constants['tensorflow'])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
@@ -141,20 +152,21 @@ def test_theano(string):
 
 
 @pytest.mark.skipif(not found_theano, reason="theano not installed.")
-def test_theano_with_constants():
+@pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
+def test_theano_with_constants(constants):
     eq = 'ij,jk,kl->li'
     shapes = (2, 3), (3, 4), (4, 5)
-    constants = {0, 2}
+    non_const, = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
-    var = np.random.rand(*shapes[1])
-
-    res_exp = contract(eq, ops[0], var, ops[2])
+    var = np.random.rand(*shapes[non_const])
+    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
 
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check theano
     res_got = expr(var, backend='theano')
-    assert 'theano' in expr._evaluated_constants
+    assert all(array is None or infer_backend(array) == 'theano'
+               for array in expr._evaluated_constants['theano'])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
@@ -209,21 +221,22 @@ def test_cupy(string):  # pragma: no cover
 
 
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
-def test_cupy_with_constants():  # pragma: no cover
-
+@pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
+def test_cupy_with_constants(constants):  # pragma: no cover
     eq = 'ij,jk,kl->li'
     shapes = (2, 3), (3, 4), (4, 5)
-    constants = {0, 2}
+    non_const, = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
-    var = np.random.rand(*shapes[1])
-
-    res_exp = contract(eq, ops[0], var, ops[2])
+    var = np.random.rand(*shapes[non_const])
+    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
 
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check cupy
     res_got = expr(var, backend='cupy')
-    assert 'cupy' in expr._evaluated_constants
+    # check cupy versions of constants exist
+    assert all(array is None or infer_backend(array) == 'cupy'
+               for array in expr._evaluated_constants['cupy'])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
@@ -234,6 +247,83 @@ def test_cupy_with_constants():  # pragma: no cover
     res_got3 = expr(cupy.asarray(var))
     assert isinstance(res_got3, cupy.ndarray)
     assert np.allclose(res_exp, res_got3.get())
+
+
+@pytest.mark.skipif(not found_jax, reason="jax not installed.")
+@pytest.mark.parametrize("string", tests)
+def test_jax(string):  # pragma: no cover
+    views = helpers.build_views(string)
+    ein = contract(string, *views, optimize=False, use_blas=False)
+    shps = [v.shape for v in views]
+
+    expr = contract_expression(string, *shps, optimize=True)
+
+    opt = expr(*views, backend='jax')
+    assert np.allclose(ein, opt)
+    assert isinstance(opt, np.ndarray)
+
+
+@pytest.mark.skipif(not found_jax, reason="jax not installed.")
+@pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
+def test_jax_with_constants(constants):  # pragma: no cover
+    eq = 'ij,jk,kl->li'
+    shapes = (2, 3), (3, 4), (4, 5)
+    non_const, = {0, 1, 2} - constants
+    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = np.random.rand(*shapes[non_const])
+    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
+
+    expr = contract_expression(eq, *ops, constants=constants)
+
+    # check jax
+    res_got = expr(var, backend='jax')
+    # check jax versions of constants exist
+    assert all(array is None or infer_backend(array) == 'jax'
+               for array in expr._evaluated_constants['jax'])
+
+    assert np.allclose(res_exp, res_got)
+
+
+@pytest.mark.skipif(not found_jax, reason="jax not installed.")
+def test_jax_jit_gradient():
+    eq = 'ij,jk,kl->'
+    shapes = (2, 3), (3, 4), (4, 2)
+    views = [np.random.randn(*s) for s in shapes]
+    expr = contract_expression(eq, *shapes)
+    x0 = expr(*views)
+
+    jit_expr = jax.jit(expr)
+    x1 = jit_expr(*views).item()
+    assert x1 == pytest.approx(x0, rel=1e-5)
+
+    # jax only takes gradient w.r.t first argument
+    grad_expr = jax.jit(jax.grad(lambda views: expr(*views)))
+    view_grads = grad_expr(views)
+    assert all(v1.shape == v2.shape for v1, v2 in zip(views, view_grads))
+
+    # taking a step along the gradient should reduce our 'loss'
+    new_views = [v - 0.001 * dv for v, dv in zip(views, view_grads)]
+    x2 = jit_expr(*new_views).item()
+    assert x2 < x1
+
+
+@pytest.mark.skipif(not found_autograd, reason="autograd not installed.")
+def test_autograd_gradient():
+    eq = 'ij,jk,kl->'
+    shapes = (2, 3), (3, 4), (4, 2)
+    views = [np.random.randn(*s) for s in shapes]
+    expr = contract_expression(eq, *shapes)
+    x0 = expr(*views)
+
+    # autograd only takes gradient w.r.t first argument
+    grad_expr = autograd.grad(lambda views: expr(*views))
+    view_grads = grad_expr(views)
+    assert all(v1.shape == v2.shape for v1, v2 in zip(views, view_grads))
+
+    # taking a step along the gradient should reduce our 'loss'
+    new_views = [v - 0.001 * dv for v, dv in zip(views, view_grads)]
+    x1 = expr(*new_views)
+    assert x1 < x0
 
 
 @pytest.mark.parametrize("string", tests)
@@ -312,21 +402,21 @@ def test_torch(string):
 
 
 @pytest.mark.skipif(not found_torch, reason="Torch not installed.")
-def test_torch_with_constants():
-
+@pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
+def test_torch_with_constants(constants):
     eq = 'ij,jk,kl->li'
     shapes = (2, 3), (3, 4), (4, 5)
-    constants = {0, 2}
+    non_const, = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
-    var = np.random.rand(*shapes[1])
-
-    res_exp = contract(eq, ops[0], var, ops[2])
+    var = np.random.rand(*shapes[non_const])
+    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
 
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check torch
     res_got = expr(var, backend='torch')
-    assert 'torch' in expr._evaluated_constants
+    assert all(array is None or infer_backend(array) == 'torch'
+               for array in expr._evaluated_constants['torch'])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still

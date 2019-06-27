@@ -648,7 +648,11 @@ class ContractExpression:
         backend = parse_backend(tmp_const_ops, backend)
 
         # get the new list of operands with constant operations performed, and remaining contractions
-        new_ops, new_contraction_list = self(*tmp_const_ops, backend=backend, evaluate_constants=True)
+        try:
+            new_ops, new_contraction_list = backends.evaluate_constants(backend, tmp_const_ops, self)
+        except KeyError:
+            new_ops, new_contraction_list = self(*tmp_const_ops, backend=backend, evaluate_constants=True)
+
         self._evaluated_constants[backend] = new_ops
         self.contraction_list = new_contraction_list
 
