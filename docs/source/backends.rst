@@ -2,6 +2,14 @@
 Backends & GPU Support
 ======================
 
+``opt_einsum`` is quite agnostic to the type of n-dimensional arrays (tensors)
+it uses, since finding the contraction path only relies on getting the shape
+attribute of each array supplied.
+It can perform the underlying tensor contractions with various
+libraries. In fact, any library that provides a :func:`~numpy.tensordot` and
+:func:`~numpy.transpose` implementation can perform most normal contractions.
+While more special functionality such as axes reduction is reliant on a
+:func:`~numpy.einsum` implementation.
 The following is a brief overview of libraries which have been tested with
 ``opt_einsum``:
 
@@ -15,15 +23,10 @@ The following is a brief overview of libraries which have been tested with
       intermediaries.
     - `sparse <https://sparse.pydata.org/>`_: sparse tensors.
     - `pytorch <https://pytorch.org>`_: numpy-like api for GPU tensors.
-
-``opt_einsum`` is quite agnostic to the type of n-dimensional arrays (tensors)
-it uses, since finding the contraction path only relies on getting the shape
-attribute of each array supplied.
-It can perform the underlying tensor contractions with various
-libraries. In fact, any library that provides a :func:`~numpy.tensordot` and
-:func:`~numpy.transpose` implementation can perform most normal contractions.
-While more special functionality such as axes reduction is reliant on a
-:func:`~numpy.einsum` implementation.
+    - `autograd <https://github.com/HIPS/autograd>`_: automatic derivative
+      computation for tensor expressions
+    - `jax <https://github.com/google/jax>`_: compiled GPU tensor expressions
+      including ``autograd``-like functionality
 
 .. note::
 
@@ -96,7 +99,6 @@ supported. An example:
 
 .. code-block:: python
 
-    >>> import opt_einsum as oe
     >>> import sparse as sp
     >>> shapes = (3, 200), (200, 300), (300, 4)
     >>> sxs = [sp.random(shp) for shp in shapes]
@@ -107,6 +109,79 @@ supported. An example:
     >>> sy = oe.contract("ab,bc,cd", *sxs)
     <COO: shape=(3, 4), dtype=float64, nnz=0, sorted=False, duplicates=False>
 
+
+Autograd
+--------
+
+The `autograd <https://github.com/HIPS/autograd>`_ library is a drop-in for
+``numpy`` that can automatically compute the gradients of array expressions.
+``opt_einsum`` automatically dispatches the ``autograd`` arrays correctly,
+enabling a simple way to compute gradients of tensor contractions:
+
+.. code-block:: python
+
+    >>> import numpy as np
+    >>> import autograd
+    >>> shapes = [(2, 3), (3, 4), (4, 2)]
+    >>> x, y, z = [np.random.rand(*s) for s in shapes]
+
+    >>> # make single arg function as autograd takes derivative of first arg
+    >>> def foo(xyz):
+    ...    return oe.contract('ij,jk,ki->', *xyz)
+
+    >>> foo([x, y, z])
+    array(4.90422159)
+
+    >>> # wrap foo with autograd to compute gradients instead
+    >>> dfoo = autograd.grad(foo)
+    >>> dx, dy, dz = dfoo(arrays)
+    >>> dx, dy, dz
+    (array([[1.10056194, 1.25078356, 1.48211494],
+            [1.38945961, 1.5572077 , 1.65234003]]),
+     array([[0.41710717, 0.63202881, 0.84573502, 0.95069975],
+            [0.42706777, 0.73630994, 0.99328938, 0.77415267],
+            [0.40773334, 0.61693475, 0.82545726, 0.93132302]]),
+     array([[0.78747828, 1.28979012],
+            [1.26051133, 1.48835538],
+            [0.46896666, 0.55003072],
+            [1.10840828, 1.16722494]]))
+
+Jax
+---
+
+`jax <https://github.com/google/jax>`_ is itself a drop-in for ``autograd``,
+that additionally uses  `XLA <https://www.tensorflow.org/xla>`_ to compile the
+expressions, particularly for the GPU. Using it with ``opt_einsum`` is very
+simple:
+
+.. code-block:: python
+
+    >>> import jax
+    >>> # generate a compiled version of the above function
+    >>> jit_foo = jax.jit(foo)
+    >>> jit_foo([x, y, z])
+    DeviceArray(4.9042215, dtype=float32)
+
+    >>> # generate a compiled version of the gradient function
+    >>> jit_dfoo = jax.jit(jax.grad(foo))
+    >>> jit_dfoo([x, y, z])
+    [DeviceArray([[1.10056198, 1.25078356, 1.48211491],
+                  [1.38945973, 1.5572077, 1.65234005]], dtype=float32),
+     DeviceArray([[0.41710716, 0.63202882, 0.84573501, 0.95069975],
+                  [0.42706776, 0.73630995, 0.99328935, 0.7741527 ],
+                  [0.40773335, 0.61693472, 0.82545722, 0.93132305]],
+                 dtype=float32),
+     DeviceArray([[0.78747827, 1.28979015],
+                  [1.2605114 , 1.4883554 ],
+                  [0.46896666, 0.55003077],
+                  [1.10840821, 1.16722488]], dtype=float32)]
+
+.. note::
+
+    ``jax`` defaults to converting all arrays to single precision. This
+    behaviour can be changed by running
+    ``from jax.config import config; config.update("jax_enable_x64", True)``
+    **before** it has been imported and used at all.
 
 
 
@@ -123,6 +198,7 @@ automatically for:
     - `theano <http://deeplearning.net/software/theano/>`_
     - `cupy <https://cupy.chainer.org/>`_
     - `pytorch <https://pytorch.org>`_
+    - `jax <https://github.com/google/jax>`_
 
 which all offer GPU support. Since ``tensorflow`` and ``theano`` both require
 compiling the expression, this functionality is encapsulated in generating a
@@ -142,7 +218,6 @@ If ``theano`` is installed, using it as backend is as simple as specifiying
 
 .. code-block:: python
 
-    >>> import opt_einsum as oe
     >>> shapes = (3, 200), (200, 300), (300, 4)
     >>> expr = oe.contract_expression("ab,bc,cd", *shapes)
     >>> expr
@@ -228,3 +303,19 @@ utilize them other than specifiying the ``backend`` keyword:
 And as with the other GPU backends, if raw ``cupy`` or ``pytorch`` arrays are
 supplied the returned array will be of the same type, with no conversion
 to or from ``numpy`` arrays.
+
+Jax
+---
+
+`jax <https://github.com/google/jax>`_, as introduced above, can compile tensor
+functions, in doing so often achieving better performance.
+``opt_einsum`` expressions can handle this behind the scenes,
+so again just the ``backend`` keyword needs to be supplied:
+
+.. code-block:: python
+
+    >>> expr(*xs, backend='jax')
+    array([[ 129.28357  , -128.00684  , -164.62903  , -335.1167   ],
+           [-462.52362  , -121.12659  ,  -67.84769  ,  624.5455   ],
+           [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],
+          dtype=float32)

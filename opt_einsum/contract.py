@@ -648,7 +648,11 @@ class ContractExpression:
         backend = parse_backend(tmp_const_ops, backend)
 
         # get the new list of operands with constant operations performed, and remaining contractions
-        new_ops, new_contraction_list = self(*tmp_const_ops, backend=backend, evaluate_constants=True)
+        try:
+            new_ops, new_contraction_list = backends.evaluate_constants(backend, tmp_const_ops, self)
+        except KeyError:
+            new_ops, new_contraction_list = self(*tmp_const_ops, backend=backend, evaluate_constants=True)
+
         self._evaluated_constants[backend] = new_ops
         self.contraction_list = new_contraction_list
 
@@ -744,7 +748,7 @@ class ContractExpression:
         try:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
-            if backends.has_backend(backend) and any(isinstance(x, np.ndarray) for x in arrays):
+            if backends.has_backend(backend) and all(isinstance(x, np.ndarray) for x in arrays):
                 return self._contract_with_conversion(ops, out, backend, evaluate_constants=evaluate_constants)
 
             return self._contract(ops, out, backend, evaluate_constants=evaluate_constants)

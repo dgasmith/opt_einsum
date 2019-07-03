@@ -28,28 +28,28 @@ def test_contract_expression_checks():
     # too few arguments
     with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3))
-    assert "`ContractExpression` takes exactly 2" in str(err)
+    assert "`ContractExpression` takes exactly 2" in str(err.value)
 
     # too many arguments
     with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3), np.random.rand(2, 3), np.random.rand(2, 3))
-    assert "`ContractExpression` takes exactly 2" in str(err)
+    assert "`ContractExpression` takes exactly 2" in str(err.value)
 
     # wrong shapes
     with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3, 4), np.random.rand(3, 4))
-    assert "Internal error while evaluating `ContractExpression`" in str(err)
+    assert "Internal error while evaluating `ContractExpression`" in str(err.value)
     with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 4), np.random.rand(3, 4, 5))
-    assert "Internal error while evaluating `ContractExpression`" in str(err)
+    assert "Internal error while evaluating `ContractExpression`" in str(err.value)
     with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3), np.random.rand(3, 4), out=np.random.rand(2, 4, 6))
-    assert "Internal error while evaluating `ContractExpression`" in str(err)
+    assert "Internal error while evaluating `ContractExpression`" in str(err.value)
 
     # should only be able to specify out
     with pytest.raises(ValueError) as err:
         expr(np.random.rand(2, 3), np.random.rand(3, 4), order='F')
-    assert "only valid keyword arguments to a `ContractExpression`" in str(err)
+    assert "only valid keyword arguments to a `ContractExpression`" in str(err.value)
 
 
 def test_broadcasting_contraction():

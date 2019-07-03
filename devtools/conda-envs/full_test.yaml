@@ -13,8 +13,15 @@ dependencies:
   - sparse
   - theano
   - pytorch-cpu
+  - autograd
 
     # Testing
   - pytest
   - codecov
   - pytest-cov
+
+  # non-conda backends
+  - pip
+  - pip:
+    - jax
+    - jaxlib

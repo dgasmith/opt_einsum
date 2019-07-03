@@ -12,6 +12,7 @@ from . import cupy as _cupy
 from . import tensorflow as _tensorflow
 from . import theano as _theano
 from . import torch as _torch
+from . import jax as _jax
 
 __all__ = ["get_func", "has_einsum", "has_tensordot", "build_expression", "evaluate_constants", "has_backend"]
 
@@ -20,6 +21,8 @@ _aliases = {
     'dask': 'dask.array',
     'theano': 'theano.tensor',
     'torch': 'opt_einsum.backends.torch',
+    'jax': 'jax.numpy',
+    'autograd': 'autograd.numpy',
 }
 
 
@@ -101,6 +104,7 @@ CONVERT_BACKENDS = {
     'theano': _theano.build_expression,
     'cupy': _cupy.build_expression,
     'torch': _torch.build_expression,
+    'jax': _jax.build_expression,
 }
 
 EVAL_CONSTS_BACKENDS = {
@@ -108,6 +112,7 @@ EVAL_CONSTS_BACKENDS = {
     'theano': _theano.evaluate_constants,
     'cupy': _cupy.evaluate_constants,
     'torch': _torch.evaluate_constants,
+    'jax': _jax.evaluate_constants,
 }
 
 
