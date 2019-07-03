@@ -2,11 +2,15 @@
 opt_einsum
 ==========
 
-:func:`~numpy.einsum` is a powerful function for contracting tensors of arbitrary
-dimension and index. However, it is only optimized to contract two terms
-at a time resulting in non-optimal scaling.
+Optimized einsum can greatly reduce the overall execution time of einsum-like expressions
+by optimizing the expression's contraction order and dispatching many
+operations to canonical BLAS, cuBLAS, or other specialized routines. Optimized
+einsum is agnostic to the backend and can handle NumPy, Dask, PyTorch,
+Tensorflow, CuPy, Sparse, Theano, Jax, and Autograd arrays. See the
+[**documentation**](http://optimized-einsum.readthedocs.io) for more
+information.
 
-For example, consider the following index transformation:
+An example of a contraction order optimization is as follows:
 
 .. math::
 
@@ -56,8 +60,8 @@ the same, in this case, the ordering in which the indices are transformed
 matters significantly. Logic can be built that optimizes the order;
 however, this is a lot of time and effort for a single expression.
 
-The opt_einsum package is a drop-in replacement for the ``np.einsum`` function
-and can handle all of the logic for you:
+The opt_einsum package is a drop-in replacement for the ``einsum`` functions
+and can handle this logic and path finding for you:
 
 .. code:: python
 
@@ -73,9 +77,10 @@ and can handle all of the logic for you:
     %timeit contract('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
     100 loops, best of 3: 16.2 ms per loop
 
-The above will automatically find the optimal contraction order, in this case, identical to that of the optimized function above, and compute the products for
-you. In this case, it even uses `np.dot` under the hood to exploit any vendor
-BLAS functionality that your NumPy build has!
+The above will automatically find the optimal contraction order, in this case,
+identical to that of the optimized function above, and compute the products
+for you. In this particular case it was able to use vendor BLAS using the `np.dot`
+function under the hood to exploit additional parallelism and performance.
 
 We can then view more details about the optimized contraction order:
 
@@ -103,6 +108,24 @@ We can then view more details about the optimized contraction order:
        5      GEMM            jklp,qj->klpq                         rk,sl,klpq->pqrs
        5      GEMM            klpq,rk->lpqr                            sl,lpqr->pqrs
        5      GEMM            lpqr,sl->pqrs                               pqrs->pqrs
+
+
+       The following capabilities are enabled by `opt_einsum`:
+
+Features
+========
+
+The algorithms found in this repository often power the `einsum` optimizations
+in many of the above projects. For example, the optimization of `np.einsum`
+has been passed upstream and most of the same features that can be found in
+this repository can be enabled with `np.einsum(..., optimize=True)`. However,
+this repository often has more up to date algorithms for complex contractions.
+
+* Inspect [detailed information](http://optimized-einsum.readthedocs.io/en/latest/path_finding.html) about the path chosen.
+* Perform contractions with [numerous backends](http://optimized-einsum.readthedocs.io/en/latest/backends.html), including on the GPU and with libraries such as [TensorFlow](https://www.tensorflow.org) and [PyTorch](https://pytorch.org).
+* Generate [reusable expressions](http://optimized-einsum.readthedocs.io/en/latest/reusing_paths.html), potentially with [constant tensors](http://optimized-einsum.readthedocs.io/en/latest/reusing_paths.html#specifying-constants), that can be compiled for greater performance.
+* Use an arbitrary number of indices to find contractions for [hundreds or even thousands of tensors](http://optimized-einsum.readthedocs.io/en/latest/ex_large_expr_with_greedy.html).
+* Share [intermediate computations](http://optimized-einsum.readthedocs.io/en/latest/sharing_intermediates.html) among multiple contractions.
 
 Citation
 ========

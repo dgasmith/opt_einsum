@@ -2,7 +2,7 @@
 Input Format
 ============
 
-The ``opt_einsum`` package is a drop-in replacement for the ``np.einsum``
+The ``opt_einsum`` package was originally designed as a drop-in replacement for the ``np.einsum``
 function and supports all input formats that ``np.einsum`` supports. There are
 two styles of input accepted, a basic introduction to which can be found in the
 documentation for :func:`numpy.einsum`. In addition to this, ``opt_einsum``
