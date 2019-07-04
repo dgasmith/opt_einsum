@@ -1,6 +1,26 @@
 Changelog
 =========
 
+3.0.0 / 2019-07-xx
+------------------
+
+This release moves `opt_einsum` to be backend agnostic while adding support
+additional backends such as Jax and Autograd.
+
+
+New Features
+++++++++++++
+- (:pr:`78`) A new random-optimizer has been implemented which uses Boltzmann weighting to explore alternative near-minimum paths using greedy-like schemes. This provides a fairly large path performance enhancements with a linear path time overhead.
+- (:pr:`78`) A new PathOptimizer class has been implemented to provide a framework for building new optimizers. An example is that now custom cost functions can now be provided in the greedy formalism for building custom optimizers without a large amount of additional code.
+- (:pr:`81`) The `backend="auto"` keyword has been implemented for `contract` allowing automatic detection of the correct backend to use based off provided tensors in the contraction.
+- (:pr:`88`) Autograd and Jax support have been implemented.
+
+Enhancements
+++++++++++++
+- (:pr:`84`) The `contract_path` function can now accept shape tuples rather than full tensors.
+- (:pr:`84`) The `contract_path` automated path algorithm decision technology has been refactored to a standalone function.
+
+
 2.3.0 / 2018-12-01
 ------------------
 
@@ -17,7 +37,7 @@ New Features
 Enhancements
 ++++++++++++
 - (:pr:`61`) The :func:`opt_einsum.contract` ``path`` keyword has been changed to ``optimize`` to more closely match NumPy. ``path`` will be deprecated in the future.
-- (:pr:`61`) The :func:`opt_einsum.contract_path` now returns a :func:`opt_einsum.contract.PathInfo` object that can be queried for the scaling, flops, and intermediates of the path. The print representation of this object is identical to before. 
+- (:pr:`61`) The :func:`opt_einsum.contract_path` now returns a :func:`opt_einsum.contract.PathInfo` object that can be queried for the scaling, flops, and intermediates of the path. The print representation of this object is identical to before.
 - (:pr:`61`) The default ``memory_limit`` is now unlimited by default based on community feedback.
 - (:pr:`66`) The Torch backend will now use ``tensordot`` when using a version of Torch which includes this functionality.
 - (:pr:`68`) Indices can now be any hashable object when provided in the `"Interleaved Input" <input_format.html#interleaved-input>`_ syntax.
