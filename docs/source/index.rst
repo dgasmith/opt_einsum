@@ -2,11 +2,12 @@
 opt_einsum
 ==========
 
-Optimized einsum can greatly reduce the overall execution time of einsum-like
+Optimized einsum can significantly reduce the overall execution time of einsum-like
 expressions by optimizing the expression's contraction order and dispatching
 many operations to canonical BLAS, cuBLAS, or other specialized routines.
 Optimized einsum is agnostic to the backend and can handle NumPy, Dask,
-PyTorch, Tensorflow, CuPy, Sparse, Theano, Jax, and Autograd arrays.
+PyTorch, Tensorflow, CuPy, Sparse, Theano, JAX, and Autograd arrays as well as
+potentially any library which conforms to a standard API.
 
 Features
 ========
@@ -23,6 +24,7 @@ Several advanced features are as follows:
 * Generate `reusable expressions <reusing_paths.html>`_, potentially with `constant tensors <reusing_paths.html#specifying-constants>`_, that can be compiled for greater performance.
 * Use an arbitrary number of indices to find contractions for `hundreds or even thousands of tensors <ex_large_expr_with_greedy.html>`_.
 * Share `intermediate computations <sharing_intermediates.html>`_ among multiple contractions.
+* Compute gradients of tensor contractions using `Autograd <https://github.com/HIPS/autograd>`_ or `JAX <https://github.com/google/jax>`_.
 
 Example
 =======

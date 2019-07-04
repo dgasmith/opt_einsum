@@ -194,9 +194,9 @@ simple:
 Special (GPU) backends for numpy arrays
 =======================================
 
-A special case is if numpy arrays are required for the input and ouput,
-but use a different backend, such as performing a contraction on a GPU.
-Unless the specified backend works on numpy arrays this requires converting to
+A particular case is if numpy arrays are required for the input and output,
+however, a more performant backend is required such as performing the contraction on a GPU.
+Unless the specified backend works on numpy arrays, this requires converting to
 and from the backend array type. Currently ``opt_einsum`` can handle this
 automatically for:
 
@@ -206,7 +206,7 @@ automatically for:
     - `pytorch <https://pytorch.org>`_
     - `jax <https://github.com/google/jax>`_
 
-which all offer GPU support. Since ``tensorflow`` and ``theano`` both require
+all of which offer GPU support. Since ``tensorflow`` and ``theano`` both require
 compiling the expression, this functionality is encapsulated in generating a
 :class:`~opt_einsum.ContractExpression` using
 :func:`~opt_einsum.contract_expression`, which can then be called using numpy

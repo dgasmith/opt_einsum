@@ -9,7 +9,7 @@
 Optimized Einsum: A tensor contraction order optimizer
 ======================================================
 
-Optimized einsum can greatly reduce the overall execution time of einsum-like expressions (e.g.,
+Optimized einsum can significantly reduce the overall execution time of einsum-like expressions (e.g.,
 [`np.einsum`](https://docs.scipy.org/doc/numpy/reference/generated/numpy.einsum.html),
 [`dask.array.einsum`](https://docs.dask.org/en/latest/array-api.html#dask.array.einsum),
 [`pytorch.einsum`](https://pytorch.org/docs/stable/torch.html#torch.einsum),
@@ -18,7 +18,8 @@ Optimized einsum can greatly reduce the overall execution time of einsum-like ex
 by optimizing the expression's contraction order and dispatching many
 operations to canonical BLAS, cuBLAS, or other specialized routines. Optimized
 einsum is agnostic to the backend and can handle NumPy, Dask, PyTorch,
-Tensorflow, CuPy, Sparse, Theano, Jax, and Autograd arrays. See the
+Tensorflow, CuPy, Sparse, Theano, JAX, and Autograd arrays as well as potentially
+any library which conforms to a standard API. See the
 [**documentation**](http://optimized-einsum.readthedocs.io) for more
 information.
 
