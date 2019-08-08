@@ -25,9 +25,8 @@ information.
 
 ## Example usage
 
-The [`opt_einsum.contract`](https://optimized-
-einsum.readthedocs.io/en/latest/autosummary/opt_einsum.contract.html#opt-
-einsum-contract) function can often act as a drop-in replacement for `einsum`
+The [`opt_einsum.contract`](https://optimized-einsum.readthedocs.io/en/latest/autosummary/opt_einsum.contract.html#opt-einsum-contract)
+function can often act as a drop-in replacement for `einsum`
 functions without futher changes to the code while providing superior performance.
 Here, a tensor contraction is preformed with and without optimization:
 
