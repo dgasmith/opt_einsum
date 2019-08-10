@@ -1,7 +1,6 @@
 """
 Contains the path technology behind opt_einsum in addition to several path helpers
 """
-from __future__ import absolute_import, division, print_function
 
 import heapq
 import random
