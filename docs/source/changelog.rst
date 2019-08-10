@@ -1,7 +1,7 @@
 Changelog
 =========
 
-3.0.0 / 2019-07-xx
+3.0.0 / 2019-08-10
 ------------------
 
 This release moves `opt_einsum` to be backend agnostic while adding support
@@ -14,6 +14,7 @@ New Features
 - (:pr:`78`) A new PathOptimizer class has been implemented to provide a framework for building new optimizers. An example is that now custom cost functions can now be provided in the greedy formalism for building custom optimizers without a large amount of additional code.
 - (:pr:`81`) The `backend="auto"` keyword has been implemented for `contract` allowing automatic detection of the correct backend to use based off provided tensors in the contraction.
 - (:pr:`88`) Autograd and Jax support have been implemented.
+- (:pr:`96`) Deprecates Python 2 functionality and devops improvements.
 
 Enhancements
 ++++++++++++
@@ -43,6 +44,7 @@ Enhancements
 - (:pr:`68`) Indices can now be any hashable object when provided in the `"Interleaved Input" <input_format.html#interleaved-input>`_ syntax.
 - (:pr:`74`) Allows the default `transpose` operation to be overridden to take advantage of more advanced tensor transpose libraries.
 - (:pr:`73`) The ``optimal`` path is now significantly faster.
+- (:pr:`81`) A documentation pass for v3.0.
 
 Bug fixes
 +++++++++

@@ -1,0 +1,19 @@
+name: test
+channels:
+  - conda-forge
+  - pytorch
+dependencies:
+    # Base depends
+  - numpy
+  - nomkl
+
+    # Backends
+  - tensorflow == 1.2
+  - dask == 1.1
+  - sparse == 0.5
+  - pytorch-cpu == 0.4.1
+
+    # Testing
+  - pytest
+  - codecov
+  - pytest-cov

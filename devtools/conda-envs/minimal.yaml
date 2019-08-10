@@ -1,0 +1,12 @@
+name: test
+channels:
+  - conda-forge
+dependencies:
+    # Base depends
+  - numpy
+  - nomkl
+
+    # Testing
+  - pytest
+  - codecov
+  - pytest-cov
