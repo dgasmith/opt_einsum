@@ -47,7 +47,7 @@ I = np.random.rand(N, N, N, N)
 
 In this particular example, we see a ~3000x performance improvement which is
 not uncommon when compared against unoptimized contractions. See the [backend
-examples](https ://optimized-einsum.readthedocs.io/en/latest/backends.html)
+examples](https://optimized-einsum.readthedocs.io/en/latest/backends.html)
 for more information on using other backends.
 
 ## Features
