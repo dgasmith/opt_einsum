@@ -9,7 +9,6 @@ import numpy as np
 
 from . import backends
 from . import blas
-from . import compat
 from . import helpers
 from . import parser
 from . import paths
@@ -264,7 +263,7 @@ def contract_path(*operands, **kwargs):
     naive_cost = helpers.flop_count(indices, inner_product, num_ops, dimension_dict)
 
     # Compute the path
-    if not isinstance(path_type, (compat.strings, paths.PathOptimizer)):
+    if not isinstance(path_type, (str, paths.PathOptimizer)):
         # Custom path supplied
         path = path_type
     elif num_ops <= 2:
@@ -339,7 +338,7 @@ def _einsum(*operands, **kwargs):
     """
     fn = backends.get_func('einsum', kwargs.pop('backend', 'numpy'))
 
-    if not isinstance(operands[0], compat.strings):
+    if not isinstance(operands[0], str):
         return fn(*operands, **kwargs)
 
     einsum_str, operands = operands[0], operands[1:]
@@ -857,7 +856,7 @@ def contract_expression(subscripts, *shapes, **kwargs):
             raise ValueError("'{}' should only be specified when calling a "
                              "`ContractExpression`, not when building it.".format(arg))
 
-    if not isinstance(subscripts, compat.strings):
+    if not isinstance(subscripts, str):
         subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)
 
     kwargs['_gen_expression'] = True

@@ -5,7 +5,7 @@ Tets a series of opt_einsum contraction paths to ensure the results are the same
 import numpy as np
 import pytest
 
-from opt_einsum import compat, contract, contract_path, helpers, contract_expression
+from opt_einsum import contract, contract_path, helpers, contract_expression
 from opt_einsum.paths import linear_to_ssa, ssa_to_linear
 
 tests = [
@@ -125,7 +125,7 @@ def test_compare_greek(optimize, string):
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     # convert to greek
-    string = ''.join(compat.get_char(ord(c) + 848) if c not in ',->.' else c for c in string)
+    string = ''.join(chr(ord(c) + 848) if c not in ',->.' else c for c in string)
 
     opt = contract(string, *views, optimize=optimize, use_blas=False)
     assert np.allclose(ein, opt)
@@ -149,7 +149,7 @@ def test_compare_blas_greek(optimize, string):
     ein = contract(string, *views, optimize=False)
 
     # convert to greek
-    string = ''.join(compat.get_char(ord(c) + 848) if c not in ',->.' else c for c in string)
+    string = ''.join(chr(ord(c) + 848) if c not in ',->.' else c for c in string)
 
     opt = contract(string, *views, optimize=optimize)
     assert np.allclose(ein, opt)
@@ -157,7 +157,7 @@ def test_compare_blas_greek(optimize, string):
 
 def test_some_non_alphabet_maintains_order():
     # 'c beta a' should automatically go to -> 'a c beta'
-    string = 'c' + compat.get_char(ord('b') + 848) + 'a'
+    string = 'c' + chr(ord('b') + 848) + 'a'
     # but beta will be temporarily replaced with 'b' for which 'cba->abc'
     # so check manual output kicks in:
     x = np.random.rand(2, 3, 4)

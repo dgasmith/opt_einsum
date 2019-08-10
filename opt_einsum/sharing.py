@@ -19,32 +19,25 @@ __all__ = [
 
 _SHARING_STACK = defaultdict(list)
 
-try:
-    get_thread_id = threading.get_ident
-except AttributeError:
-
-    def get_thread_id():
-        return threading.current_thread().ident
-
 
 def currently_sharing():
     """Check if we are currently sharing a cache -- thread specific.
     """
-    return get_thread_id() in _SHARING_STACK
+    return threading.get_ident() in _SHARING_STACK
 
 
 def get_sharing_cache():
     """Return the most recent sharing cache -- thread specific.
     """
-    return _SHARING_STACK[get_thread_id()][-1]
+    return _SHARING_STACK[threading.get_ident()][-1]
 
 
 def _add_sharing_cache(cache):
-    _SHARING_STACK[get_thread_id()].append(cache)
+    _SHARING_STACK[threading.get_ident()].append(cache)
 
 
 def _remove_sharing_cache():
-    tid = get_thread_id()
+    tid = threading.get_ident()
     _SHARING_STACK[tid].pop()
     if not _SHARING_STACK[tid]:
         del _SHARING_STACK[tid]
