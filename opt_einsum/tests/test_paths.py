@@ -3,8 +3,8 @@ Tests the accuracy of the opt_einsum paths in addition to unit tests for
 the various path helper functions.
 """
 
-import sys
 import itertools
+import sys
 
 import numpy as np
 import pytest

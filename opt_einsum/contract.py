@@ -201,12 +201,7 @@ def contract_path(*operands, **kwargs):
     if len(unknown_kwargs):
         raise TypeError("einsum_path: Did not understand the following kwargs: {}".format(unknown_kwargs))
 
-    if 'path' in kwargs:
-        import warnings
-        warnings.warn("The 'path' keyword argument is deprecated in favor of 'optimize'.", DeprecationWarning)
-        path_type = kwargs.pop('path')
-    else:
-        path_type = kwargs.pop('optimize', 'auto')
+    path_type = kwargs.pop('optimize', 'auto')
 
     memory_limit = kwargs.pop('memory_limit', None)
     shapes = kwargs.pop('shapes', False)

@@ -5,7 +5,7 @@ Tests thte BLAS capability for the opt_einsum module.
 import numpy as np
 import pytest
 
-from opt_einsum import blas, helpers, contract
+from opt_einsum import blas, contract, helpers
 
 blas_tests = [
     # DOT
@@ -102,7 +102,3 @@ def test_blas_out():
 
     contract('ij,jk,kl->il', a, b, c, out=d)
     assert np.allclose(d, np.dot(a, b).dot(c))
-
-
-
-

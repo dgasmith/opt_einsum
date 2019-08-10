@@ -5,7 +5,7 @@ Changelog
 ------------------
 
 This release moves `opt_einsum` to be backend agnostic while adding support
-additional backends such as Jax and Autograd.
+additional backends such as Jax and Autograd. Support for Python 2.7 has been dropped and Python 3.5 will become the new minimum version, a Python deprecation policy equivalent to NumPy's has been adopted.
 
 
 New Features

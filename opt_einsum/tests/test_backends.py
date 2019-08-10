@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-from opt_einsum import contract, helpers, contract_expression, backends, sharing
-from opt_einsum.contract import infer_backend, parse_backend, Shaped
+from opt_einsum import (backends, contract, contract_expression, helpers,
+                        sharing)
+from opt_einsum.contract import Shaped, infer_backend, parse_backend
 
 try:
     import cupy
