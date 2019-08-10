@@ -28,14 +28,18 @@ before_install:
 
 install:
     # Install from environment
-  - conda env create -n test python=$PYTHON_VER -f devtools/conda-envs/full_test.yaml
+  - python devtools/scripts/conda_env.py -n=test -p=$PYTHON_VER devtools/conda-envs/full_test.yaml
   - source activate test
 
     # Build and install package
   - python setup.py develop --no-deps
 
+before_script:
+  - python -V
+  - conda list
+
 script:
-  - py.test -v --cov=opt_einsum opt_einsum/
+  - pytest -v --cov=opt_einsum opt_einsum/
 
 notifications:
     email: false
