@@ -72,7 +72,7 @@ def compute_size_by_dict(indices, idx_dict):
 
     """
     ret = 1
-    for i in indices:
+    for i in indices: # lgtm [py/iteration-string-and-sequence]
         ret *= idx_dict[i]
     return ret
 
