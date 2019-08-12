@@ -9,8 +9,6 @@ from collections import OrderedDict
 
 import numpy as np
 
-from . import compat
-
 __all__ = [
     "is_valid_einsum_char", "has_valid_einsum_chars_only", "get_symbol", "gen_unused_symbols",
     "convert_to_valid_einsum_chars", "alpha_canonicalize", "find_output_str", "find_output_shape",
@@ -65,7 +63,7 @@ def get_symbol(i):
     """
     if i < 52:
         return _einsum_symbols_base[i]
-    return compat.get_char(i + 140)
+    return chr(i + 140)
 
 
 def gen_unused_symbols(used, n):
@@ -274,7 +272,7 @@ def parse_einsum_input(operands):
     if len(operands) == 0:
         raise ValueError("No input operands")
 
-    if isinstance(operands[0], compat.strings):
+    if isinstance(operands[0], str):
         subscripts = operands[0].replace(" ", "")
         operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
 

@@ -5,7 +5,7 @@ Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 import numpy as np
 import pytest
 
-from opt_einsum import contract
+from opt_einsum import contract, contract_path
 
 
 def build_views(string):
@@ -22,6 +22,7 @@ def build_views(string):
         dims = [sizes[x] for x in term]
         views.append(np.random.rand(*dims))
     return views
+
 
 def test_type_errors():
     # subscripts must be a string
@@ -50,7 +51,7 @@ def test_type_errors():
 
     # issue 4528 revealed a segfault with this call
     with pytest.raises(TypeError):
-        contract(*(None,)*63)
+        contract(*(None, ) * 63)
 
     # Cannot have two ->
     with pytest.raises(ValueError):
@@ -158,15 +159,25 @@ def test_value_errors():
         contract("i->i", [[0, 1], [0, 1]], out=np.arange(4).reshape(2, 2))
 
 
-@pytest.mark.parametrize("string", [
-    # Ellipse
-    '...a->...',
-    'a...->...',
-    'a...a->...a',
-    '...,...',
-    'a,b',
-    '...a,...b',
-])
+def test_contract_inputs():
+
+    with pytest.raises(TypeError):
+        contract_path("i->i", [[0, 1], [0, 1]], bad_kwarg=True)
+
+    with pytest.raises(ValueError):
+        contract_path("i->i", [[0, 1], [0, 1]], memory_limit=-1)
+
+@pytest.mark.parametrize(
+    "string",
+    [
+        # Ellipse
+        '...a->...',
+        'a...->...',
+        'a...a->...a',
+        '...,...',
+        'a,b',
+        '...a,...b',
+    ])
 def test_compare(string):
     views = build_views(string)
 
@@ -177,6 +188,7 @@ def test_compare(string):
     opt = contract(string, *views, optimize='optimal')
     assert np.allclose(ein, opt)
 
+
 def test_ellipse_input1():
     string = '...a->...'
     views = build_views(string)
@@ -184,6 +196,7 @@ def test_ellipse_input1():
     ein = contract(string, *views, optimize=False)
     opt = contract(views[0], [Ellipsis, 0], [Ellipsis])
     assert np.allclose(ein, opt)
+
 
 def test_ellipse_input2():
     string = '...a'
@@ -193,6 +206,7 @@ def test_ellipse_input2():
     opt = contract(views[0], [Ellipsis, 0])
     assert np.allclose(ein, opt)
 
+
 def test_ellipse_input3():
     string = '...a->...a'
     views = build_views(string)
@@ -201,6 +215,7 @@ def test_ellipse_input3():
     opt = contract(views[0], [Ellipsis, 0], [Ellipsis, 0])
     assert np.allclose(ein, opt)
 
+
 def test_ellipse_input4():
     string = '...b,...a->...'
     views = build_views(string)
@@ -208,6 +223,7 @@ def test_ellipse_input4():
     ein = contract(string, *views, optimize=False)
     opt = contract(views[0], [Ellipsis, 1], views[1], [Ellipsis, 0], [Ellipsis])
     assert np.allclose(ein, opt)
+
 
 def test_singleton_dimension_broadcast():
     # singleton dimensions broadcast (gh-10343)
@@ -236,7 +252,7 @@ def test_large_int_input_format():
     int_output = contract(x, (1000, 1001), y, (1001, 1002), z, (1002, 1003))
     assert np.allclose(string_output, int_output)
     for i in range(10):
-        transpose_output = contract(x, (i+1, i))
+        transpose_output = contract(x, (i + 1, i))
         assert np.allclose(transpose_output, x.T)
 
 

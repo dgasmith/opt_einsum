@@ -9,13 +9,43 @@ dist: xenial
 
 matrix:
   include:
-    - python: 2.7
     - python: 3.5
     - python: 3.6
     - python: 3.7
-
-  allow_failures:
     - python: 3.7
+
+matrix:
+  include:
+
+    - env:
+      - NAME="MINIMAL 3.5"
+      - PYTHON_VER=3.5
+      - ENVIRON=MINIMAL
+
+    - env:
+      - NAME="MINIMAL 3.7"
+      - PYTHON_VER=3.7
+      - ENVIRON=MINIMAL
+
+    - env:
+      - NAME="FULL 3.5"
+      - PYTHON_VER=3.5
+      - ENVIRON=FULL
+
+    - env:
+      - NAME="FULL 3.6"
+      - PYTHON_VER=3.6
+      - ENVIRON=FULL
+
+    - env:
+      - NAME="FULL 3.7"
+      - PYTHON_VER=3.7
+      - ENVIRON=FULL
+
+    - env:
+      - NAME="OLD_VERSIONS 3.5"
+      - PYTHON_VER=3.5
+      - ENVIRON=OLD_VERSIONS
 
 before_install:
   # Additional info about the build
@@ -30,15 +60,30 @@ before_install:
   - python -V
 
 install:
-    # Install from environment
-  - conda env create -n test python=$PYTHON_VER -f devtools/conda-envs/full_test.yaml
+    # Create test environment for package
+  - echo $ENVIRON
+  - |
+    if [ $ENVIRON == "FULL" ]; then
+      python devtools/scripts/conda_env.py -n=test -p=$PYTHON_VER devtools/conda-envs/full_test.yaml
+    elif [ $ENVIRON == "MINIMAL" ]; then
+      python devtools/scripts/conda_env.py -n=test -p=$PYTHON_VER devtools/conda-envs/minimal.yaml
+    elif [ $ENVIRON == "OLD_VERSIONS" ]; then
+      python devtools/scripts/conda_env.py -n=test -p=$PYTHON_VER devtools/conda-envs/old_versions.yaml
+    else
+      echo "ERROR: No match for ENVIRON ($ENVIRON)."
+      exit 1
+    fi
   - source activate test
 
     # Build and install package
   - python setup.py develop --no-deps
 
+before_script:
+  - python -V
+  - conda list
+
 script:
-  - py.test -v --cov=opt_einsum opt_einsum/
+  - pytest -v --cov=opt_einsum opt_einsum/
 
 notifications:
     email: false

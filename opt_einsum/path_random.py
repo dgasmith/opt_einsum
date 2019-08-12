@@ -2,17 +2,15 @@
 Support for random optimizers, including the random-greedy path.
 """
 
-import math
-import time
-import heapq
-import random
-import numbers
 import functools
+import heapq
+import math
+import numbers
+import random
+import time
 from collections import deque
 
-from . import helpers
-from . import paths
-
+from . import helpers, paths
 
 __all__ = ["RandomGreedy", "random_greedy"]
 

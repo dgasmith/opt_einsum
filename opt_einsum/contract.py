@@ -9,7 +9,6 @@ import numpy as np
 
 from . import backends
 from . import blas
-from . import compat
 from . import helpers
 from . import parser
 from . import paths
@@ -55,23 +54,23 @@ class PathInfo(object):
         header = ("scaling", "BLAS", "current", "remaining")
 
         path_print = [
-            u"  Complete contraction:  {}\n".format(self.eq),
-            u"         Naive scaling:  {}\n".format(len(self.indices)),
-            u"     Optimized scaling:  {}\n".format(max(self.scale_list)),
-            u"      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
-            u"  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
-            u"   Theoretical speedup:  {:3.3f}\n".format(self.speedup),
-            u"  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate),
-            u"-" * 80 + "\n",
-            u"{:>6} {:>11} {:>22} {:>37}\n".format(*header),
-            u"-" * 80
+            "  Complete contraction:  {}\n".format(self.eq),
+            "         Naive scaling:  {}\n".format(len(self.indices)),
+            "     Optimized scaling:  {}\n".format(max(self.scale_list)),
+            "      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
+            "  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
+            "   Theoretical speedup:  {:3.3f}\n".format(self.speedup),
+            "  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate),
+            "-" * 80 + "\n",
+            "{:>6} {:>11} {:>22} {:>37}\n".format(*header),
+            "-" * 80
         ]
 
         for n, contraction in enumerate(self.contraction_list):
             inds, idx_rm, einsum_str, remaining, do_blas = contraction
             remaining_str = ",".join(remaining) + "->" + self.output_subscript
             path_run = (self.scale_list[n], do_blas, einsum_str, remaining_str)
-            path_print.append(u"\n{:>4} {:>14} {:>22} {:>37}".format(*path_run))
+            path_print.append("\n{:>4} {:>14} {:>22} {:>37}".format(*path_run))
 
         return "".join(path_print)
 
@@ -202,12 +201,7 @@ def contract_path(*operands, **kwargs):
     if len(unknown_kwargs):
         raise TypeError("einsum_path: Did not understand the following kwargs: {}".format(unknown_kwargs))
 
-    if 'path' in kwargs:
-        import warnings
-        warnings.warn("The 'path' keyword argument is deprecated in favor of 'optimize'.", DeprecationWarning)
-        path_type = kwargs.pop('path')
-    else:
-        path_type = kwargs.pop('optimize', 'auto')
+    path_type = kwargs.pop('optimize', 'auto')
 
     memory_limit = kwargs.pop('memory_limit', None)
     shapes = kwargs.pop('shapes', False)
@@ -264,7 +258,7 @@ def contract_path(*operands, **kwargs):
     naive_cost = helpers.flop_count(indices, inner_product, num_ops, dimension_dict)
 
     # Compute the path
-    if not isinstance(path_type, (compat.strings, paths.PathOptimizer)):
+    if not isinstance(path_type, (str, paths.PathOptimizer)):
         # Custom path supplied
         path = path_type
     elif num_ops <= 2:
@@ -339,7 +333,7 @@ def _einsum(*operands, **kwargs):
     """
     fn = backends.get_func('einsum', kwargs.pop('backend', 'numpy'))
 
-    if not isinstance(operands[0], compat.strings):
+    if not isinstance(operands[0], str):
         return fn(*operands, **kwargs)
 
     einsum_str, operands = operands[0], operands[1:]
@@ -857,7 +851,7 @@ def contract_expression(subscripts, *shapes, **kwargs):
             raise ValueError("'{}' should only be specified when calling a "
                              "`ContractExpression`, not when building it.".format(arg))
 
-    if not isinstance(subscripts, compat.strings):
+    if not isinstance(subscripts, str):
         subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)
 
     kwargs['_gen_expression'] = True

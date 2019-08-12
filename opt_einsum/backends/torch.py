@@ -2,8 +2,6 @@
 Required functions for optimized contractions of numpy arrays using pytorch.
 """
 
-from __future__ import absolute_import
-
 import numpy as np
 
 from ..parser import convert_to_valid_einsum_chars

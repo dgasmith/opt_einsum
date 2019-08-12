@@ -1,18 +1,16 @@
 """
 Contains the path technology behind opt_einsum in addition to several path helpers
 """
-from __future__ import absolute_import, division, print_function
 
-import heapq
-import random
 import functools
+import heapq
 import itertools
+import random
 from collections import defaultdict
 
 import numpy as np
 
 from . import helpers
-
 
 __all__ = ["optimal", "BranchBound", "branch", "greedy", "auto", "get_path_fn"]
 
