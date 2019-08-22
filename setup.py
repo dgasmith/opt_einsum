@@ -22,6 +22,7 @@ if __name__ == "__main__":
         url="https://github.com/dgasmith/opt_einsum",
         license='MIT',
         packages=setuptools.find_packages(),
+        python_requires='>=3.5',
         install_requires=[
             'numpy>=1.7',
         ],
