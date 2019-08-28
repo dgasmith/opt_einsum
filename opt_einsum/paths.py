@@ -7,7 +7,6 @@ import heapq
 import itertools
 import random
 from collections import defaultdict
-from functools import reduce
 
 import numpy as np
 
@@ -694,8 +693,8 @@ class DynamicProgrammingOptimizer(PathOptimizer):
     
     def __call__(self, inputs, output, size_dict, memory_limit=None):
         
-        union = lambda a: reduce(lambda x, y: x | y, a, set())
-        prod = lambda a: reduce(lambda x, y: x * y, a, 1)
+        union = lambda a: functools.reduce(lambda x, y: x | y, a, set())
+        prod = lambda a: functools.reduce(lambda x, y: x * y, a, 1)
         
         # x[n_tensors][set of n_tensors tensors] = (indices, cost, contraction)
         # use the immutable frozenset because set is not hashable
