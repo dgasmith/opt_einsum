@@ -7,12 +7,16 @@ import heapq
 import itertools
 import random
 from collections import defaultdict
+from functools import reduce
 
 import numpy as np
 
 from . import helpers
 
-__all__ = ["optimal", "BranchBound", "branch", "greedy", "auto", "get_path_fn"]
+__all__ = [
+    "optimal", "BranchBound", "branch", "greedy", "auto", "get_path_fn", 
+    "DynamicProgrammingOptimizer", "dynamic_programming"
+]
 
 
 _UNLIMITED_MEM = {-1, None, float('inf')}
@@ -652,6 +656,131 @@ def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn
     return ssa_to_linear(ssa_path)
 
 
+def _tree_to_sequence(c):
+    # converts a contraction tree to a contraction sequence, e.g.
+    #
+    # ((1,2),(0,(4,3))) --> [(1,2), (1,2), (0,2), (0,1)]
+    # 
+    # 0     0         0         (1,2)     --> ((1,2),(0,(3,4)))
+    # 1     3     --> (1,2) --> (0,(3,4))
+    # 2 --> 4         (3,4)
+    # 3     (1,2)
+    # 4
+    # 
+    # this function iterates through the table shown above from right to left; 
+    # note that contractions are commutative, i.e. (j,k) = (k,j);
+    # note that the solution is not unique;
+    
+    c = [c] # list of remaining contractions (lower part of columns shown above)
+    t = []  # list of elementary tensors (upper part of colums)
+    s = []  # resulting contraction sequence
+    
+    while len(c) > 0:
+        j, k = c.pop(-1)
+        s.insert(0, tuple())
+        
+        for i in sorted([i for i in [j, k] if type(i) == int]):
+            s[0] += (sum(1 for q in t if q < i),)
+            t.insert(s[0][-1], i)
+        
+        for i in [i for i in [j, k] if type(i) != int]:
+            s[0] += (len(t) + len(c),)
+            c.append(i)
+    
+    return s
+
+
+class DynamicProgrammingOptimizer(PathOptimizer):
+    
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+        
+        union = lambda a: reduce(lambda x, y: x | y, a, set())
+        prod = lambda a: reduce(lambda x, y: x * y, a, 1)
+        
+        # x[n_tensors][set of n_tensors tensors] = (indices, cost, contraction)
+        # use the immutable frozenset because set is not hashable
+        x = [
+            None, # x[0] is never used (just a placeholder)
+            {frozenset([j]): (i, 0, j) for j, i in enumerate(inputs)}
+        ]
+        
+        for n in range(2, len(inputs) + 1):
+            # compute x[n]
+            x.append(dict())
+            
+            # try to combine solutions from x[m] and x[n-m]
+            for m in range(1, n // 2 + 1):
+                for s1, (i1, cost1, cntrct1) in x[m].items():
+                    for s2, (i2, cost2, cntrct2) in x[n-m].items():
+                        if len(s1 & s2) == 0: # s1 and s2 have to be disjoint
+                        
+                            # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
+                            if len(s1) != len(s2) or min(s1) < min(s2): 
+                            
+                                # ignore purely outer products: either tensor sets s1 and s2 are connected by a 
+                                # non-output index or none of them has remaining summation indices left
+                                if len((i1 & i2) - output) > 0 or (i1 & output == i1 and i2 & output == i2):
+                                    cost = cost1 + cost2 + prod(size_dict[j] for j in i1 | i2)
+                                    s = s1 | s2
+                                    if s not in x[n] or cost < x[n][s][1]:
+                                        r = set(range(len(inputs))) - (s1 | s2) # remaining set of tensors
+                                        i_cntrct = (i1 & i2) - output - union(inputs[j] for j in r) # contraction indices
+                                        i = (i1 | i2) - i_cntrct
+                                        mem = prod(size_dict[j] for j in i)
+                                        if memory_limit is None or mem < memory_limit:
+                                            x[n][s] = (i, cost, (cntrct1, cntrct2))
+        
+        return _tree_to_sequence(list(x[-1].values())[0][2])
+
+
+def dynamic_programming(inputs, output, size_dict, memory_limit=None):
+    """
+    Finds the optimal path of pairwise contractions without intermediate outer 
+    products based a dynamic programming approach presented in 
+    Phys. Rev. E 90, 033315 (2014) (the corresponding preprint is publically 
+    available at https://arxiv.org/abs/1304.6112). This method is especially
+    well-suited in the area of tensor network states, where it usually 
+    outperforms all the other optimization strategies.
+    
+    This algorithm scales exponentially with the number of inputs in the worst
+    case scenario (see example below).
+
+    Parameters
+    ----------
+    inputs : list
+        List of sets that represent the lhs side of the einsum subscript
+    output : set
+        Set that represents the rhs side of the overall einsum subscript
+    size_dict : dictionary
+        Dictionary of index sizes
+    memory_limit : int
+        The maximum number of elements in a temporary array
+
+    Returns
+    -------
+    path : list
+        The contraction order (a list of tuples of ints).
+
+    Examples
+    --------
+    >>> n = 5
+    >>> i = [set() for _ in range(n)]
+    >>> s = dict()
+    >>> c = 0
+    >>> for j in range(n):
+    >>>     for k in range(j+1, n):
+    >>>         i[j].add(oe.get_symbol(c))
+    >>>         i[k].add(oe.get_symbol(c))
+    >>>         s[oe.get_symbol(c)] = 2
+    >>>         c += 1
+    >>> dynamic_programming(i, set(), s)
+    [(3, 4), (2, 3), (1, 2), (0, 1)]
+    """
+    
+    optimizer = DynamicProgrammingOptimizer()
+    return optimizer(inputs, output, size_dict, memory_limit)
+
+
 _AUTO_CHOICES = {}
 for i in range(1, 5):
     _AUTO_CHOICES[i] = optimal
@@ -680,6 +809,8 @@ _PATH_OPTIONS = {
     'greedy': greedy,
     'eager': greedy,
     'opportunistic': greedy,
+    'dp': dynamic_programming,
+    'dynamic-programming': dynamic_programming
 }
 
 
