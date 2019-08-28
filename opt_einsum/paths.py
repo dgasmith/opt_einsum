@@ -692,10 +692,6 @@ def _tree_to_sequence(c):
 class DynamicProgrammingOptimizer(PathOptimizer):
     
     def __call__(self, inputs, output, size_dict, memory_limit=None):
-        
-        union = lambda a: functools.reduce(lambda x, y: x | y, a, set())
-        prod = lambda a: functools.reduce(lambda x, y: x * y, a, 1)
-        
         # x[n_tensors][set of n_tensors tensors] = (indices, cost, contraction)
         # use the immutable frozenset because set is not hashable
         x = [
@@ -711,21 +707,24 @@ class DynamicProgrammingOptimizer(PathOptimizer):
             for m in range(1, n // 2 + 1):
                 for s1, (i1, cost1, cntrct1) in x[m].items():
                     for s2, (i2, cost2, cntrct2) in x[n-m].items():
-                        if len(s1 & s2) == 0: # s1 and s2 have to be disjoint
+                        if s1.isdisjoint(s2):
                         
                             # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
                             if len(s1) != len(s2) or min(s1) < min(s2): 
                             
                                 # ignore purely outer products: either tensor sets s1 and s2 are connected by a 
                                 # non-output index or none of them has remaining summation indices left
-                                if len((i1 & i2) - output) > 0 or (i1 & output == i1 and i2 & output == i2):
-                                    cost = cost1 + cost2 + prod(size_dict[j] for j in i1 | i2)
+                                i1_cut_i2_wo_output = (i1 & i2) - output
+                                if len(i1_cut_i2_wo_output) > 0 or (i1 & output == i1 and i2 & output == i2):
+                                    i1_union_i2 = i1 | i2
+                                    cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
                                     s = s1 | s2
                                     if s not in x[n] or cost < x[n][s][1]:
-                                        r = set(range(len(inputs))) - (s1 | s2) # remaining set of tensors
-                                        i_cntrct = (i1 & i2) - output - union(inputs[j] for j in r) # contraction indices
-                                        i = (i1 | i2) - i_cntrct
-                                        mem = prod(size_dict[j] for j in i)
+                                        r = set(range(len(inputs))) - s # remaining set of tensors
+                                        i_r = set.union(*(inputs[j] for j in r)) if len(r) > 0 else set()
+                                        i_cntrct = i1_cut_i2_wo_output - i_r # contraction indices
+                                        i = i1_union_i2 - i_cntrct
+                                        mem = helpers.compute_size_by_dict(i, size_dict)
                                         if memory_limit is None or mem < memory_limit:
                                             x[n][s] = (i, cost, (cntrct1, cntrct2))
         
