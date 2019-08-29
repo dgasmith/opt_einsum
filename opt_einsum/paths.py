@@ -689,9 +689,37 @@ def _tree_to_sequence(c):
     return s
 
 
+def _sum_single_tensor_indices(inputs, output):
+    
+    # all summation indices:
+    i_sum = set.union(*inputs) - output
+    
+    # summation indices occurring only for one input:
+    i_single = set(j for j in i_sum if sum(1 for i in inputs if j in i) == 1)
+    
+    # first sum over indices in i_single:
+    seq_pre = [(k,) for k, i in enumerate(inputs) if not i.isdisjoint(i_single)]
+    inputs_new = [i            for i in inputs if     i.isdisjoint(i_single)] + \
+                 [i - i_single for i in inputs if not i.isdisjoint(i_single) and len(i - i_single) > 0]
+    
+    # number of inputs with no indices left (these are remaining as factors)
+    n_done = len(inputs) - len(inputs_new)
+    if n_done == 0:
+        seq_post = []
+    elif n_done == 1:
+        seq_post = [(0, 1)]
+    else:
+        seq_post = [tuple(range(1, n_done + 1))] + [(0, 1)]
+    
+    return inputs_new, seq_pre, seq_post
+
+
 class DynamicProgrammingOptimizer(PathOptimizer):
     
     def __call__(self, inputs, output, size_dict, memory_limit=None):
+
+        inputs, seq_pre, seq_post = _sum_single_tensor_indices(inputs, output)
+
         # x[n_tensors][set of n_tensors tensors] = (indices, cost, contraction)
         # use the immutable frozenset because set is not hashable
         x = [
@@ -727,8 +755,8 @@ class DynamicProgrammingOptimizer(PathOptimizer):
                                         mem = helpers.compute_size_by_dict(i, size_dict)
                                         if memory_limit is None or mem < memory_limit:
                                             x[n][s] = (i, cost, (cntrct1, cntrct2))
-        
-        return _tree_to_sequence(list(x[-1].values())[0][2])
+
+        return seq_pre + _tree_to_sequence(list(x[-1].values())[0][2]) + seq_post
 
 
 def dynamic_programming(inputs, output, size_dict, memory_limit=None):
