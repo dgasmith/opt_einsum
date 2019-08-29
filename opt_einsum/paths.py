@@ -658,31 +658,35 @@ def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn
 def _tree_to_sequence(c):
     # converts a contraction tree to a contraction sequence, e.g.
     #
-    # ((1,2),(0,(4,3))) --> [(1,2), (1,2), (0,2), (0,1)]
+    # ((1,2),(0,(4,5,3))) --> [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
     # 
-    # 0     0         0         (1,2)     --> ((1,2),(0,(3,4)))
-    # 1     3     --> (1,2) --> (0,(3,4))
-    # 2 --> 4         (3,4)
-    # 3     (1,2)
-    # 4
+    # 0     0         0           (1,2)       --> ((1,2),(0,(3,4,5)))
+    # 1     3         (1,2)   --> (0,(3,4,5))
+    # 2 --> 4     --> (3,4,5)
+    # 3     5
+    # 4     (1,2)
+    # 5
     # 
     # this function iterates through the table shown above from right to left; 
-    # note that contractions are commutative, i.e. (j,k) = (k,j);
+    # note that contractions are commutative, i.e. (j,k,l) = (k,l,j);
     # note that the solution is not unique;
+    
+    if type(c) == int:
+        return []
     
     c = [c] # list of remaining contractions (lower part of columns shown above)
     t = []  # list of elementary tensors (upper part of colums)
     s = []  # resulting contraction sequence
     
     while len(c) > 0:
-        j, k = c.pop(-1)
+        j = c.pop(-1)
         s.insert(0, tuple())
         
-        for i in sorted([i for i in [j, k] if type(i) == int]):
+        for i in sorted([i for i in j if type(i) == int]):
             s[0] += (sum(1 for q in t if q < i),)
             t.insert(s[0][-1], i)
         
-        for i in [i for i in [j, k] if type(i) != int]:
+        for i in [i for i in j if type(i) != int]:
             s[0] += (len(t) + len(c),)
             c.append(i)
     
@@ -714,49 +718,83 @@ def _sum_single_tensor_indices(inputs, output):
     return inputs_new, seq_pre, seq_post
 
 
+def _find_disconnected_subgraphs(inputs, output):
+    # finds disconnected subgraphs in the given list of inputs and returns lists of the corresponding index sets
+    # e.g. inputs = [set("ab"), set("c"), set("ad")], output = set("bd") will return [{0, 2}, {1}]
+    # e.g. inputs = [set("ab"), set("c"), set("ad")], output = set("abd") will return [{0}, {1}, {2}]
+    
+    subgraphs = []
+    unused_inputs = set(range(len(inputs)))
+    
+    i_sum = set.union(*inputs) - output # all summation indices
+    
+    while len(unused_inputs) > 0:
+        g = set()
+        q = [unused_inputs.pop()]
+        while len(q) > 0:
+            j = q.pop()
+            g.add(j)
+            i_tmp = i_sum & inputs[j]
+            n = {k for k in unused_inputs if len(i_tmp & inputs[k]) > 0}
+            q.extend(n)
+            unused_inputs.difference_update(n)
+        
+        subgraphs.append(g)
+    
+    return subgraphs
+
+
 class DynamicProgrammingOptimizer(PathOptimizer):
     
     def __call__(self, inputs, output, size_dict, memory_limit=None):
 
         inputs, seq_pre, seq_post = _sum_single_tensor_indices(inputs, output)
-
-        # x[n_tensors][set of n_tensors tensors] = (indices, cost, contraction)
-        # use the immutable frozenset because set is not hashable
-        x = [
-            None, # x[0] is never used (just a placeholder)
-            {frozenset([j]): (i, 0, j) for j, i in enumerate(inputs)}
-        ]
         
-        for n in range(2, len(inputs) + 1):
-            # compute x[n]
-            x.append(dict())
+        contraction_tree = tuple()
+        for g in _find_disconnected_subgraphs(inputs, output):
+        
+            # x[n_tensors][set of n_tensors tensors] = (indices, cost, contraction)
+            # use the immutable frozenset because set is not hashable
+            x = [
+                None, # x[0] is never used (just a placeholder)
+                {frozenset([j]): (inputs[j], 0, j) for j in g}
+            ]
             
-            # try to combine solutions from x[m] and x[n-m]
-            for m in range(1, n // 2 + 1):
-                for s1, (i1, cost1, cntrct1) in x[m].items():
-                    for s2, (i2, cost2, cntrct2) in x[n-m].items():
-                        if s1.isdisjoint(s2):
-                        
-                            # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
-                            if len(s1) != len(s2) or min(s1) < min(s2): 
+            for n in range(2, len(x[1]) + 1):
+                x.append(dict())
+                
+                # try to combine solutions from x[m] and x[n-m]
+                for m in range(1, n // 2 + 1):
+                    for s1, (i1, cost1, cntrct1) in x[m].items():
+                        for s2, (i2, cost2, cntrct2) in x[n-m].items():
+                            if s1.isdisjoint(s2):
                             
-                                # ignore purely outer products: either tensor sets s1 and s2 are connected by a 
-                                # non-output index or none of them has remaining summation indices left
-                                i1_cut_i2_wo_output = (i1 & i2) - output
-                                if len(i1_cut_i2_wo_output) > 0 or (i1 & output == i1 and i2 & output == i2):
-                                    i1_union_i2 = i1 | i2
-                                    cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
-                                    s = s1 | s2
-                                    if s not in x[n] or cost < x[n][s][1]:
-                                        r = set(range(len(inputs))) - s # remaining set of tensors
-                                        i_r = set.union(*(inputs[j] for j in r)) if len(r) > 0 else set()
-                                        i_cntrct = i1_cut_i2_wo_output - i_r # contraction indices
-                                        i = i1_union_i2 - i_cntrct
-                                        mem = helpers.compute_size_by_dict(i, size_dict)
-                                        if memory_limit is None or mem < memory_limit:
-                                            x[n][s] = (i, cost, (cntrct1, cntrct2))
+                                # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
+                                if len(s1) != len(s2) or min(s1) < min(s2): 
+                                
+                                    # ignore purely outer products: either tensor sets s1 and s2 are connected by a 
+                                    # non-output index or none of them has remaining summation indices left
+                                    i1_cut_i2_wo_output = (i1 & i2) - output
+                                    if len(i1_cut_i2_wo_output) > 0 or (i1 & output == i1 and i2 & output == i2):
+                                        i1_union_i2 = i1 | i2
+                                        cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
+                                        s = s1 | s2
+                                        if s not in x[n] or cost < x[n][s][1]:
+                                            r = g - s # remaining set of tensors
+                                            i_r = set.union(*(inputs[j] for j in r)) if len(r) > 0 else set()
+                                            i_cntrct = i1_cut_i2_wo_output - i_r # contraction indices
+                                            i = i1_union_i2 - i_cntrct
+                                            mem = helpers.compute_size_by_dict(i, size_dict)
+                                            if memory_limit is None or mem < memory_limit:
+                                                x[n][s] = (i, cost, (cntrct1, cntrct2))
+            
+            contraction_tree += (list(x[-1].values())[0][2],)
+        
+        # if there was only one subgraph, there is no need to compute an outer product
+        if len(contraction_tree) == 1:
+            contraction_tree = contraction_tree[0]
 
-        return seq_pre + _tree_to_sequence(list(x[-1].values())[0][2]) + seq_post
+        return seq_pre + _tree_to_sequence(contraction_tree) + seq_post
 
 
 def dynamic_programming(inputs, output, size_dict, memory_limit=None):
@@ -768,8 +806,11 @@ def dynamic_programming(inputs, output, size_dict, memory_limit=None):
     well-suited in the area of tensor network states, where it usually 
     outperforms all the other optimization strategies.
     
-    This algorithm scales exponentially with the number of inputs in the worst
-    case scenario (see example below).
+    This algorithm shows exponential scaling with the number of inputs
+    in the worst case scenario (see example below). If the graph to be 
+    contracted consists of disconnected subgraphs, the algorithm scales 
+    linearly in the number of disconnected subgraphs only exponentially
+    with the number of inputs per subgraph.
 
     Parameters
     ----------
@@ -789,18 +830,21 @@ def dynamic_programming(inputs, output, size_dict, memory_limit=None):
 
     Examples
     --------
-    >>> n = 5
-    >>> i = [set() for _ in range(n)]
+    >>> n_in = 3  # exponential scaling
+    >>> n_out = 2 # linear scaling
     >>> s = dict()
-    >>> c = 0
-    >>> for j in range(n):
-    >>>     for k in range(j+1, n):
-    >>>         i[j].add(oe.get_symbol(c))
-    >>>         i[k].add(oe.get_symbol(c))
-    >>>         s[oe.get_symbol(c)] = 2
-    >>>         c += 1
-    >>> dynamic_programming(i, set(), s)
-    [(3, 4), (2, 3), (1, 2), (0, 1)]
+    >>> i_all = []
+    >>> for _ in range(n_out):
+    >>>     i = [set() for _ in range(n_in)]
+    >>>     for j in range(n_in):
+    >>>         for k in range(j+1, n_in):
+    >>>             c = oe.get_symbol(len(s))
+    >>>             i[j].add(c)
+    >>>             i[k].add(c)
+    >>>             s[c] = 2
+    >>>     i_all.extend(i)
+    >>> dynamic_programming(i_all, set(), s)
+    [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
     """
     
     optimizer = DynamicProgrammingOptimizer()
