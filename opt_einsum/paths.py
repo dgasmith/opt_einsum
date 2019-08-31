@@ -726,10 +726,17 @@ class DynamicProgrammingOptimizer(PathOptimizer):
 
     def __call__(self, inputs, output, size_dict, memory_limit=None):
 
+        # convert all indices to integers (makes set operations ~10 % faster)
+        symbol2int = {i: j for j, i in enumerate(set.union(*inputs) | output)}
+        inputs = [set(symbol2int[s] for s in i) for i in inputs]
+        output = set(symbol2int[s] for s in output)
+        size_dict = {symbol2int[s]: v for s, v in size_dict.items() if s in symbol2int}
+        size_dict = [size_dict[j] for j in range(len(size_dict))]
+
         # all summation indices occurring exactly in one input:
         i_single = set(
-            j for j in set.union(*inputs) - output
-            if sum(1 for i in inputs if j in i) == 1
+            c for c in set.union(*inputs) - output
+            if sum(1 for i in inputs if c in i) == 1
         )
 
         # contraction expressions for all inputs that have already been
@@ -768,14 +775,10 @@ class DynamicProgrammingOptimizer(PathOptimizer):
                 for m in range(1, n // 2 + 1):
                     for s1, (i1, cost1, cntrct1) in x[m].items():
                         for s2, (i2, cost2, cntrct2) in x[n-m].items():
-                            if s1.isdisjoint(s2):
-
-                                # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
-                                if len(s1) != len(s2) or min(s1) < min(s2):
-
-                                    # ignore outer products:
+                            if s1.isdisjoint(s2):  # only if s1 and s2 are disjoint
+                                if len(s1) != len(s2) or min(s1) < min(s2): # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
                                     i1_cut_i2_wo_output = (i1 & i2) - output
-                                    if len(i1_cut_i2_wo_output) > 0:
+                                    if len(i1_cut_i2_wo_output) > 0:  # ignore outer products:
                                         i1_union_i2 = i1 | i2
                                         cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
                                         s = s1 | s2
