@@ -722,6 +722,17 @@ def _find_disconnected_subgraphs(inputs, output):
     return subgraphs
 
 
+def _bitmapset_indices(s):
+    # returns an iterator for a set represented as a bitmap,
+    # e.g. 0b1001011 --> [0, 1, 3, 6]
+    j = 0
+    while s != 0:
+        if s & 1 != 0:
+            yield j
+        s >>= 1
+        j += 1
+
+
 class DynamicProgrammingOptimizer(PathOptimizer):
 
     def __call__(self, inputs, output, size_dict, memory_limit=None):
@@ -763,28 +774,38 @@ class DynamicProgrammingOptimizer(PathOptimizer):
         for g in _find_disconnected_subgraphs(inputs, output):
             # dynamic programming approach to compute x[n] for subgraph g;
             # x[n][set of n tensors] = (indices, cost, contraction)
+            # the set of n tensors is represented by a bitmap: if bit j is 1,
+            # tensor j is in the set, e.g. 0b100101 = {0,2,5}; set unions
+            # (intersections) can then be computed by bitwise or (and);
             x = [
                 None,  # x[0] is never used (just a placeholder)
-                {frozenset([j]): (inputs[j], 0, inputs_contractions[j]) for j in g}
+                {1 << j: (inputs[j], 0, inputs_contractions[j]) for j in g}
             ]
+
+            # convert set of tensors g to a bitmap set:
+            g = functools.reduce(lambda x, y: x | y, (1 << j for j in g))
+
+            # the bitmap set of all tensors is computed as it is needed to
+            # compute set differences: s1 - s2 transforms into
+            # s1 & (all_tensors ^ s2)
+            all_tensors = (1 << len(inputs)) - 1
 
             for n in range(2, len(x[1]) + 1):
                 x.append(dict())
-
-                # try to combine solutions from x[m] and x[n-m]
-                for m in range(1, n // 2 + 1):
+                for m in range(1, n // 2 + 1):  # try to combine solutions from x[m] and x[n-m]
                     for s1, (i1, cost1, cntrct1) in x[m].items():
                         for s2, (i2, cost2, cntrct2) in x[n-m].items():
-                            if s1.isdisjoint(s2):  # only if s1 and s2 are disjoint
-                                if len(s1) != len(s2) or min(s1) < min(s2): # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
+                            if s1 & s2 == 0:  # only if s1 and s2 are disjoint
+                                if m != n - m or s1 < s2:  # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
                                     i1_cut_i2_wo_output = (i1 & i2) - output
                                     if len(i1_cut_i2_wo_output) > 0:  # ignore outer products:
                                         i1_union_i2 = i1 | i2
                                         cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
                                         s = s1 | s2
                                         if s not in x[n] or cost < x[n][s][1]:
-                                            r = g - s  # remaining set of tensors
-                                            i_r = set.union(*(inputs[j] for j in r)) if len(r) > 0 else set()
+                                            r = g & (all_tensors ^ s)  # = g - s
+                                            i_r = (set.union(*(inputs[j] for j in _bitmapset_indices(r)))
+                                                   if r != 0 else set())
                                             i_cntrct = i1_cut_i2_wo_output - i_r  # contraction indices
                                             i = i1_union_i2 - i_cntrct
                                             mem = helpers.compute_size_by_dict(i, size_dict)
