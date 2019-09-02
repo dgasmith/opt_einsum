@@ -735,7 +735,12 @@ def _bitmapset_indices(s):
 
 class DynamicProgrammingOptimizer(PathOptimizer):
 
-    def __call__(self, inputs, output, size_dict, memory_limit=None, cost_limit=None):
+    def __init__(self, cost_limit=None):
+        self.cost_limit = cost_limit
+
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+
+        cost_limit = self.cost_limit
 
         # convert all indices to integers (makes set operations ~10 % faster)
         symbol2int = {i: j for j, i in enumerate(set.union(*inputs) | output)}
@@ -896,8 +901,8 @@ def dynamic_programming(inputs, output, size_dict, memory_limit=None, cost_limit
     [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
     """
 
-    optimizer = DynamicProgrammingOptimizer()
-    return optimizer(inputs, output, size_dict, memory_limit, cost_limit)
+    optimizer = DynamicProgrammingOptimizer(cost_limit)
+    return optimizer(inputs, output, size_dict, memory_limit)
 
 
 _AUTO_CHOICES = {}
