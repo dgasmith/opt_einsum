@@ -735,7 +735,7 @@ def _bitmapset_indices(s):
 
 class DynamicProgrammingOptimizer(PathOptimizer):
 
-    def __call__(self, inputs, output, size_dict, memory_limit=None):
+    def __call__(self, inputs, output, size_dict, memory_limit=None, cost_limit=None):
 
         # convert all indices to integers (makes set operations ~10 % faster)
         symbol2int = {i: j for j, i in enumerate(set.union(*inputs) | output)}
@@ -771,6 +771,13 @@ class DynamicProgrammingOptimizer(PathOptimizer):
         subgraph_contractions = inputs_done
         subgraph_contractions_size = [1]*len(inputs_done)
 
+        # if no cost_limit is specified and there are more than 12 inputs, try
+        # to get a good upper bound for the cost from random-greedy-128
+        if cost_limit is None and len(inputs) > 12:
+            from . import path_random
+            p = path_random.random_greedy(inputs, output, size_dict, memory_limit, max_repeats=128)
+            cost_limit = int(1.1 * helpers.path_cost(inputs, output, size_dict, p))
+
         for g in _find_disconnected_subgraphs(inputs, output):
             # dynamic programming approach to compute x[n] for subgraph g;
             # x[n][set of n tensors] = (indices, cost, contraction)
@@ -801,20 +808,26 @@ class DynamicProgrammingOptimizer(PathOptimizer):
                                     if len(i1_cut_i2_wo_output) > 0:  # ignore outer products:
                                         i1_union_i2 = i1 | i2
                                         cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
-                                        s = s1 | s2
-                                        if s not in x[n] or cost < x[n][s][1]:
-                                            r = g & (all_tensors ^ s)  # = g - s
-                                            i_r = (set.union(*(inputs[j] for j in _bitmapset_indices(r)))
-                                                   if r != 0 else set())
-                                            i_cntrct = i1_cut_i2_wo_output - i_r  # contraction indices
-                                            i = i1_union_i2 - i_cntrct
-                                            mem = helpers.compute_size_by_dict(i, size_dict)
-                                            if memory_limit is None or mem < memory_limit:
-                                                x[n][s] = (i, cost, (cntrct1, cntrct2))
+                                        if cost_limit is None or cost <= cost_limit:
+                                            s = s1 | s2
+                                            if s not in x[n] or cost < x[n][s][1]:
+                                                r = g & (all_tensors ^ s)  # = g - s
+                                                i_r = (set.union(*(inputs[j] for j in _bitmapset_indices(r)))
+                                                       if r != 0 else set())
+                                                i_cntrct = i1_cut_i2_wo_output - i_r  # contraction indices
+                                                i = i1_union_i2 - i_cntrct
+                                                mem = helpers.compute_size_by_dict(i, size_dict)
+                                                if memory_limit is None or mem <= memory_limit:
+                                                    x[n][s] = (i, cost, (cntrct1, cntrct2))
 
-            i, contraction = list(x[-1].values())[0][::2]
+            if len(x[-1]) == 0:
+                raise ValueError("Could not find a contraction path. Is 'cost_limit' too small?")
+            i, cost, contraction = list(x[-1].values())[0]
             subgraph_contractions.append(contraction)
             subgraph_contractions_size.append(helpers.compute_size_by_dict(i, size_dict))
+
+            if cost_limit is not None:
+                cost_limit -= cost
 
         # sort the subgraph contractions by the size of the subgraphs in
         # ascending order (will give the cheapest contractions); note that
@@ -830,7 +843,7 @@ class DynamicProgrammingOptimizer(PathOptimizer):
         return _tree_to_sequence(tree)
 
 
-def dynamic_programming(inputs, output, size_dict, memory_limit=None):
+def dynamic_programming(inputs, output, size_dict, memory_limit=None, cost_limit=None):
     """
     Finds the optimal path of pairwise contractions without intermediate outer
     products based a dynamic programming approach presented in
@@ -855,6 +868,9 @@ def dynamic_programming(inputs, output, size_dict, memory_limit=None):
         Dictionary of index sizes
     memory_limit : int
         The maximum number of elements in a temporary array
+    cost_limit : int
+        The maximum number of operations allowed. If a larger number of
+        operations is required, ValueError is raised.
 
     Returns
     -------
@@ -881,7 +897,7 @@ def dynamic_programming(inputs, output, size_dict, memory_limit=None):
     """
 
     optimizer = DynamicProgrammingOptimizer()
-    return optimizer(inputs, output, size_dict, memory_limit)
+    return optimizer(inputs, output, size_dict, memory_limit, cost_limit)
 
 
 _AUTO_CHOICES = {}
