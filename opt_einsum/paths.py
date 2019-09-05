@@ -656,8 +656,30 @@ def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn
 
 
 def _tree_to_sequence(c):
-    # converts a contraction tree to a contraction sequence, e.g.
-    #
+    """
+    Converts a contraction tree to a contraction path as it has to be
+    returned by path optimizers. A contraction tree can either be an int
+    (=no contraction) or a tuple containing the terms to be contracted. An
+    arbitrary number (>= 1) of terms can be contracted at once. Note that
+    contractions are commutative, e.g. (j, k, l) = (k, l, j). Note that in
+    general, solutions are not unique.
+
+    Parameters
+    ----------
+    c : tuple or int
+        Contraction tree
+
+    Returns
+    -------
+    path : list[set[int]]
+        Contraction path
+
+    Examples
+    --------
+    >>> _tree_to_sequence(((1,2),(0,(4,5,3))))
+    [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
+    """
+
     # ((1,2),(0,(4,5,3))) --> [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
     #
     # 0     0         0           (1,2)       --> ((1,2),(0,(3,4,5)))
@@ -668,8 +690,6 @@ def _tree_to_sequence(c):
     # 5
     #
     # this function iterates through the table shown above from right to left;
-    # note that contractions are commutative, i.e. (j,k,l) = (k,l,j);
-    # note that the solution is not unique;
 
     if type(c) == int:
         return []
@@ -694,12 +714,31 @@ def _tree_to_sequence(c):
 
 
 def _find_disconnected_subgraphs(inputs, output):
-    # finds disconnected subgraphs in the given list of inputs and returns
-    # lists of the corresponding index sets
-    # e.g. inputs = [set("ab"), set("c"), set("ad")], output = set("bd")
-    #      returns return [{0, 2}, {1}]
-    # e.g. inputs = [set("ab"), set("c"), set("ad")], output = set("abd")
-    #      returns [{0}, {1}, {2}]
+    """
+    Finds disconnected subgraphs in the given list of inputs. Inputs are
+    connected if they share summation indices. Note: Disconnected subgraphs
+    can be contracted independently before forming outer products.
+
+    Parameters
+    ----------
+    inputs : list[set]
+        List of sets that represent the lhs side of the einsum subscript
+    output : set
+        Set that represents the rhs side of the overall einsum subscript
+
+    Returns
+    -------
+    subgraphs : list[set[int]]
+        List containing sets of indices for each subgraph
+
+    Examples
+    --------
+    >>> _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("bd"))
+    [{0, 2}, {1}]
+
+    >>> _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("abd"))
+    [{0}, {1}, {2}]
+    """
 
     subgraphs = []
     unused_inputs = set(range(len(inputs)))
@@ -723,8 +762,28 @@ def _find_disconnected_subgraphs(inputs, output):
 
 
 def _bitmapset_indices(s):
-    # returns an iterator for a set represented as a bitmap,
-    # e.g. 0b1001011 --> [0, 1, 3, 6]
+    """
+    Returns a generator object allowing to iterate over the elements contained
+    in a bitmap set.
+
+    Parameters
+    ----------
+    s : int
+        The bitmap set to iterate over
+
+    Returns
+    -------
+    path : generator
+        Generator object to iterate over the elements in s
+
+    Examples
+    --------
+    >>> type(_bitmapset_indices(0b1001011))
+    generator
+
+    >>> list(_bitmapset_indices(0b1001011))
+    [0, 1, 3, 6]
+    """
     j = 0
     while s != 0:
         if s & 1 != 0:
@@ -734,14 +793,64 @@ def _bitmapset_indices(s):
 
 
 class DynamicProgrammingOptimizer(PathOptimizer):
+    """
+    Finds the optimal path of pairwise contractions without intermediate outer
+    products based a dynamic programming approach presented in
+    Phys. Rev. E 90, 033315 (2014) (the corresponding preprint is publically
+    available at https://arxiv.org/abs/1304.6112). This method is especially
+    well-suited in the area of tensor network states, where it usually
+    outperforms all the other optimization strategies.
+
+    This algorithm shows exponential scaling with the number of inputs
+    in the worst case scenario (see example below). If the graph to be
+    contracted consists of disconnected subgraphs, the algorithm scales
+    linearly in the number of disconnected subgraphs and only exponentially
+    with the number of inputs per subgraph.
+    """
 
     def __call__(self, inputs, output, size_dict, memory_limit=None):
+        """
+        Parameters
+        ----------
+        inputs : list
+            List of sets that represent the lhs side of the einsum subscript
+        output : set
+            Set that represents the rhs side of the overall einsum subscript
+        size_dict : dictionary
+            Dictionary of index sizes
+        memory_limit : int
+            The maximum number of elements in a temporary array
+
+        Returns
+        -------
+        path : list
+            The contraction order (a list of tuples of ints).
+
+        Examples
+        --------
+        >>> n_in = 3  # exponential scaling
+        >>> n_out = 2 # linear scaling
+        >>> s = dict()
+        >>> i_all = []
+        >>> for _ in range(n_out):
+        >>>     i = [set() for _ in range(n_in)]
+        >>>     for j in range(n_in):
+        >>>         for k in range(j+1, n_in):
+        >>>             c = oe.get_symbol(len(s))
+        >>>             i[j].add(c)
+        >>>             i[k].add(c)
+        >>>             s[c] = 2
+        >>>     i_all.extend(i)
+        >>> o = DynamicProgrammingOptimizer()
+        >>> o(i_all, set(), s)
+        [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
+        """
 
         # convert all indices to integers (makes set operations ~10 % faster)
-        symbol2int = {i: j for j, i in enumerate(set.union(*inputs) | output)}
-        inputs = [set(symbol2int[s] for s in i) for i in inputs]
-        output = set(symbol2int[s] for s in output)
-        size_dict = {symbol2int[s]: v for s, v in size_dict.items() if s in symbol2int}
+        symbol2int = {c: j for j, c in enumerate(set.union(*inputs) | output)}
+        inputs = [set(symbol2int[c] for c in i) for i in inputs]
+        output = set(symbol2int[c] for c in output)
+        size_dict = {symbol2int[c]: v for c, v in size_dict.items() if c in symbol2int}
         size_dict = [size_dict[j] for j in range(len(size_dict))]
 
         # all summation indices occurring exactly in one input:
@@ -801,28 +910,45 @@ class DynamicProgrammingOptimizer(PathOptimizer):
             while len(x[-1]) == 0:
                 for n in range(2, len(x[1]) + 1):
                     xn = x[n]
-                    for m in range(1, n // 2 + 1):  # try to combine solutions from x[m] and x[n-m]
+
+                    # try to combine solutions from x[m] and x[n-m]
+                    for m in range(1, n // 2 + 1):
                         for s1, (i1, cost1, cntrct1) in x[m].items():
                             for s2, (i2, cost2, cntrct2) in x[n-m].items():
-                                if s1 & s2 == 0:  # only if s1 and s2 are disjoint
-                                    if m != n - m or s1 < s2:  # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
+
+                                # only if s1 and s2 are disjoint
+                                if s1 & s2 == 0:
+
+                                    # avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
+                                    if m != n - m or s1 < s2:
+
                                         i1_cut_i2_wo_output = (i1 & i2) - output
-                                        if len(i1_cut_i2_wo_output) > 0:  # ignore outer products:
+
+                                        # ignore outer products:
+                                        if len(i1_cut_i2_wo_output) > 0:
+
                                             i1_union_i2 = i1 | i2
                                             cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
                                             if cost <= cost_cap:
                                                 s = s1 | s2
                                                 if s not in xn or cost < xn[s][1]:
-                                                    r = g & (all_tensors ^ s)  # = g - s
+                                                    # set of remaining tensors (=g-s)
+                                                    r = g & (all_tensors ^ s)
+
+                                                    # indices of remaining indices:
                                                     i_r = (set.union(*(inputs[j] for j in _bitmapset_indices(r)))
                                                            if r != 0 else set())
-                                                    i_cntrct = i1_cut_i2_wo_output - i_r  # contraction indices
+
+                                                    # contraction indices:
+                                                    i_cntrct = i1_cut_i2_wo_output - i_r
+
                                                     i = i1_union_i2 - i_cntrct
                                                     mem = helpers.compute_size_by_dict(i, size_dict)
                                                     if memory_limit is None or mem <= memory_limit:
                                                         xn[s] = (i, cost, (cntrct1, cntrct2))
 
-                cost_cap = min(size_dict) * cost_cap  # increase cost cap for next iteration
+                # increase cost cap for next iteration:
+                cost_cap = min(size_dict) * cost_cap
 
             i, cost, contraction = list(x[-1].values())[0]
             subgraph_contractions.append(contraction)
@@ -843,58 +969,6 @@ class DynamicProgrammingOptimizer(PathOptimizer):
 
 
 def dynamic_programming(inputs, output, size_dict, memory_limit=None):
-    """
-    Finds the optimal path of pairwise contractions without intermediate outer
-    products based a dynamic programming approach presented in
-    Phys. Rev. E 90, 033315 (2014) (the corresponding preprint is publically
-    available at https://arxiv.org/abs/1304.6112). This method is especially
-    well-suited in the area of tensor network states, where it usually
-    outperforms all the other optimization strategies.
-
-    This algorithm shows exponential scaling with the number of inputs
-    in the worst case scenario (see example below). If the graph to be
-    contracted consists of disconnected subgraphs, the algorithm scales
-    linearly in the number of disconnected subgraphs only exponentially
-    with the number of inputs per subgraph.
-
-    Parameters
-    ----------
-    inputs : list
-        List of sets that represent the lhs side of the einsum subscript
-    output : set
-        Set that represents the rhs side of the overall einsum subscript
-    size_dict : dictionary
-        Dictionary of index sizes
-    memory_limit : int
-        The maximum number of elements in a temporary array
-    cost_limit : int
-        The maximum number of operations allowed. If a larger number of
-        operations is required, ValueError is raised.
-
-    Returns
-    -------
-    path : list
-        The contraction order (a list of tuples of ints).
-
-    Examples
-    --------
-    >>> n_in = 3  # exponential scaling
-    >>> n_out = 2 # linear scaling
-    >>> s = dict()
-    >>> i_all = []
-    >>> for _ in range(n_out):
-    >>>     i = [set() for _ in range(n_in)]
-    >>>     for j in range(n_in):
-    >>>         for k in range(j+1, n_in):
-    >>>             c = oe.get_symbol(len(s))
-    >>>             i[j].add(c)
-    >>>             i[k].add(c)
-    >>>             s[c] = 2
-    >>>     i_all.extend(i)
-    >>> dynamic_programming(i_all, set(), s)
-    [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
-    """
-
     optimizer = DynamicProgrammingOptimizer()
     return optimizer(inputs, output, size_dict, memory_limit)
 
