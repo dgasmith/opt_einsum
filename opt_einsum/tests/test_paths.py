@@ -26,23 +26,29 @@ explicit_path_tests = {
     }),
 }
 
+# note that these tests have no unique solution due to the chosen dimensions
 path_edge_tests = [
     ['greedy', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
     ['branch-all', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
     ['branch-2', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
     ['optimal', 'eb,cb,fb->cef', ((0, 2), (0, 1))],
+    ['dp', 'eb,cb,fb->cef', ((1, 2), (0, 1))],
     ['greedy', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['branch-all', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['branch-2', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
     ['optimal', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
+    ['optimal', 'dd,fb,be,cdb->cef', ((0, 3), (0, 1), (0, 1))],
+    ['dp', 'dd,fb,be,cdb->cef', ((0, 3), (0, 2), (0, 1))],
     ['greedy', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['branch-all', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['branch-2', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
     ['optimal', 'bca,cdb,dbf,afc->', ((1, 2), (0, 2), (0, 1))],
+    ['dp', 'bca,cdb,dbf,afc->', ((1, 2), (1, 2), (0, 1))],
     ['greedy', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 1), (0, 1))],
     ['branch-all', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
     ['branch-2', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
     ['optimal', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
+    ['dp', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
 ]
 
 
@@ -191,7 +197,7 @@ def test_greedy_edge_cases():
     assert check_path(path, [(0, 1), (0, 2), (0, 1)])
 
 
-@pytest.mark.parametrize("optimize", ['greedy', 'branch-2', 'branch-all', 'optimal'])
+@pytest.mark.parametrize("optimize", ['greedy', 'branch-2', 'branch-all', 'optimal', 'dp'])
 def test_can_optimize_outer_products(optimize):
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
     d = np.random.randn(10, 2)
