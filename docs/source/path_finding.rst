@@ -17,6 +17,7 @@ algorithms, which can be manually specified using the ``optimize`` keyword.
 These are:
 
   * The ``'optimal'`` strategy - an exhaustive search of all possible paths
+  * The ``'dynamic-programming'`` strategy - a near-optimal search based off dynamic-programming
   * The ``'branch'`` strategy - a more restricted search of many likely paths
   * The ``'greedy'`` strategy - finds a path one step at a time using a cost
     heuristic
