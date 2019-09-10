@@ -165,6 +165,7 @@ Table of Contents
    branching_path
    greedy_path
    random_greedy_path
+   dp_path
    custom_paths
 
 .. toctree::
