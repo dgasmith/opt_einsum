@@ -23,6 +23,7 @@ _aliases = {
     'torch': 'opt_einsum.backends.torch',
     'jax': 'jax.numpy',
     'autograd': 'autograd.numpy',
+    'mars': 'mars.tensor',
 }
 
 
