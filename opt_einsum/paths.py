@@ -13,8 +13,8 @@ import numpy as np
 from . import helpers
 
 __all__ = [
-    "optimal", "BranchBound", "branch", "greedy", "auto", "get_path_fn",
-    "DynamicProgrammingOptimizer", "dynamic_programming"
+    "optimal", "BranchBound", "branch", "greedy", "auto", "auto_hq",
+    "get_path_fn", "DynamicProgrammingOptimizer", "dynamic_programming"
 ]
 
 
@@ -992,8 +992,27 @@ def auto(inputs, output, size_dict, memory_limit=None):
     return _AUTO_CHOICES.get(N, greedy)(inputs, output, size_dict, memory_limit)
 
 
+_AUTO_HQ_CHOICES = {}
+for i in range(1, 6):
+    _AUTO_HQ_CHOICES[i] = optimal
+for i in range(6, 17):
+    _AUTO_HQ_CHOICES[i] = dynamic_programming
+
+
+def auto_hq(inputs, output, size_dict, memory_limit=None):
+    """Finds the contraction path by automatically choosing the method based on
+    how many input arguments there are, but targeting a more generous
+    amount of search time than ``'auto'``.
+    """
+    from .path_random import random_greedy_128
+
+    N = len(inputs)
+    return _AUTO_HQ_CHOICES.get(N, random_greedy_128)(inputs, output, size_dict, memory_limit)
+
+
 _PATH_OPTIONS = {
     'auto': auto,
+    'auto-hq': auto_hq,
     'optimal': optimal,
     'branch-all': branch_all,
     'branch-2': branch_2,
