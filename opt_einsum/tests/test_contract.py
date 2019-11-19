@@ -97,7 +97,8 @@ tests = [
 ]
 
 
-all_optimizers = ['optimal', 'branch-all', 'branch-2', 'branch-1', 'greedy', 'random-greedy', 'dp']
+all_optimizers = ['optimal', 'branch-all', 'branch-2', 'branch-1', 'greedy',
+                  'random-greedy', 'random-greedy-128', 'dp', 'auto', 'auto-hq']
 
 
 @pytest.mark.parametrize("string", tests)

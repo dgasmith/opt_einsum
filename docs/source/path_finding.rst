@@ -27,9 +27,16 @@ best of these it can while aiming to keep path finding times below around 1ms.
 An analysis of each of these approaches' performance can be found at the bottom
 of this page.
 
-Finally, for large and complex contractions, there is the
-``'random-greedy'`` approach, which samples many greedy paths and can be
-customized to explicitly spend a maximum amount of time searching.
+For large and complex contractions, there is the ``'random-greedy'`` approach,
+which samples many (by default 32) greedy paths and can be customized to
+explicitly spend a maximum amount of time searching. Another preset,
+``'random-greedy-128'``, uses 128 paths for a more exhaustive search.
+See :ref:`RandomGreedyPathPage` page for more details on configuring these.
+
+Finally, there is the ``'auto-hq'`` preset which targets a much larger search
+time (~1sec) in return for finding very high quality paths, dispatching to the
+``'optimal'``, ``'dynamic-programming'`` and then ``'random-greedy-128'`` paths
+depending on contraction size.
 
 If you want to find the path separately to performing the
 contraction, or just inspect information about the path found, you can use the

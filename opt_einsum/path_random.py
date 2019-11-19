@@ -12,7 +12,7 @@ from collections import deque
 
 from . import helpers, paths
 
-__all__ = ["RandomGreedy", "random_greedy"]
+__all__ = ["RandomGreedy", "random_greedy", "random_greedy_128"]
 
 
 class RandomOptimizer(paths.PathOptimizer):
@@ -370,3 +370,6 @@ def random_greedy(inputs, output, idx_dict, memory_limit=None, **optimizer_kwarg
     """
     optimizer = RandomGreedy(**optimizer_kwargs)
     return optimizer(inputs, output, idx_dict, memory_limit)
+
+
+random_greedy_128 = functools.partial(random_greedy, max_repeats=128)
