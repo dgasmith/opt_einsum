@@ -19,3 +19,4 @@ Function Reference
     opt_einsum.paths.BranchBound
     opt_einsum.path_random.RandomOptimizer
     opt_einsum.path_random.RandomGreedy
+    opt_einsum.paths.DynamicProgramming
