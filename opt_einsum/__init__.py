@@ -9,7 +9,7 @@ from . import path_random
 from .contract import contract, contract_path, contract_expression
 from .parser import get_symbol
 from .sharing import shared_intermediates
-from .paths import BranchBound
+from .paths import BranchBound, DynamicProgramming
 from .path_random import RandomGreedy
 
 # Handle versioneer
