@@ -62,7 +62,7 @@ customized with the :class:`~opt_einsum.paths.DynamicProgramming` object.
     import opt_einsum as oe
 
     optimizer = oe.DynamicProgramming(
-        minimize='size',    # optimize for size (rather than FLOPs)
+        minimize='size',    # optimize for largest intermediate tensor size
         search_outer=True,  # search through outer products as well
         cost_cap=False,     # don't use cost-capping strategy
     )
