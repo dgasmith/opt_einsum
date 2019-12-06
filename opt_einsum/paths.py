@@ -772,7 +772,7 @@ def _bitmap_select(s, seq):
     return (x for x, b in zip(seq, bin(s)[:1:-1]) if b == '1')
 
 
-def _dp_calc_legs(g, all_tensors, s, inputs_contract, i1_cut_i2_wo_output, i1_union_i2):
+def _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2):
     """Calculates the effective outer indices of the intermediate tensor
     corresponding to the subgraph ``s``.
     """
@@ -780,7 +780,7 @@ def _dp_calc_legs(g, all_tensors, s, inputs_contract, i1_cut_i2_wo_output, i1_un
     r = g & (all_tensors ^ s)
     # indices of remaining indices:
     if r:
-        i_r = set.union(*_bitmap_select(r, inputs_contract))
+        i_r = set.union(*_bitmap_select(r, inputs))
     else:
         i_r = set()
     # contraction indices:
@@ -789,7 +789,7 @@ def _dp_calc_legs(g, all_tensors, s, inputs_contract, i1_cut_i2_wo_output, i1_un
 
 
 def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors,
-                      inputs_contract, i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
+                      inputs, i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
     """Performs the inner comparison of whether the two subgraphs (the bitmaps
     ``s1`` and ``s2``) should be merged and added to the dynamic programming
     search. Will skip for a number of reasons:
@@ -804,20 +804,20 @@ def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn
     if cost <= cost_cap:
         s = s1 | s2
         if s not in xn or cost < xn[s][1]:
-            i = _dp_calc_legs(g, all_tensors, s, inputs_contract, i1_cut_i2_wo_output, i1_union_i2)
+            i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
             mem = helpers.compute_size_by_dict(i, size_dict)
             if memory_limit is None or mem <= memory_limit:
                 xn[s] = (i, cost, (cntrct1, cntrct2))
 
 
 def _dp_compare_size(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors,
-                     inputs_contract, i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
+                     inputs, i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on the size of the intermediate tensor created, rather than the number of
     operations, and so calculates that first.
     """
     s = s1 | s2
-    i = _dp_calc_legs(g, all_tensors, s, inputs_contract, i1_cut_i2_wo_output, i1_union_i2)
+    i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
     mem = helpers.compute_size_by_dict(i, size_dict)
     cost = max(cost1, cost2, mem)
     if cost <= cost_cap:
@@ -834,6 +834,29 @@ def simple_tree_tuple(seq):
 
     """
     return functools.reduce(lambda x, y: (x, y), seq)
+
+
+def _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts):
+    """Take ``inputs`` and parse for single term index operations, i.e. where
+    an index appears on one tensor and nowhere else.
+
+    If a term is completely reduced to a scalar in this way it can be removed
+    to ``inputs_done``. If only some indices can be summed then add a 'single
+    term contraction' that will perform this summation.
+    """
+    i_single = {i for i, c in enumerate(all_inds) if ind_counts[c] == 1}
+    inputs_parsed, inputs_done, inputs_contractions = [], [], []
+    for j, i in enumerate(inputs):
+        i_reduced = i - i_single
+        if not i_reduced:
+            # input reduced to scalar already - remove
+            inputs_done.append((j,))
+        else:
+            # if the input has any index reductions, add single contraction
+            inputs_parsed.append(i_reduced)
+            inputs_contractions.append((j,) if i_reduced != i else j)
+
+    return inputs_parsed, inputs_done, inputs_contractions
 
 
 class DynamicProgramming(PathOptimizer):
@@ -934,20 +957,9 @@ class DynamicProgramming(PathOptimizer):
         size_dict = {symbol2int[c]: v for c, v in size_dict.items() if c in symbol2int}
         size_dict = [size_dict[j] for j in range(len(size_dict))]
 
-        # parse all summation indices occurring exactly in one input
-        i_single = {i for i, c in enumerate(all_inds) if ind_counts[c] == 1}
-        inputs_contract, inputs_done, inputs_contractions = [], [], []
-        for j, i in enumerate(inputs):
-            i_reduced = i - i_single
-            if not i_reduced:
-                # input reduced to scalar already - remove
-                inputs_done.append((j,))
-            else:
-                # if the input has any index reductions, add single contraction
-                inputs_contract.append(i_reduced)
-                inputs_contractions.append((j,) if i_reduced != i else j)
+        inputs, inputs_done, inputs_contractions = _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts)
 
-        if not inputs_contract:
+        if not inputs:
             # nothing left to do after single axis reductions!
             return _tree_to_sequence(simple_tree_tuple(inputs_done))
 
@@ -958,14 +970,14 @@ class DynamicProgramming(PathOptimizer):
 
         if self.search_outer:
             # optimize everything together if we are considering outer products
-            subgraphs = [set(range(len(inputs_contract)))]
+            subgraphs = [set(range(len(inputs)))]
         else:
-            subgraphs = _find_disconnected_subgraphs(inputs_contract, output)
+            subgraphs = _find_disconnected_subgraphs(inputs, output)
 
         # the bitmap set of all tensors is computed as it is needed to
         # compute set differences: s1 - s2 transforms into
         # s1 & (all_tensors ^ s2)
-        all_tensors = (1 << len(inputs_contract)) - 1
+        all_tensors = (1 << len(inputs)) - 1
 
         for g in subgraphs:
 
@@ -975,7 +987,7 @@ class DynamicProgramming(PathOptimizer):
             # tensor j is in the set, e.g. 0b100101 = {0,2,5}; set unions
             # (intersections) can then be computed by bitwise or (and);
             x = [None] * 2 + [dict() for j in range(len(g) - 1)]
-            x[1] = {1 << j: (inputs_contract[j], 0, inputs_contractions[j]) for j in g}
+            x[1] = {1 << j: (inputs[j], 0, inputs_contractions[j]) for j in g}
 
             # convert set of tensors g to a bitmap set:
             g = functools.reduce(lambda x, y: x | y, (1 << j for j in g))
@@ -984,7 +996,7 @@ class DynamicProgramming(PathOptimizer):
             # cost_cap successively if no such contraction is found;
             # this is a major performance improvement; start with product of
             # output index dimensions as initial cost_cap
-            subgraph_inds = set.union(*_bitmap_select(g, inputs_contract))
+            subgraph_inds = set.union(*_bitmap_select(g, inputs))
             if self.cost_cap is True:
                 cost_cap = helpers.compute_size_by_dict(subgraph_inds & output, size_dict)
             elif self.cost_cap is False:
@@ -1014,7 +1026,7 @@ class DynamicProgramming(PathOptimizer):
                                         i1_union_i2 = i1 | i2
                                         self._check_contraction(
                                             cost1, cost2, i1_union_i2, size_dict, cost_cap, s1,
-                                            s2, xn, g, all_tensors, inputs_contract, i1_cut_i2_wo_output,
+                                            s2, xn, g, all_tensors, inputs, i1_cut_i2_wo_output,
                                             memory_limit, cntrct1, cntrct2)
 
                 # increase cost cap for next iteration:

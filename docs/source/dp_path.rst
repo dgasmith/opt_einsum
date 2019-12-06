@@ -68,3 +68,8 @@ customized with the :class:`~opt_einsum.paths.DynamicProgramming` object.
     )
 
     oe.contract(eq, *arrays, optimize=optimizer)
+
+.. warning::
+
+    Note that searching outer products will most likely drastically slow down
+    the optimizer on all but the smallest examples.
