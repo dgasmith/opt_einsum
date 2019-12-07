@@ -197,6 +197,59 @@ def test_greedy_edge_cases():
     assert check_path(path, [(0, 1), (0, 2), (0, 1)])
 
 
+def test_dp_edge_cases_dimension_1():
+    eq = 'nlp,nlq,pl->n'
+    shapes = [(1, 1, 1), (1, 1, 1), (1, 1)]
+    info = oe.contract_path(eq, *shapes, shapes=True, optimize='dp')[1]
+    assert max(info.scale_list) == 3
+
+
+def test_dp_edge_cases_all_singlet_indices():
+    eq = 'a,bcd,efg->'
+    shapes = [(2,), (2, 2, 2), (2, 2, 2)]
+    info = oe.contract_path(eq, *shapes, shapes=True, optimize='dp')[1]
+    assert max(info.scale_list) == 3
+
+
+def test_custom_dp_can_optimize_for_outer_products():
+    eq = "a,b,abc->c"
+
+    da, db, dc = 2, 2, 3
+    shapes = [(da,), (db,), (da, db, dc)]
+
+    opt1 = oe.DynamicProgramming(search_outer=False)
+    opt2 = oe.DynamicProgramming(search_outer=True)
+
+    info1 = oe.contract_path(eq, *shapes, shapes=True, optimize=opt1)[1]
+    info2 = oe.contract_path(eq, *shapes, shapes=True, optimize=opt2)[1]
+
+    assert info2.opt_cost < info1.opt_cost
+
+
+def test_custom_dp_can_optimize_for_size():
+    eq, shapes = oe.helpers.rand_equation(10, 4, seed=43)
+
+    opt1 = oe.DynamicProgramming(minimize='flops')
+    opt2 = oe.DynamicProgramming(minimize='size')
+
+    info1 = oe.contract_path(eq, *shapes, shapes=True, optimize=opt1)[1]
+    info2 = oe.contract_path(eq, *shapes, shapes=True, optimize=opt2)[1]
+
+    assert (info1.opt_cost < info2.opt_cost)
+    assert (info1.largest_intermediate > info2.largest_intermediate)
+
+
+def test_custom_dp_can_set_cost_cap():
+    eq, shapes = oe.helpers.rand_equation(5, 3, seed=42)
+    opt1 = oe.DynamicProgramming(cost_cap=True)
+    opt2 = oe.DynamicProgramming(cost_cap=False)
+    opt3 = oe.DynamicProgramming(cost_cap=100)
+    info1 = oe.contract_path(eq, *shapes, shapes=True, optimize=opt1)[1]
+    info2 = oe.contract_path(eq, *shapes, shapes=True, optimize=opt2)[1]
+    info3 = oe.contract_path(eq, *shapes, shapes=True, optimize=opt3)[1]
+    assert info1.opt_cost == info2.opt_cost == info3.opt_cost
+
+
 @pytest.mark.parametrize("optimize", ['greedy', 'branch-2', 'branch-all', 'optimal', 'dp'])
 def test_can_optimize_outer_products(optimize):
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
