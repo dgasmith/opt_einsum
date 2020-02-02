@@ -47,7 +47,7 @@ matrix:
     - env:
       - NAME="FULL 3.8"
       - PYTHON_VER=3.8
-      - ENVIRON=MINIMAL
+      - ENVIRON=FULL
 
     - env:
       - NAME="OLD_VERSIONS 3.5"
