@@ -72,8 +72,8 @@ install:
   - source activate test
 
     # Double check the correct python version is active
-  - PY_MAJOR_MINOR = `python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
-  - [[ $PY_MAJOR_MINOR -ne $PYTHON_VER ]] && echo "Bad Python build, wrong version." && exit 1
+#  - PY_MAJOR_MINOR = `python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
+#  - [[ $PY_MAJOR_MINOR -ne $PYTHON_VER ]] && echo "Bad Python build, wrong version." && exit 1
 
     # Build and install package
   - python setup.py develop --no-deps
