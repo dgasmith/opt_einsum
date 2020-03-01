@@ -1,21 +1,10 @@
 # After changing this file, check it on:
 #   http://lint.travis-ci.org/
 language: python
-
-# Run jobs on container-based infrastructure, can be overridden per job
-sudo: false
-
+os: linux
 dist: xenial
 
-matrix:
-  include:
-    - python: 3.5
-    - python: 3.6
-    - python: 3.7
-    - python: 3.7
-    - python: 3.8
-
-matrix:
+jobs:
   include:
 
     - env:
