@@ -13,8 +13,8 @@ matrix:
       - ENVIRON=MINIMAL
 
     - env:
-      - NAME="MINIMAL 3.7"
-      - PYTHON_VER=3.7
+      - NAME="MINIMAL 3.8"
+      - PYTHON_VER=3.8
       - ENVIRON=MINIMAL
 
     - env:
@@ -32,15 +32,14 @@ matrix:
       - PYTHON_VER=3.7
       - ENVIRON=FULL
 
+#    - env:
+#      - NAME="FULL 3.8"
+#      - PYTHON_VER=3.8
+#      - ENVIRON=FULL
 
     - env:
-      - NAME="FULL 3.8"
-      - PYTHON_VER=3.8
-      - ENVIRON=FULL
-
-    - env:
-      - NAME="OLD_VERSIONS 3.5"
-      - PYTHON_VER=3.5
+      - NAME="OLD_VERSIONS 3.6"
+      - PYTHON_VER=3.6
       - ENVIRON=OLD_VERSIONS
 
 before_install:
@@ -49,11 +48,9 @@ before_install:
   - free -m
   - df -h
   - ulimit -a
-  - python -V
 
   # Setup python environment
   - source devtools/travis-ci/before_install.sh
-  - python -V
 
 install:
     # Create test environment for package
@@ -70,10 +67,6 @@ install:
       exit 1
     fi
   - source activate test
-
-    # Double check the correct python version is active
-#  - PY_MAJOR_MINOR = `python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
-#  - [[ $PY_MAJOR_MINOR -ne $PYTHON_VER ]] && echo "Bad Python build, wrong version." && exit 1
 
     # Build and install package
   - python setup.py develop --no-deps
