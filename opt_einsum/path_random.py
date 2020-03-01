@@ -6,9 +6,21 @@ import functools
 import heapq
 import math
 import numbers
-import random
 import time
 from collections import deque
+
+# random.choices was introduced in python 3.6
+try:
+    from random import choices as random_choices
+    from random import seed as random_seed
+except ImportError:
+    import numpy as np
+
+    def random_choices(population, weights):
+        norm = sum(weights)
+        return np.random.choice(population, p=[w / norm for w in weights], size=1)
+
+    random_seed = np.random.seed
 
 from . import helpers, paths
 
@@ -260,7 +272,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
         energies = [math.exp(-(c - cmin) / temperature) for c in costs]
 
     # randomly choose a contraction based on energies
-    chosen, = random.choices(range(n), weights=energies)
+    chosen, = random_choices(range(n), weights=energies)
     cost, k1, k2, k12 = choices.pop(chosen)
 
     # put the other choise back in the heap
@@ -297,8 +309,8 @@ def _trial_greedy_ssa_path_and_cost(r, inputs, output, size_dict, choose_fn, cos
     if r == 0:
         # always start with the standard greedy approach
         choose_fn = None
-    else:
-        random.seed(r)
+
+    random_seed(r)
 
     ssa_path = paths.ssa_greedy_optimize(inputs, output, size_dict, choose_fn, cost_fn)
     cost, size = ssa_path_compute_cost(ssa_path, inputs, output, size_dict)
