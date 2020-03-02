@@ -1,19 +1,8 @@
 # After changing this file, check it on:
 #   http://lint.travis-ci.org/
 language: python
-
-# Run jobs on container-based infrastructure, can be overridden per job
-sudo: false
-
+os: linux
 dist: xenial
-
-matrix:
-  include:
-    - python: 3.5
-    - python: 3.6
-    - python: 3.7
-    - python: 3.7
-    - python: 3.8
 
 matrix:
   include:
@@ -24,8 +13,8 @@ matrix:
       - ENVIRON=MINIMAL
 
     - env:
-      - NAME="MINIMAL 3.7"
-      - PYTHON_VER=3.7
+      - NAME="MINIMAL 3.8"
+      - PYTHON_VER=3.8
       - ENVIRON=MINIMAL
 
     - env:
@@ -43,15 +32,14 @@ matrix:
       - PYTHON_VER=3.7
       - ENVIRON=FULL
 
+#    - env:
+#      - NAME="FULL 3.8"
+#      - PYTHON_VER=3.8
+#      - ENVIRON=FULL
 
     - env:
-      - NAME="FULL 3.8"
-      - PYTHON_VER=3.8
-      - ENVIRON=FULL
-
-    - env:
-      - NAME="OLD_VERSIONS 3.5"
-      - PYTHON_VER=3.5
+      - NAME="OLD_VERSIONS 3.6"
+      - PYTHON_VER=3.6
       - ENVIRON=OLD_VERSIONS
 
 before_install:
@@ -60,11 +48,9 @@ before_install:
   - free -m
   - df -h
   - ulimit -a
-  - python -V
 
   # Setup python environment
   - source devtools/travis-ci/before_install.sh
-  - python -V
 
 install:
     # Create test environment for package

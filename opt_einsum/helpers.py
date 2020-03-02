@@ -2,6 +2,8 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
+from collections import OrderedDict
+
 import numpy as np
 
 from .parser import get_symbol
@@ -72,7 +74,7 @@ def compute_size_by_dict(indices, idx_dict):
 
     """
     ret = 1
-    for i in indices: # lgtm [py/iteration-string-and-sequence]
+    for i in indices:  # lgtm [py/iteration-string-and-sequence]
         ret *= idx_dict[i]
     return ret
 
@@ -171,8 +173,7 @@ def flop_count(idx_contraction, inner, num_terms, size_dictionary):
     return overall_size * op_factor
 
 
-def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None,
-                  global_dim=False, return_size_dict=False):
+def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None, global_dim=False, return_size_dict=False):
     """Generate a random contraction and shapes.
 
     Parameters
@@ -232,10 +233,7 @@ def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None,
     inputs = ["" for _ in range(n)]
     output = []
 
-    size_dict = {
-        get_symbol(i): np.random.randint(d_min, d_max + 1)
-        for i in range(num_inds)
-    }
+    size_dict = OrderedDict((get_symbol(i), np.random.randint(d_min, d_max + 1)) for i in range(num_inds))
 
     # generate a list of indices to place either once or twice
     def gen():
@@ -280,6 +278,6 @@ def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None,
     ret = (eq, shapes)
 
     if return_size_dict:
-        ret += (size_dict,)
+        ret += (size_dict, )
 
     return ret

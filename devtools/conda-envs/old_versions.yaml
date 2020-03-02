@@ -4,6 +4,7 @@ channels:
   - pytorch
 dependencies:
     # Base depends
+  - python
   - numpy
   - nomkl
 

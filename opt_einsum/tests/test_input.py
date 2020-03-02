@@ -167,6 +167,7 @@ def test_contract_inputs():
     with pytest.raises(ValueError):
         contract_path("i->i", [[0, 1], [0, 1]], memory_limit=-1)
 
+
 @pytest.mark.parametrize(
     "string",
     [

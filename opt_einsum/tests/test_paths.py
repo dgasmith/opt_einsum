@@ -206,7 +206,7 @@ def test_dp_edge_cases_dimension_1():
 
 def test_dp_edge_cases_all_singlet_indices():
     eq = 'a,bcd,efg->'
-    shapes = [(2,), (2, 2, 2), (2, 2, 2)]
+    shapes = [(2, ), (2, 2, 2), (2, 2, 2)]
     info = oe.contract_path(eq, *shapes, shapes=True, optimize='dp')[1]
     assert max(info.scale_list) == 3
 
@@ -215,7 +215,7 @@ def test_custom_dp_can_optimize_for_outer_products():
     eq = "a,b,abc->c"
 
     da, db, dc = 2, 2, 3
-    shapes = [(da,), (db,), (da, db, dc)]
+    shapes = [(da, ), (db, ), (da, db, dc)]
 
     opt1 = oe.DynamicProgramming(search_outer=False)
     opt2 = oe.DynamicProgramming(search_outer=True)
@@ -366,9 +366,7 @@ def test_parallel_random_greedy():
 
 
 def test_custom_path_optimizer():
-
     class NaiveOptimizer(oe.paths.PathOptimizer):
-
         def __call__(self, inputs, output, size_dict, memory_limit=None):
             self.was_used = True
             return [(0, 1)] * (len(inputs) - 1)
@@ -385,9 +383,7 @@ def test_custom_path_optimizer():
 
 
 def test_custom_random_optimizer():
-
     class NaiveRandomOptimizer(oe.path_random.RandomOptimizer):
-
         @staticmethod
         def random_path(r, n, inputs, output, size_dict):
             """Picks a completely random contraction order.
@@ -425,7 +421,6 @@ def test_custom_random_optimizer():
 
 
 def test_optimizer_registration():
-
     def custom_optimizer(inputs, output, size_dict, memory_limit):
         return [(0, 1)] * (len(inputs) - 1)
 
@@ -437,7 +432,6 @@ def test_optimizer_registration():
 
     eq = 'ab,bc,cd'
     shapes = [(2, 3), (3, 4), (4, 5)]
-    path, path_info = oe.contract_path(eq, *shapes, shapes=True,
-                                       optimize='custom')
+    path, path_info = oe.contract_path(eq, *shapes, shapes=True, optimize='custom')
     assert path == [(0, 1), (0, 1)]
     del oe.paths._PATH_OPTIONS['custom']

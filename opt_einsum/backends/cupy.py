@@ -22,7 +22,6 @@ def to_cupy(array):  # pragma: no cover
 def build_expression(_, expr):  # pragma: no cover
     """Build a cupy function based on ``arrays`` and ``expr``.
     """
-
     def cupy_contract(*arrays):
         return expr._contract([to_cupy(x) for x in arrays], backend='cupy').get()
 
@@ -33,4 +32,4 @@ def evaluate_constants(const_arrays, expr):  # pragma: no cover
     """Convert constant arguments to cupy arrays, and perform any possible
     constant contractions.
     """
-    return expr(* [to_cupy(x) for x in const_arrays], backend='cupy', evaluate_constants=True)
+    return expr(*[to_cupy(x) for x in const_arrays], backend='cupy', evaluate_constants=True)

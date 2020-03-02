@@ -107,7 +107,6 @@ def transpose_cache_wrap(transpose):
     """Decorates a ``transpose()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
-
     @functools.wraps(transpose)
     def cached_transpose(a, axes, backend='numpy'):
         if not currently_sharing():
@@ -126,7 +125,6 @@ def tensordot_cache_wrap(tensordot):
     """Decorates a ``tensordot()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
-
     @functools.wraps(tensordot)
     def cached_tensordot(x, y, axes=2, backend='numpy'):
         if not currently_sharing():
@@ -147,7 +145,6 @@ def einsum_cache_wrap(einsum):
     """Decorates an ``einsum()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
-
     @functools.wraps(einsum)
     def cached_einsum(*args, **kwargs):
         if not currently_sharing():

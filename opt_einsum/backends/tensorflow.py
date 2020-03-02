@@ -8,7 +8,6 @@ from ..sharing import to_backend_cache_wrap
 
 __all__ = ["to_tensorflow", "build_expression", "evaluate_constants"]
 
-
 _CACHED_TF_DEVICE = None
 
 
@@ -101,7 +100,6 @@ def evaluate_constants_graph(const_arrays, expr):
 def build_expression_eager(_, expr):
     """Build a eager tensorflow function based on ``arrays`` and ``expr``.
     """
-
     def tensorflow_eager_contract(*arrays):
         return expr._contract([to_tensorflow(x) for x in arrays], backend='tensorflow').numpy()
 
@@ -112,7 +110,7 @@ def evaluate_constants_eager(const_arrays, expr):
     """Convert constant arguments to tensorflow_eager arrays, and perform any
     possible constant contractions.
     """
-    return expr(* [to_tensorflow(x) for x in const_arrays], backend='tensorflow', evaluate_constants=True)
+    return expr(*[to_tensorflow(x) for x in const_arrays], backend='tensorflow', evaluate_constants=True)
 
 
 # Dispatch to eager or graph mode

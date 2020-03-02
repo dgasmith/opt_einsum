@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from opt_einsum import (backends, contract, contract_expression, helpers,
-                        sharing)
+from opt_einsum import (backends, contract, contract_expression, helpers, sharing)
 from opt_einsum.contract import Shaped, infer_backend, parse_backend
 
 try:
@@ -166,8 +165,7 @@ def test_theano_with_constants(constants):
 
     # check theano
     res_got = expr(var, backend='theano')
-    assert all(array is None or infer_backend(array) == 'theano'
-               for array in expr._evaluated_constants['theano'])
+    assert all(array is None or infer_backend(array) == 'theano' for array in expr._evaluated_constants['theano'])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
@@ -236,8 +234,7 @@ def test_cupy_with_constants(constants):  # pragma: no cover
     # check cupy
     res_got = expr(var, backend='cupy')
     # check cupy versions of constants exist
-    assert all(array is None or infer_backend(array) == 'cupy'
-               for array in expr._evaluated_constants['cupy'])
+    assert all(array is None or infer_backend(array) == 'cupy' for array in expr._evaluated_constants['cupy'])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
@@ -279,8 +276,7 @@ def test_jax_with_constants(constants):  # pragma: no cover
     # check jax
     res_got = expr(var, backend='jax')
     # check jax versions of constants exist
-    assert all(array is None or infer_backend(array) == 'jax'
-               for array in expr._evaluated_constants['jax'])
+    assert all(array is None or infer_backend(array) == 'jax' for array in expr._evaluated_constants['jax'])
 
     assert np.allclose(res_exp, res_got)
 
@@ -416,8 +412,7 @@ def test_torch_with_constants(constants):
 
     # check torch
     res_got = expr(var, backend='torch')
-    assert all(array is None or infer_backend(array) == 'torch'
-               for array in expr._evaluated_constants['torch'])
+    assert all(array is None or infer_backend(array) == 'torch' for array in expr._evaluated_constants['torch'])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
