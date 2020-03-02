@@ -1,10 +1,37 @@
 Changelog
 =========
 
+3.2.0 / 2020-03-01
+------------------
+
+Small fixes for the ``dp`` path and support for a new mars backend.
+
+New Features
+++++++++++++
+ - (:pr:`109`) Adds mars backend support.
+
+Enhancements
+++++++++++++
+ - (:pr:`110`) New ``auto-hq`` and ``'random-greedy-128'`` paths.
+ - (:pr:`119`) Fixes several edge cases in the ``dp`` path.
+
+Bug fixes
++++++++++
+ - (:pr:`127`) Fixes an issue where Python 3.6 features are required while Python 3.5 is ``opt_einsum``'s stated minimum version. 
+
+3.1.0 / 2019-09-30
+------------------
+
+Adds a new dynamic programming algorithm to the suite of paths.
+
+New Features
+++++++++++++
+ - (:pr:`102`) Adds new ``dp`` path.
+
 3.0.0 / 2019-08-10
 ------------------
 
-This release moves `opt_einsum` to be backend agnostic while adding support
+This release moves ``opt_einsum`` to be backend agnostic while adding support
 additional backends such as Jax and Autograd. Support for Python 2.7 has been dropped and Python 3.5 will become the new minimum version, a Python deprecation policy equivalent to NumPy's has been adopted.
 
 
@@ -12,14 +39,14 @@ New Features
 ++++++++++++
 - (:pr:`78`) A new random-optimizer has been implemented which uses Boltzmann weighting to explore alternative near-minimum paths using greedy-like schemes. This provides a fairly large path performance enhancements with a linear path time overhead.
 - (:pr:`78`) A new PathOptimizer class has been implemented to provide a framework for building new optimizers. An example is that now custom cost functions can now be provided in the greedy formalism for building custom optimizers without a large amount of additional code.
-- (:pr:`81`) The `backend="auto"` keyword has been implemented for `contract` allowing automatic detection of the correct backend to use based off provided tensors in the contraction.
+- (:pr:`81`) The ``backend="auto"`` keyword has been implemented for ``contract`` allowing automatic detection of the correct backend to use based off provided tensors in the contraction.
 - (:pr:`88`) Autograd and Jax support have been implemented.
 - (:pr:`96`) Deprecates Python 2 functionality and devops improvements.
 
 Enhancements
 ++++++++++++
-- (:pr:`84`) The `contract_path` function can now accept shape tuples rather than full tensors.
-- (:pr:`84`) The `contract_path` automated path algorithm decision technology has been refactored to a standalone function.
+- (:pr:`84`) The ``contract_path`` function can now accept shape tuples rather than full tensors.
+- (:pr:`84`) The ``contract_path`` automated path algorithm decision technology has been refactored to a standalone function.
 
 
 2.3.0 / 2018-12-01
