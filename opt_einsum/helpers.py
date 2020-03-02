@@ -2,6 +2,7 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
+from collections import OrderedDict
 import numpy as np
 
 from .parser import get_symbol
@@ -232,10 +233,10 @@ def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None,
     inputs = ["" for _ in range(n)]
     output = []
 
-    size_dict = {
-        get_symbol(i): np.random.randint(d_min, d_max + 1)
-        for i in range(num_inds)
-    }
+    size_dict = OrderedDict(
+         (get_symbol(i), np.random.randint(d_min, d_max + 1))
+         for i in range(num_inds)
+    )
 
     # generate a list of indices to place either once or twice
     def gen():

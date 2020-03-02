@@ -6,7 +6,7 @@ import functools
 import heapq
 import itertools
 import random
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, OrderedDict
 
 import numpy as np
 
@@ -987,7 +987,7 @@ class DynamicProgramming(PathOptimizer):
             # tensor j is in the set, e.g. 0b100101 = {0,2,5}; set unions
             # (intersections) can then be computed by bitwise or (and);
             x = [None] * 2 + [dict() for j in range(len(g) - 1)]
-            x[1] = {1 << j: (inputs[j], 0, inputs_contractions[j]) for j in g}
+            x[1] = OrderedDict((1 << j, (inputs[j], 0, inputs_contractions[j])) for j in g)
 
             # convert set of tensors g to a bitmap set:
             g = functools.reduce(lambda x, y: x | y, (1 << j for j in g))
