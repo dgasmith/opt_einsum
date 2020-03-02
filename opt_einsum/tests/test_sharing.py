@@ -5,13 +5,11 @@ from collections import Counter
 import numpy as np
 import pytest
 
-from opt_einsum import (contract, contract_expression, contract_path,
-                        get_symbol, helpers, shared_intermediates)
+from opt_einsum import (contract, contract_expression, contract_path, get_symbol, helpers, shared_intermediates)
 from opt_einsum.backends import to_cupy, to_torch
 from opt_einsum.contract import _einsum
 from opt_einsum.parser import parse_einsum_input
-from opt_einsum.sharing import (count_cached_ops, currently_sharing,
-                                get_sharing_cache)
+from opt_einsum.sharing import (count_cached_ops, currently_sharing, get_sharing_cache)
 
 try:
     import cupy
@@ -139,10 +137,7 @@ def test_no_sharing_separate_cache(backend):
 
 @pytest.mark.parametrize('backend', backends)
 def test_sharing_nesting(backend):
-    eqs = ['ab,bc,cd->a',
-           'ab,bc,cd->b',
-           'ab,bc,cd->c',
-           'ab,bc,cd->c']
+    eqs = ['ab,bc,cd->a', 'ab,bc,cd->b', 'ab,bc,cd->c', 'ab,bc,cd->c']
     views = helpers.build_views(eqs[0])
     shapes = [v.shape for v in views]
     refs = weakref.WeakValueDictionary()
@@ -249,12 +244,10 @@ def test_sharing_with_constants(backend):
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
     var = np.random.rand(*shapes[1])
 
-    expected = [contract_expression(eq, *shapes)(ops[0], var, ops[2])
-                for eq in equations]
+    expected = [contract_expression(eq, *shapes)(ops[0], var, ops[2]) for eq in equations]
 
     with shared_intermediates():
-        actual = [contract_expression(eq, *ops, constants=constants)(var)
-                  for eq in equations]
+        actual = [contract_expression(eq, *ops, constants=constants)(var) for eq in equations]
 
     for dim, expected_dim, actual_dim in zip(outputs, expected, actual):
         assert np.allclose(expected_dim, actual_dim), 'error at {}'.format(dim)
@@ -266,7 +259,7 @@ def test_chain(size, backend):
     xs = [np.random.rand(2, 2) for _ in range(size)]
     shapes = [x.shape for x in xs]
     alphabet = ''.join(get_symbol(i) for i in range(size + 1))
-    names = [alphabet[i:i+2] for i in range(size)]
+    names = [alphabet[i:i + 2] for i in range(size)]
     inputs = ','.join(names)
 
     with shared_intermediates():
@@ -287,13 +280,13 @@ def test_chain_2(size, backend):
     xs = [np.random.rand(2, 2) for _ in range(size)]
     shapes = [x.shape for x in xs]
     alphabet = ''.join(get_symbol(i) for i in range(size + 1))
-    names = [alphabet[i:i+2] for i in range(size)]
+    names = [alphabet[i:i + 2] for i in range(size)]
     inputs = ','.join(names)
 
     with shared_intermediates():
         print(inputs)
         for i in range(size):
-            target = alphabet[i:i+2]
+            target = alphabet[i:i + 2]
             eq = '{}->{}'.format(inputs, target)
             path_info = contract_path(eq, *xs)
             print(path_info[1])
@@ -314,12 +307,12 @@ def test_chain_2_growth(backend):
     for size in sizes:
         xs = [np.random.rand(2, 2) for _ in range(size)]
         alphabet = ''.join(get_symbol(i) for i in range(size + 1))
-        names = [alphabet[i:i+2] for i in range(size)]
+        names = [alphabet[i:i + 2] for i in range(size)]
         inputs = ','.join(names)
 
         with shared_intermediates() as cache:
             for i in range(size):
-                target = alphabet[i:i+2]
+                target = alphabet[i:i + 2]
                 eq = '{}->{}'.format(inputs, target)
                 expr = contract_expression(eq, *(x.shape for x in xs))
                 expr(*xs, backend=backend)
@@ -336,7 +329,7 @@ def test_chain_2_growth(backend):
 def test_chain_sharing(size, backend):
     xs = [np.random.rand(2, 2) for _ in range(size)]
     alphabet = ''.join(get_symbol(i) for i in range(size + 1))
-    names = [alphabet[i:i+2] for i in range(size)]
+    names = [alphabet[i:i + 2] for i in range(size)]
     inputs = ','.join(names)
 
     num_exprs_nosharing = 0

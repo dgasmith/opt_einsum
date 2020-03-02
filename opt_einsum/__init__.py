@@ -19,6 +19,5 @@ __version__ = versions['version']
 __git_revision__ = versions['full-revisionid']
 del get_versions, versions
 
-
 paths.register_path_fn('random-greedy', path_random.random_greedy)
 paths.register_path_fn('random-greedy-128', path_random.random_greedy_128)

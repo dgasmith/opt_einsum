@@ -37,7 +37,7 @@ def build_expression(arrays, expr):
     graph = theano.function(graph_ins, out_var)
 
     def theano_contract(*arrays):
-        return graph(* [x for x in arrays if not isinstance(x, theano.tensor.TensorConstant)])
+        return graph(*[x for x in arrays if not isinstance(x, theano.tensor.TensorConstant)])
 
     return theano_contract
 

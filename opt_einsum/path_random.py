@@ -9,6 +9,8 @@ import numbers
 import time
 from collections import deque
 
+from . import helpers, paths
+
 # random.choices was introduced in python 3.6
 try:
     from random import choices as random_choices
@@ -21,8 +23,6 @@ except ImportError:
         return np.random.choice(population, p=[w / norm for w in weights], size=1)
 
     random_seed = np.random.seed
-
-from . import helpers, paths
 
 __all__ = ["RandomGreedy", "random_greedy", "random_greedy_128"]
 
@@ -82,7 +82,6 @@ class RandomOptimizer(paths.PathOptimizer):
     --------
     RandomGreedy
     """
-
     def __init__(self, max_repeats=32, max_time=None, minimize='flops', parallel=False, pre_dispatch=128):
 
         if minimize not in ('flops', 'size'):
@@ -350,9 +349,7 @@ class RandomGreedy(RandomOptimizer):
     --------
     RandomOptimizer
     """
-
-    def __init__(self, cost_fn='memory-removed-jitter', temperature=1.0,
-                 rel_temperature=True, nbranch=8, **kwargs):
+    def __init__(self, cost_fn='memory-removed-jitter', temperature=1.0, rel_temperature=True, nbranch=8, **kwargs):
         self.cost_fn = cost_fn
         self.temperature = temperature
         self.rel_temperature = rel_temperature
@@ -368,8 +365,10 @@ class RandomGreedy(RandomOptimizer):
         if self.nbranch == 1:
             return None
 
-        return functools.partial(thermal_chooser, temperature=self.temperature,
-                                 nbranch=self.nbranch, rel_temperature=self.rel_temperature)
+        return functools.partial(thermal_chooser,
+                                 temperature=self.temperature,
+                                 nbranch=self.nbranch,
+                                 rel_temperature=self.rel_temperature)
 
     def setup(self, inputs, output, size_dict):
         fn = _trial_greedy_ssa_path_and_cost

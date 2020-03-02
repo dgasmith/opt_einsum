@@ -6,17 +6,16 @@ import functools
 import heapq
 import itertools
 import random
-from collections import defaultdict, Counter, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 
 import numpy as np
 
 from . import helpers
 
 __all__ = [
-    "optimal", "BranchBound", "branch", "greedy", "auto", "auto_hq",
-    "get_path_fn", "DynamicProgramming", "dynamic_programming"
+    "optimal", "BranchBound", "branch", "greedy", "auto", "auto_hq", "get_path_fn", "DynamicProgramming",
+    "dynamic_programming"
 ]
-
 
 _UNLIMITED_MEM = {-1, None, float('inf')}
 
@@ -44,7 +43,6 @@ class PathOptimizer(object):
 
     where ``path`` is a list of int-tuples specifiying a contraction order.
     """
-
     def __call__(self, inputs, output, size_dict, memory_limit=None):
         raise NotImplementedError
 
@@ -172,7 +170,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
     inputs = tuple(map(frozenset, inputs))
     output = frozenset(output)
 
-    best = {'flops': float('inf'), 'ssa_path': (tuple(range(len(inputs))),)}
+    best = {'flops': float('inf'), 'ssa_path': (tuple(range(len(inputs))), )}
     size_cache = {}
     result_cache = {}
 
@@ -211,24 +209,22 @@ def optimal(inputs, output, size_dict, memory_limit=None):
                     new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
                     if new_flops < best['flops']:
                         best['flops'] = new_flops
-                        best['ssa_path'] = path + (tuple(remaining),)
+                        best['ssa_path'] = path + (tuple(remaining), )
                     continue
 
             # add contraction and recurse into all remaining
-            _optimal_iterate(path=path + ((i, j),),
-                             inputs=inputs + (k12,),
+            _optimal_iterate(path=path + ((i, j), ),
+                             inputs=inputs + (k12, ),
                              remaining=remaining - {i, j} | {len(inputs)},
                              flops=new_flops)
 
-    _optimal_iterate(path=(),
-                     inputs=inputs,
-                     remaining=set(range(len(inputs))),
-                     flops=0)
+    _optimal_iterate(path=(), inputs=inputs, remaining=set(range(len(inputs))), flops=0)
 
     return ssa_to_linear(best['ssa_path'])
 
 
 # functions for comparing which of two paths is 'better'
+
 
 def better_flops_first(flops, size, best_flops, best_size):
     return (flops, size) < (best_flops, best_size)
@@ -249,6 +245,7 @@ def get_better_fn(key):
 
 
 # functions for assigning a heuristic 'cost' to a potential contraction
+
 
 def cost_memory_removed(size12, size1, size2, k12, k1, k2):
     """The default heuristic cost, corresponding to the total reduction in
@@ -298,7 +295,6 @@ class BranchBound(PathOptimizer):
         with which to sort candidates. Should have signature
         ``cost_fn(size12, size1, size2, k12, k1, k2)``.
     """
-
     def __init__(self, nbranch=None, cutoff_flops_factor=4, minimize='flops', cost_fn='memory-removed'):
         self.nbranch = nbranch
         self.cutoff_flops_factor = cutoff_flops_factor
@@ -388,7 +384,7 @@ class BranchBound(PathOptimizer):
                     new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
                     if new_flops < self.best['flops']:
                         self.best['flops'] = new_flops
-                        self.best['ssa_path'] = path + (tuple(remaining),)
+                        self.best['ssa_path'] = path + (tuple(remaining), )
                     return None
 
                 # set cost heuristic in order to locally sort possible contractions
@@ -426,18 +422,14 @@ class BranchBound(PathOptimizer):
             bi = 0
             while (self.nbranch is None or bi < self.nbranch) and candidates:
                 _, _, new_flops, new_size, (i, j), k12 = heapq.heappop(candidates)
-                _branch_iterate(path=path + ((i, j),),
-                                inputs=inputs + (k12,),
+                _branch_iterate(path=path + ((i, j), ),
+                                inputs=inputs + (k12, ),
                                 remaining=(remaining - {i, j}) | {len(inputs)},
                                 flops=new_flops,
                                 size=new_size)
                 bi += 1
 
-        _branch_iterate(path=(),
-                        inputs=inputs,
-                        remaining=set(range(len(inputs))),
-                        flops=0,
-                        size=0)
+        _branch_iterate(path=(), inputs=inputs, remaining=set(range(len(inputs))), flops=0, size=0)
 
         return self.path
 
@@ -507,7 +499,7 @@ def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-r
     """
     if len(inputs) == 1:
         # Perform a single contraction to match output shape.
-        return [(0,)]
+        return [(0, )]
 
     # set the function that assigns a heuristic cost to a possible contraction
     cost_fn = _COST_FNS.get(cost_fn, cost_fn)
@@ -549,7 +541,8 @@ def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-r
     # ref counts of >=2 or >=3.
     dim_ref_counts = {
         count: set(dim for dim, keys in dim_to_keys.items() if len(keys) >= count) - output
-        for count in [2, 3]}
+        for count in [2, 3]
+    }
 
     # Compute separable part of the objective function for contractions.
     footprints = {key: helpers.compute_size_by_dict(key, sizes) for key in remaining}
@@ -594,8 +587,7 @@ def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-r
             _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn)
 
     # Greedily compute pairwise outer products.
-    queue = [(helpers.compute_size_by_dict(key & output, sizes), ssa_id, key)
-             for key, ssa_id in remaining.items()]
+    queue = [(helpers.compute_size_by_dict(key & output, sizes), ssa_id, key) for key, ssa_id in remaining.items()]
     heapq.heapify(queue)
     _, ssa_id1, k1 = heapq.heappop(queue)
     while queue:
@@ -695,19 +687,19 @@ def _tree_to_sequence(c):
         return []
 
     c = [c]  # list of remaining contractions (lower part of columns shown above)
-    t = []   # list of elementary tensors (upper part of colums)
-    s = []   # resulting contraction sequence
+    t = []  # list of elementary tensors (upper part of colums)
+    s = []  # resulting contraction sequence
 
     while len(c) > 0:
         j = c.pop(-1)
         s.insert(0, tuple())
 
         for i in sorted([i for i in j if type(i) == int]):
-            s[0] += (sum(1 for q in t if q < i),)
+            s[0] += (sum(1 for q in t if q < i), )
             t.insert(s[0][-1], i)
 
         for i in [i for i in j if type(i) != int]:
-            s[0] += (len(t) + len(c),)
+            s[0] += (len(t) + len(c), )
             c.append(i)
 
     return s
@@ -788,8 +780,8 @@ def _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2):
     return i1_union_i2 - i_contract
 
 
-def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors,
-                      inputs, i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
+def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
+                      i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
     """Performs the inner comparison of whether the two subgraphs (the bitmaps
     ``s1`` and ``s2``) should be merged and added to the dynamic programming
     search. Will skip for a number of reasons:
@@ -810,8 +802,8 @@ def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn
                 xn[s] = (i, cost, (cntrct1, cntrct2))
 
 
-def _dp_compare_size(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors,
-                     inputs, i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
+def _dp_compare_size(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
+                     i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on the size of the intermediate tensor created, rather than the number of
     operations, and so calculates that first.
@@ -850,11 +842,11 @@ def _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts):
         i_reduced = i - i_single
         if not i_reduced:
             # input reduced to scalar already - remove
-            inputs_done.append((j,))
+            inputs_done.append((j, ))
         else:
             # if the input has any index reductions, add single contraction
             inputs_parsed.append(i_reduced)
-            inputs_contractions.append((j,) if i_reduced != i else j)
+            inputs_contractions.append((j, ) if i_reduced != i else j)
 
     return inputs_parsed, inputs_done, inputs_contractions
 
@@ -891,7 +883,6 @@ class DynamicProgramming(PathOptimizer):
         product, this option allows searching such contractions but may well
         slow down the path finding considerably on all but very small graphs.
     """
-
     def __init__(self, minimize='flops', cost_cap=True, search_outer=False):
 
         # set whether inner function minimizes against flops or size
@@ -1024,10 +1015,9 @@ class DynamicProgramming(PathOptimizer):
                                     if self._check_outer(i1_cut_i2_wo_output):
 
                                         i1_union_i2 = i1 | i2
-                                        self._check_contraction(
-                                            cost1, cost2, i1_union_i2, size_dict, cost_cap, s1,
-                                            s2, xn, g, all_tensors, inputs, i1_cut_i2_wo_output,
-                                            memory_limit, cntrct1, cntrct2)
+                                        self._check_contraction(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2,
+                                                                xn, g, all_tensors, inputs, i1_cut_i2_wo_output,
+                                                                memory_limit, cntrct1, cntrct2)
 
                 # increase cost cap for next iteration:
                 cost_cap = cost_increment * cost_cap
@@ -1119,7 +1109,7 @@ def get_path_fn(path_type):
     """Get the correct path finding function from str ``path_type``.
     """
     if path_type not in _PATH_OPTIONS:
-        raise KeyError("Path optimizer '{}' not found, valid options are {}."
-                       .format(path_type, set(_PATH_OPTIONS.keys())))
+        raise KeyError("Path optimizer '{}' not found, valid options are {}.".format(
+            path_type, set(_PATH_OPTIONS.keys())))
 
     return _PATH_OPTIONS[path_type]

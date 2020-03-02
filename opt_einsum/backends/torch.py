@@ -62,9 +62,9 @@ def tensordot(x, y, axes=2):
 
     # convert (int, int) to (list[int], list[int])
     if isinstance(axes[0], int):
-        axes = (axes[0],), axes[1]
+        axes = (axes[0], ), axes[1]
     if isinstance(axes[1], int):
-        axes = axes[0], (axes[1],)
+        axes = axes[0], (axes[1], )
 
     # initialize empty indices
     x_ix = [None] * xnd
@@ -108,7 +108,6 @@ def to_torch(array):
 def build_expression(_, expr):  # pragma: no cover
     """Build a torch function based on ``arrays`` and ``expr``.
     """
-
     def torch_contract(*arrays):
         torch_arrays = [to_torch(x) for x in arrays]
         torch_out = expr._contract(torch_arrays, backend='torch')

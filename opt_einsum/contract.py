@@ -7,12 +7,7 @@ from decimal import Decimal
 
 import numpy as np
 
-from . import backends
-from . import blas
-from . import helpers
-from . import parser
-from . import paths
-from . import sharing
+from . import backends, blas, helpers, parser, paths, sharing
 
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only"]
 
@@ -30,9 +25,8 @@ class PathInfo(object):
         The number of elements in the largest intermediate array that will be
         produced during the contraction.
     """
-
-    def __init__(self, contraction_list, input_subscripts, output_subscript, indices,
-                 path, scale_list, naive_cost, opt_cost, size_list, size_dict):
+    def __init__(self, contraction_list, input_subscripts, output_subscript, indices, path, scale_list, naive_cost,
+                 opt_cost, size_list, size_dict):
         self.contraction_list = contraction_list
         self.input_subscripts = input_subscripts
         self.output_subscript = output_subscript
@@ -54,16 +48,12 @@ class PathInfo(object):
         header = ("scaling", "BLAS", "current", "remaining")
 
         path_print = [
-            "  Complete contraction:  {}\n".format(self.eq),
-            "         Naive scaling:  {}\n".format(len(self.indices)),
-            "     Optimized scaling:  {}\n".format(max(self.scale_list)),
-            "      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
-            "  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
+            "  Complete contraction:  {}\n".format(self.eq), "         Naive scaling:  {}\n".format(len(self.indices)),
+            "     Optimized scaling:  {}\n".format(max(self.scale_list)), "      Naive FLOP count:  {:.3e}\n".format(
+                self.naive_cost), "  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
             "   Theoretical speedup:  {:3.3f}\n".format(self.speedup),
-            "  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate),
-            "-" * 80 + "\n",
-            "{:>6} {:>11} {:>22} {:>37}\n".format(*header),
-            "-" * 80
+            "  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate), "-" * 80 + "\n",
+            "{:>6} {:>11} {:>22} {:>37}\n".format(*header), "-" * 80
         ]
 
         for n, contraction in enumerate(self.contraction_list):
@@ -321,8 +311,8 @@ def contract_path(*operands, **kwargs):
     if einsum_call_arg:
         return operands, contraction_list
 
-    path_print = PathInfo(contraction_list, input_subscripts, output_subscript, indices,
-                          path, scale_list, naive_cost, opt_cost, size_list, dimension_dict)
+    path_print = PathInfo(contraction_list, input_subscripts, output_subscript, indices, path, scale_list, naive_cost,
+                          opt_cost, size_list, dimension_dict)
 
     return path, path_print
 
@@ -480,8 +470,11 @@ def contract(*operands, **kwargs):
         full_str = operands[0]
 
     # Build the contraction list and operand
-    operands, contraction_list = contract_path(
-        *operands, optimize=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas)
+    operands, contraction_list = contract_path(*operands,
+                                               optimize=optimize_arg,
+                                               memory_limit=memory_limit,
+                                               einsum_call=True,
+                                               use_blas=use_blas)
 
     # check if performing contraction or just building expression
     if gen_expression:
@@ -613,7 +606,6 @@ class ContractExpression:
     """Helper class for storing an explicit ``contraction_list`` which can
     then be repeatedly called solely with the array arguments.
     """
-
     def __init__(self, contraction, contraction_list, constants_dict, **einsum_kwargs):
         self.contraction_list = contraction_list
         self.einsum_kwargs = einsum_kwargs
@@ -674,13 +666,12 @@ class ContractExpression:
         """
         contraction_list = self._full_contraction_list if evaluate_constants else self.contraction_list
 
-        return _core_contract(
-            list(arrays),
-            contraction_list,
-            out=out,
-            backend=backend,
-            evaluate_constants=evaluate_constants,
-            **self.einsum_kwargs)
+        return _core_contract(list(arrays),
+                              contraction_list,
+                              out=out,
+                              backend=backend,
+                              evaluate_constants=evaluate_constants,
+                              **self.einsum_kwargs)
 
     def _contract_with_conversion(self, arrays, out, backend, evaluate_constants=False):
         """Special contraction, i.e., contraction with a different backend
@@ -852,7 +843,7 @@ def contract_expression(subscripts, *shapes, **kwargs):
                              "`ContractExpression`, not when building it.".format(arg))
 
     if not isinstance(subscripts, str):
-        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)
+        subscripts, shapes = parser.convert_interleaved_input((subscripts, ) + shapes)
 
     kwargs['_gen_expression'] = True
 
