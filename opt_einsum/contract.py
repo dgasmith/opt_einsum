@@ -220,7 +220,7 @@ def contract_path(*operands, **kwargs):
 
         if len(sh) != len(term):
             raise ValueError("Einstein sum subscript '{}' does not contain the "
-                             "correct number of indices for operand {}.".format(input_subscripts[tnum], tnum))
+                             "correct number of indices for operand {}.".format(input_list[tnum], tnum))
         for cnum, char in enumerate(term):
             dim = int(sh[cnum])
 
