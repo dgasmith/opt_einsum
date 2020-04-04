@@ -107,7 +107,7 @@ Details about the optimized contraction order can be explored:
 
 .. code:: python
 
-    >>> from opt_einsum import contract_path
+    >>> import opt_einsum as oe
 
     >>> path_info = oe.contract_path('pi,qj,ijkl,rk,sl->pqrs', C, C, I, C, C)
 

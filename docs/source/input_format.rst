@@ -18,6 +18,7 @@ followed by the array arguments:
 
 .. code:: python
 
+    >>> import opt_einsum as oe
     >>> eq = 'ijk,jkl->li'
     >>> x, y = np.random.rand(2, 3, 4), np.random.rand(3, 4, 5)
     >>> z = oe.contract(eq, x, y)
