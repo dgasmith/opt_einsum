@@ -43,6 +43,18 @@ class PathOptimizer(object):
 
     where ``path`` is a list of int-tuples specifiying a contraction order.
     """
+
+    def check_args_against_first_call(self, inputs, output, size_dict):
+        """Utility that stateful optimizers can use to ensure they are not
+        called with different contractions across separate runs.
+        """
+        args = (inputs, output, size_dict)
+        if not hasattr(self, '_first_call_args'):
+            self._first_call_args = args
+        elif args != self._first_call_args:
+            raise ValueError("The arguments specifiying the contraction that this path optimizer "
+                             "instance was called with have changed - try creating a new instance.")
+
     def __call__(self, inputs, output, size_dict, memory_limit=None):
         raise NotImplementedError
 
@@ -336,6 +348,7 @@ class BranchBound(PathOptimizer):
         >>> optimal(isets, oset, idx_sizes, 5000)
         [(0, 2), (0, 1)]
         """
+        self.check_args_against_first_call(inputs, output, size_dict)
 
         inputs = tuple(map(frozenset, inputs))
         output = frozenset(output)
