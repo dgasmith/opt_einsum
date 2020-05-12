@@ -37,7 +37,10 @@ def _import_func(func, backend, default=None):
         lib = importlib.import_module(_aliases.get(backend, backend))
         return getattr(lib, func) if default is None else getattr(lib, func, default)
     except AttributeError:
-        raise AttributeError("{} doesn't seem to provide the function {}".format(backend, func))
+        error_msg = ("{} doesn't seem to provide the function {} - see "
+                     "https://optimized-einsum.readthedocs.io/en/latest/backends.html "
+                     "for details on which functions are required for which contractions.")
+        raise AttributeError(error_msg.format(backend, func))
 
 
 # manually cache functions as python2 doesn't support functools.lru_cache
