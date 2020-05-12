@@ -163,7 +163,7 @@ class RandomOptimizer(paths.PathOptimizer):
         raise NotImplementedError
 
     def __call__(self, inputs, output, size_dict, memory_limit):
-        self.check_args_against_first_call(inputs, output, size_dict)
+        self._check_args_against_first_call(inputs, output, size_dict)
 
         # start a timer?
         if self.max_time is not None:
