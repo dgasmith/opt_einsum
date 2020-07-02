@@ -7,9 +7,9 @@ import functools
 import operator
 
 
-def oinsum(eq, *arrays):
+def object_einsum(eq, *arrays):
     """A ``einsum`` implementation for ``numpy`` arrays with object dtype.
-    The loop is performed in python, meaning that the objects themselves need
+    The loop is performed in python, meaning the objects themselves need
     only to implement ``__mul__`` and ``__add__`` for the contraction to be
     computed. This may be useful when, for example, computing expressions of
     tensors with symbolic elements, but note it will be very slow when compared

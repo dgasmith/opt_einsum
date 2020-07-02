@@ -434,7 +434,7 @@ def test_auto_backend_custom_array_no_tensordot():
 
 
 @pytest.mark.parametrize("string", tests)
-def test_objects(string):
+def test_object_arrays_backend(string):
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     assert ein.dtype != object

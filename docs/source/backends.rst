@@ -335,7 +335,7 @@ so long the *objects themselves* just support multiplication and addition (
 ``__mul__`` and ``__add__`` dunder methods respectively). Use it by supplying
 ``backend='object'``.
 
-For example imagine we want to perform a contraction of arrays made up of
+For example, imagine we want to perform a contraction of arrays made up of
 `sympy <www.sympy.org>`_ symbols:
 
 .. code-block:: python
@@ -359,7 +359,7 @@ For example imagine we want to perform a contraction of arrays made up of
   array([i*(a*e + b*g) + k*(a*f + b*h), j*(c*e + d*g) + l*(c*f + d*h)],
         dtype=object)
 
-There's a few things to note here:
+There are a few things to note here:
 
 * The returned array is a ``numpy.ndarray`` but since it has ``dtype=object``
   it can really hold *any* python objects
