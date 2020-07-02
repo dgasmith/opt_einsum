@@ -8,6 +8,7 @@ import importlib
 
 import numpy
 
+from . import objects
 from . import cupy as _cupy
 from . import jax as _jax
 from . import tensorflow as _tensorflow
@@ -49,6 +50,10 @@ _cached_funcs = {
     ('tensordot', 'numpy'): numpy.tensordot,
     ('transpose', 'numpy'): numpy.transpose,
     ('einsum', 'numpy'): numpy.einsum,
+    # also pre-populate with the arbitrary object backend
+    ('tensordot', 'object'): numpy.tensordot,
+    ('transpose', 'object'): numpy.transpose,
+    ('einsum', 'object'): objects.oinsum,
 }
 
 

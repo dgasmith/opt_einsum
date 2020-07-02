@@ -325,3 +325,47 @@ so again just the ``backend`` keyword needs to be supplied:
            [-462.52362  , -121.12659  ,  -67.84769  ,  624.5455   ],
            [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],
           dtype=float32)
+
+
+Contracting arbitrary objects
+=============================
+
+There is one more explicit backend that can handle arbitrary arrays of objects,
+so long the *objects themselves* just support multiplication and addition (
+``__mul__`` and ``__add__`` dunder methods respectively). Use it by supplying
+``backend='object'``.
+
+For example imagine we want to perform a contraction of arrays made up of
+`sympy <www.sympy.org>`_ symbols:
+
+.. code-block:: python
+
+  >>> import opt_einsum as oe
+  >>> import numpy as np
+  >>> import sympy
+
+  >>> # define the symbols
+  >>> a, b, c, d, e, f, g, h, i, j, k, l = [sympy.symbols(oe.get_symbol(i)) for i in range(12)]
+  >>> a * b + c * d
+  𝑎𝑏+𝑐𝑑
+
+  >>> # define the tensors (you might explicitly specify ``dtype=object``)
+  >>> X = np.array([[a, b], [c, d]])
+  >>> Y = np.array([[e, f], [g, h]])
+  >>> Z = np.array([[i, j], [k, l]])
+
+  >>> # contract the tensors!
+  >>> oe.contract('uv,vw,wu->u', X, Y, Z, backend='object')
+  array([i*(a*e + b*g) + k*(a*f + b*h), j*(c*e + d*g) + l*(c*f + d*h)],
+        dtype=object)
+
+There's a few things to note here:
+
+* The returned array is a ``numpy.ndarray`` but since it has ``dtype=object``
+  it can really hold *any* python objects
+* We had to explicitly use ``backend='object'``, since :func:`numpy.einsum`
+  would have otherwise been dispatched to, which can't handle ``dtype=object``
+  (though :func:`numpy.tensordot` in fact can)
+* Although an optimized pairwise contraction order is used, the looping in each
+  single contraction is **performed in python so performance will be
+  drastically lower than for numeric dtypes!**
