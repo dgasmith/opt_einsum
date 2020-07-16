@@ -171,7 +171,7 @@ def test_printing():
     views = helpers.build_views(string)
 
     ein = contract_path(string, *views)
-    assert len(str(ein[1])) == 726
+    assert len(str(ein[1])) == 728
 
 
 @pytest.mark.parametrize("string", tests)
