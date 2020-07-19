@@ -13,18 +13,18 @@ _JAX = None
 
 
 def _get_jax_and_to_jax():
-  global _JAX
-  if _JAX is None:
-    import jax
+    global _JAX
+    if _JAX is None:
+        import jax
 
-    @to_backend_cache_wrap
-    @jax.jit
-    def to_jax(x):
-        return x
+        @to_backend_cache_wrap
+        @jax.jit
+        def to_jax(x):
+            return x
 
-    _JAX = jax, to_jax
+        _JAX = jax, to_jax
 
-  return _JAX
+    return _JAX
 
 
 def build_expression(_, expr):  # pragma: no cover
