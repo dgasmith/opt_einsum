@@ -1,6 +1,21 @@
 Changelog
 =========
 
+3.3.0 / 2020-07-19
+------------------
+
+Adds a ``object`` backend for optimized contractions on arbitrary Python objects.
+
+New Features
+++++++++++++
+ - (:pr:`145`) Adds a ``object`` based backend so that ``contract(backend='object')`` can be used on arbitrary objects such as SymPy symbols.
+
+Enhancements
+++++++++++++
+ - (:pr:`140`) Better error messages when the requested ``contract`` backend cannot be found.
+ - (:pr:`141`) Adds a check with RandomOptimizers to ensure the objects are not accidentally reused for different contractions.
+ - (:pr:`149`) Limits the ``remaining`` category for the ``contract_path`` output to only show up to 20 tensors to prevent issues with the quadratically scaling memory requirements and the number of print lines for large contractions.
+
 3.2.0 / 2020-03-01
 ------------------
 
