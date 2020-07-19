@@ -8,7 +8,7 @@ Adds a ``object`` backend for optimized contractions on arbitrary Python objects
 
 New Features
 ++++++++++++
- - (:pr:`145`) Adds a ``object`` based backend so that ``contract(backend='object')`` can be used on arbitrary objects such as SymPy sybmols.
+ - (:pr:`145`) Adds a ``object`` based backend so that ``contract(backend='object')`` can be used on arbitrary objects such as SymPy symbols.
 
 Enhancements
 ++++++++++++
