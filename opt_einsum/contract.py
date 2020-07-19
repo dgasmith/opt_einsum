@@ -309,7 +309,9 @@ def contract_path(*operands, **kwargs):
 
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
 
-        if len(input_list) <= 10:
+        # for large expressions saving the remaining terms at each step can
+        # incur a large memory footprint - and also be messy to print
+        if len(input_list) <= 20:
             remaining = tuple(input_list)
         else:
             remaining = None
