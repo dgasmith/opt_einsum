@@ -34,7 +34,8 @@ def test_type_errors():
         contract("", 0, out='test')
 
     # order parameter must be a valid order
-    with pytest.raises(TypeError):
+    # changed in Numpy 1.19, see https://github.com/numpy/numpy/commit/35b0a051c19265f5643f6011ee11e31d30c8bc4c
+    with pytest.raises((TypeError, ValueError)):
         contract("", 0, order='W')
 
     # casting parameter must be a valid casting
