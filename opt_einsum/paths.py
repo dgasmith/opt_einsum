@@ -6,6 +6,7 @@ import functools
 import heapq
 import itertools
 import random
+import operator
 from collections import Counter, OrderedDict, defaultdict
 
 import numpy as np
@@ -961,6 +962,7 @@ class DynamicProgramming(PathOptimizer):
         output = set(symbol2int[c] for c in output)
         size_dict = {symbol2int[c]: v for c, v in size_dict.items() if c in symbol2int}
         size_dict = [size_dict[j] for j in range(len(size_dict))]
+        naive_cost = functools.reduce(operator.mul, size_dict)
 
         inputs, inputs_done, inputs_contractions = _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts)
 
@@ -1032,6 +1034,9 @@ class DynamicProgramming(PathOptimizer):
                                         self._check_contraction(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2,
                                                                 xn, g, all_tensors, inputs, i1_cut_i2_wo_output,
                                                                 memory_limit, cntrct1, cntrct2)
+
+                if (cost_cap >= naive_cost) and (len(x[-1]) == 0):
+                    raise RuntimeError("No contraction found for given `memory_limit`.")
 
                 # increase cost cap for next iteration:
                 cost_cap = cost_increment * cost_cap

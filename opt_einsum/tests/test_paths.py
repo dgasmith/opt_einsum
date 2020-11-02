@@ -250,6 +250,22 @@ def test_custom_dp_can_set_cost_cap():
     assert info1.opt_cost == info2.opt_cost == info3.opt_cost
 
 
+def test_dp_errors_when_no_contractions_found():
+    eq, shapes, size_dict = oe.helpers.rand_equation(10, 3, seed=42, return_size_dict=True)
+
+    # first get the actual minimum cost
+    opt = oe.DynamicProgramming(minimize='size')
+    path, info = oe.contract_path(eq, *shapes, shapes=True, optimize=opt)
+    mincost = info.largest_intermediate
+
+    # check we can still find it without minimizing size explicitly
+    oe.contract_path(eq, *shapes, shapes=True, memory_limit=mincost, optimize='dp')
+
+    # but check just below this threshold raises
+    with pytest.raises(RuntimeError):
+        oe.contract_path(eq, *shapes, shapes=True, memory_limit=mincost - 1, optimize='dp')
+
+
 @pytest.mark.parametrize("optimize", ['greedy', 'branch-2', 'branch-all', 'optimal', 'dp'])
 def test_can_optimize_outer_products(optimize):
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
