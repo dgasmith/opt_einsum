@@ -569,8 +569,11 @@ def _core_contract(operands, contraction_list, backend='auto', evaluate_constant
                 left_pos.append(input_left.find(s))
                 right_pos.append(input_right.find(s))
 
+            # Contruct the axes tuples in a canonical order
+            axes = tuple(zip(*sorted(zip(left_pos, right_pos))))
+
             # Contract!
-            new_view = _tensordot(*tmp_operands, axes=(tuple(left_pos), tuple(right_pos)), backend=backend)
+            new_view = _tensordot(*tmp_operands, axes=axes, backend=backend)
 
             # Build a new view if needed
             if (tensor_result != results_index) or handle_out:
