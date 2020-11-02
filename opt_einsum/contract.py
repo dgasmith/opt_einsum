@@ -567,7 +567,7 @@ def _core_contract(operands, contraction_list, backend='auto', evaluate_constant
                 left_pos.append(input_left.find(s))
                 right_pos.append(input_right.find(s))
 
-            # Contruct the axes tuples in a canonical order
+            # Construct the axes tuples in a canonical order
             axes = tuple(zip(*sorted(zip(left_pos, right_pos))))
 
             # Contract!
