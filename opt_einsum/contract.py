@@ -5,8 +5,6 @@ Contains the primary optimization and contraction routines.
 from collections import namedtuple
 from decimal import Decimal
 
-import numpy as np
-
 from . import backends, blas, helpers, parser, paths, sharing
 
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only"]
@@ -760,7 +758,7 @@ class ContractExpression:
         try:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
-            if backends.has_backend(backend) and all(isinstance(x, np.ndarray) for x in arrays):
+            if backends.has_backend(backend) and all(infer_backend(x) == 'numpy' for x in arrays):
                 return self._contract_with_conversion(ops, out, backend, evaluate_constants=evaluate_constants)
 
             return self._contract(ops, out, backend, evaluate_constants=evaluate_constants)
