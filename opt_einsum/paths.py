@@ -1035,7 +1035,7 @@ class DynamicProgramming(PathOptimizer):
                                                                 xn, g, all_tensors, inputs, i1_cut_i2_wo_output,
                                                                 memory_limit, cntrct1, cntrct2)
 
-                if (cost_cap >= naive_cost) and (len(x[-1]) == 0):
+                if (cost_cap > naive_cost) and (len(x[-1]) == 0):
                     raise RuntimeError("No contraction found for given `memory_limit`.")
 
                 # increase cost cap for next iteration:
