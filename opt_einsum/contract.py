@@ -561,14 +561,18 @@ def _core_contract(operands, contraction_list, backend='auto', evaluate_constant
 
             tensor_result = "".join(s for s in input_left + input_right if s not in idx_rm)
 
-            # Find indices to contract over
-            left_pos, right_pos = [], []
-            for s in idx_rm:
-                left_pos.append(input_left.find(s))
-                right_pos.append(input_right.find(s))
+            if idx_rm:
+                # Find indices to contract over
+                left_pos, right_pos = [], []
+                for s in idx_rm:
+                    left_pos.append(input_left.find(s))
+                    right_pos.append(input_right.find(s))
 
-            # Construct the axes tuples in a canonical order
-            axes = tuple(zip(*sorted(zip(left_pos, right_pos))))
+                # Construct the axes tuples in a canonical order
+                axes = tuple(zip(*sorted(zip(left_pos, right_pos))))
+            else:
+                # Ensure axes is always pair of tuples
+                axes = ((), ())
 
             # Contract!
             new_view = _tensordot(*tmp_operands, axes=axes, backend=backend)
