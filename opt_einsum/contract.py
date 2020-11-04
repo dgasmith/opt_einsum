@@ -5,8 +5,6 @@ Contains the primary optimization and contraction routines.
 from collections import namedtuple
 from decimal import Decimal
 
-import numpy as np
-
 from . import backends, blas, helpers, parser, paths, sharing
 
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only"]
@@ -563,14 +561,21 @@ def _core_contract(operands, contraction_list, backend='auto', evaluate_constant
 
             tensor_result = "".join(s for s in input_left + input_right if s not in idx_rm)
 
-            # Find indices to contract over
-            left_pos, right_pos = [], []
-            for s in idx_rm:
-                left_pos.append(input_left.find(s))
-                right_pos.append(input_right.find(s))
+            if idx_rm:
+                # Find indices to contract over
+                left_pos, right_pos = [], []
+                for s in idx_rm:
+                    left_pos.append(input_left.find(s))
+                    right_pos.append(input_right.find(s))
+
+                # Construct the axes tuples in a canonical order
+                axes = tuple(zip(*sorted(zip(left_pos, right_pos))))
+            else:
+                # Ensure axes is always pair of tuples
+                axes = ((), ())
 
             # Contract!
-            new_view = _tensordot(*tmp_operands, axes=(tuple(left_pos), tuple(right_pos)), backend=backend)
+            new_view = _tensordot(*tmp_operands, axes=axes, backend=backend)
 
             # Build a new view if needed
             if (tensor_result != results_index) or handle_out:
@@ -757,7 +762,7 @@ class ContractExpression:
         try:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
-            if backends.has_backend(backend) and all(isinstance(x, np.ndarray) for x in arrays):
+            if backends.has_backend(backend) and all(infer_backend(x) == 'numpy' for x in arrays):
                 return self._contract_with_conversion(ops, out, backend, evaluate_constants=evaluate_constants)
 
             return self._contract(ops, out, backend, evaluate_constants=evaluate_constants)
