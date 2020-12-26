@@ -276,7 +276,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
     chosen, = random_choices(range(n), weights=energies)
     cost, k1, k2, k12 = choices.pop(chosen)
 
-    # put the other choise back in the heap
+    # put the other choice back in the heap
     for other in choices:
         heapq.heappush(queue, other)
 

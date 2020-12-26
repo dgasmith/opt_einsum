@@ -245,7 +245,7 @@ def contract_path(*operands, **kwargs):
     num_ops = len(input_list)
 
     # Compute naive cost
-    # This isnt quite right, need to look into exactly how einsum does this
+    # This is not quite right, need to look into exactly how einsum does this
     # indices_in_input = input_subscripts.replace(',', '')
 
     inner_product = (sum(len(x) for x in input_sets) - len(indices)) > 0
@@ -375,7 +375,7 @@ def _tensordot(x, y, axes, backend='numpy'):
 # Rewrite einsum to handle different cases
 def contract(*operands, **kwargs):
     """
-    contract(subscripts, *operands, out=None, dtype=None, order='K', casting='safe', use_blas=True, optimize=True, memory_limit=None, backend='numpy')
+    contract(subscripts, *operands, out=None, dtype=None, order='K', casting='safe', use_blas=True, optimize=True, memory_limit=None, backend='numpy') 
 
     Evaluates the Einstein summation convention on the operands. A drop in
     replacement for NumPy's einsum function that optimizes the order of contraction

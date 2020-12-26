@@ -1,14 +1,15 @@
+
+# Optimized Einsum
+
 [![Build Status](https://travis-ci.org/dgasmith/opt_einsum.svg?branch=master)](https://travis-ci.org/dgasmith/opt_einsum)
 [![codecov](https://codecov.io/gh/dgasmith/opt_einsum/branch/master/graph/badge.svg)](https://codecov.io/gh/dgasmith/opt_einsum)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/opt_einsum/badges/version.svg)](https://anaconda.org/conda-forge/opt_einsum)
 [![PyPI](https://img.shields.io/pypi/v/opt_einsum.svg)](https://pypi.org/project/opt-einsum/#description)
 [![PyPIStats](https://img.shields.io/pypi/dm/opt_einsum)](https://pypistats.org/packages/opt-einsum)
 [![Documentation Status](https://readthedocs.org/projects/optimized-einsum/badge/?version=latest)](http://optimized-einsum.readthedocs.io/en/latest/?badge=latest)
-[![DOI](http://joss.theoj.org/papers/10.21105/joss.00753/status.svg)](https://doi.org/10.21105/joss.00753)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.00753/status.svg)](https://doi.org/10.21105/joss.00753)
 
-
-Optimized Einsum: A tensor contraction order optimizer
-======================================================
+## Optimized Einsum: A tensor contraction order optimizer
 
 Optimized einsum can significantly reduce the overall execution time of einsum-like expressions (e.g.,
 [`np.einsum`](https://docs.scipy.org/doc/numpy/reference/generated/numpy.einsum.html),
@@ -17,7 +18,9 @@ Optimized einsum can significantly reduce the overall execution time of einsum-l
 [`tensorflow.einsum`](https://www.tensorflow.org/api_docs/python/tf/einsum),
 )
 by optimizing the expression's contraction order and dispatching many
-operations to canonical BLAS, cuBLAS, or other specialized routines. Optimized
+operations to canonical BLAS, cuBLAS, or other specialized routines.
+
+Optimized
 einsum is agnostic to the backend and can handle NumPy, Dask, PyTorch,
 Tensorflow, CuPy, Sparse, Theano, JAX, and Autograd arrays as well as potentially
 any library which conforms to a standard API. See the
@@ -70,10 +73,9 @@ The following capabilities are enabled by `opt_einsum`:
 
 Please see the [documentation](http://optimized-einsum.readthedocs.io/en/latest/?badge=latest) for more features!
 
-
 ## Installation
 
-`opt_einsum` can either be installed via `pip install opt_einsum` or from conda `conda install opt_einsum -c conda-forge`. See the installation [documenation](http://optimized-einsum.readthedocs.io/en/latest/install.html) for further methods.
+`opt_einsum` can either be installed via `pip install opt_einsum` or from conda `conda install opt_einsum -c conda-forge`. See the installation [documentation](http://optimized-einsum.readthedocs.io/en/latest/install.html) for further methods.
 
 ## Citation
 
@@ -81,12 +83,10 @@ If this code has benefited your research, please support us by citing:
 
 Daniel G. A. Smith and Johnnie Gray, opt_einsum - A Python package for optimizing contraction order for einsum-like expressions. *Journal of Open Source Software*, **2018**, 3(26), 753
 
-DOI: https://doi.org/10.21105/joss.00753
+DOI: <https://doi.org/10.21105/joss.00753>
 
 ## Contributing
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome.
 
 A detailed overview on how to contribute can be found in the [contributing guide](https://github.com/dgasmith/opt_einsum/blob/master/.github/CONTRIBUTING.md).
-
-

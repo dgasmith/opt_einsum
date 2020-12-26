@@ -69,7 +69,7 @@ def get_func(func, backend='numpy', default=None):
         return fn
 
 
-# mark libs with einsum, else try to use tensordot/tranpose as much as possible
+# mark libs with einsum, else try to use tensordot/transpose as much as possible
 _has_einsum = {}
 
 
