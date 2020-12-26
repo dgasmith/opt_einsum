@@ -21,10 +21,6 @@ dependencies:
   - codecov
   - pytest-cov
 
-   # Linting
-  - flake8
-  - flake8-spellcheck
-
   # non-conda backends
   - pip
   - pip:
