@@ -702,7 +702,7 @@ def _tree_to_sequence(c):
         return []
 
     c = [c]  # list of remaining contractions (lower part of columns shown above)
-    t = []  # list of elementary tensors (upper part of colums)
+    t = []  # list of elementary tensors (upper part of columns)
     s = []  # resulting contraction sequence
 
     while len(c) > 0:
@@ -970,7 +970,7 @@ class DynamicProgramming(PathOptimizer):
             # nothing left to do after single axis reductions!
             return _tree_to_sequence(simple_tree_tuple(inputs_done))
 
-        # a list of all neccessary contraction expressions for each of the
+        # a list of all necessary contraction expressions for each of the
         # disconnected subgraphs and their size
         subgraph_contractions = inputs_done
         subgraph_contractions_size = [1] * len(inputs_done)

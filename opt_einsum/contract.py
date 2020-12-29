@@ -245,7 +245,7 @@ def contract_path(*operands, **kwargs):
     num_ops = len(input_list)
 
     # Compute naive cost
-    # This isnt quite right, need to look into exactly how einsum does this
+    # This is not quite right, need to look into exactly how einsum does this
     # indices_in_input = input_subscripts.replace(',', '')
 
     inner_product = (sum(len(x) for x in input_sets) - len(indices)) > 0

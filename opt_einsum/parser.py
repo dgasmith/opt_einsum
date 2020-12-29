@@ -121,7 +121,8 @@ def alpha_canonicalize(equation):
 
 def find_output_str(subscripts):
     """
-    Find the output string for the inputs ``subscripts`` under canonical einstein summation rules. That is, repeated indices are summed over by default.
+    Find the output string for the inputs ``subscripts`` under canonical einstein summation rules.
+    That is, repeated indices are summed over by default.
 
     Examples
     --------

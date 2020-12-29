@@ -91,7 +91,7 @@ def can_blas(inputs, result, idx_removed, shapes=None):
     if inputs[0] == inputs[1]:
         return 'DOT'
 
-    # DDOT doesnt make sense if you have to tranpose - prefer einsum
+    # DDOT does not make sense if you have to transpose - prefer einsum
     elif sets[0] == sets[1]:
         return 'DOT/EINSUM'
 
@@ -107,7 +107,7 @@ def can_blas(inputs, result, idx_removed, shapes=None):
     elif input_left[-rs:] == input_right[-rs:]:
         return 'GEMM'
 
-    # GEMM tranpose left
+    # GEMM transpose left
     elif input_left[:rs] == input_right[:rs]:
         return 'GEMM'
 
@@ -216,7 +216,7 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
     elif input_left[-rs:] == input_right[-rs:]:
         new_view = np.dot(view_left.reshape(dim_left, dim_removed), view_right.reshape(dim_right, dim_removed).T)
 
-    # Tranpose left
+    # Transpose left
     elif input_left[:rs] == input_right[:rs]:
         new_view = np.dot(view_left.reshape(dim_removed, dim_left).T, view_right.reshape(dim_removed, dim_right))
 
