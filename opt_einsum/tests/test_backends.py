@@ -280,7 +280,7 @@ def test_jax_with_constants(constants):  # pragma: no cover
     # check jax
     res_got = expr(var, backend='jax')
     # check jax versions of constants exist
-    assert all(array is None or infer_backend(array) == 'jax' for array in expr._evaluated_constants['jax'])
+    assert all(array is None or infer_backend(array).startswith('jax') for array in expr._evaluated_constants['jax'])
 
     assert np.allclose(res_exp, res_got)
 
