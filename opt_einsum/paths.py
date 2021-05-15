@@ -8,6 +8,7 @@ import itertools
 import operator
 import random
 from collections import Counter, OrderedDict, defaultdict
+from typing import Dict, FrozenSet, List, Set, Tuple
 
 import numpy as np
 
@@ -19,6 +20,8 @@ __all__ = [
 ]
 
 _UNLIMITED_MEM = {-1, None, float('inf')}
+
+PathType = List[Tuple[int, ...]]
 
 
 class PathOptimizer(object):
@@ -60,7 +63,7 @@ class PathOptimizer(object):
         raise NotImplementedError
 
 
-def ssa_to_linear(ssa_path):
+def ssa_to_linear(ssa_path: PathType) -> PathType:
     """
     Convert a path with static single assignment ids to a path with recycled
     linear ids. For example::
@@ -77,7 +80,7 @@ def ssa_to_linear(ssa_path):
     return path
 
 
-def linear_to_ssa(path):
+def linear_to_ssa(path: PathType) -> PathType:
     """
     Convert a path with recycled linear ids to a path with static single
     assignment ids. For example::
@@ -97,7 +100,8 @@ def linear_to_ssa(path):
     return ssa_path
 
 
-def calc_k12_flops(inputs, output, remaining, i, j, size_dict):
+def calc_k12_flops(inputs: Tuple[FrozenSet[str]], output: FrozenSet[str], remaining: FrozenSet[int], i: t, j: int,
+                   size_dict: Dict[str, int]) -> FrozenSet[int]:
     """
     Calculate the resulting indices and flops for a potential pairwise
     contraction - used in the recursive (optimal/branch) algorithms.

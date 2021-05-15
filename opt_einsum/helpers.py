@@ -2,8 +2,7 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 
@@ -175,14 +174,16 @@ def flop_count(idx_contraction: str, inner: bool, num_terms: int, size_dictionar
     return overall_size * op_factor
 
 
-def rand_equation(n: int,
-                  reg: int,
-                  n_out: int = 0,
-                  d_min: int = 2,
-                  d_max: int = 9,
-                  seed: Optional[int] = None,
-                  global_dim: bool = False,
-                  return_size_dict: bool = False) -> Any:
+def rand_equation(
+    n: int,
+    reg: int,
+    n_out: int = 0,
+    d_min: int = 2,
+    d_max: int = 9,
+    seed: Optional[int] = None,
+    global_dim: bool = False,
+    return_size_dict: bool = False
+) -> Union[Tuple[str, List[Tuple[int, ...]], Dict[str, int]], Tuple[str, List[Tuple[int, ...]]]]:
     """Generate a random contraction and shapes.
 
     Parameters
@@ -242,7 +243,7 @@ def rand_equation(n: int,
     inputs = ["" for _ in range(n)]
     output = []
 
-    size_dict = OrderedDict((get_symbol(i), np.random.randint(d_min, d_max + 1)) for i in range(num_inds))
+    size_dict = {get_symbol(i): np.random.randint(d_min, d_max + 1) for i in range(num_inds)}
 
     # generate a list of indices to place either once or twice
     def gen():
@@ -278,7 +279,7 @@ def rand_equation(n: int,
         output += gdim
 
     # randomly transpose the output indices and form equation
-    output = "".join(np.random.permutation(output))
+    output = "".join(np.random.permutation(output))  # type: ignore
     eq = "{}->{}".format(",".join(inputs), output)
 
     # make the shapes
@@ -287,6 +288,6 @@ def rand_equation(n: int,
     ret = (eq, shapes)
 
     if return_size_dict:
-        ret += (size_dict, )
-
-    return ret
+        return ret + (size_dict, )
+    else:
+        return ret
