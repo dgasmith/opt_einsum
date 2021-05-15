@@ -71,7 +71,7 @@ def ssa_to_linear(ssa_path: PathType) -> PathType:
         >>> ssa_to_linear([(0, 3), (2, 4), (1, 5)])
         [(0, 3), (1, 2), (0, 1)]
     """
-    ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
+    ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)  # type: ignore
     path = []
     for ssa_ids in ssa_path:
         path.append(tuple(int(ids[ssa_id]) for ssa_id in ssa_ids))
@@ -100,8 +100,8 @@ def linear_to_ssa(path: PathType) -> PathType:
     return ssa_path
 
 
-def calc_k12_flops(inputs: Tuple[FrozenSet[str]], output: FrozenSet[str], remaining: FrozenSet[int], i: t, j: int,
-                   size_dict: Dict[str, int]) -> FrozenSet[int]:
+def calc_k12_flops(inputs: Tuple[FrozenSet[str]], output: FrozenSet[str], remaining: FrozenSet[int], i: int, j: int,
+                   size_dict: Dict[str, int]) -> Tuple[FrozenSet[str], int]:
     """
     Calculate the resulting indices and flops for a potential pairwise
     contraction - used in the recursive (optimal/branch) algorithms.
@@ -137,7 +137,7 @@ def calc_k12_flops(inputs: Tuple[FrozenSet[str]], output: FrozenSet[str], remain
     keep = frozenset.union(output, *map(inputs.__getitem__, remaining - {i, j}))
 
     k12 = either & keep
-    cost = helpers.flop_count(either, shared - keep, 2, size_dict)
+    cost = helpers.flop_count(either, bool(shared - keep), 2, size_dict)
 
     return k12, cost
 

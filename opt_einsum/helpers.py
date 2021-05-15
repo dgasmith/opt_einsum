@@ -2,7 +2,7 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, Collection
 
 import numpy as np
 
@@ -79,7 +79,7 @@ def compute_size_by_dict(indices: str, idx_dict: Dict[str, int]) -> int:
     return ret
 
 
-def find_contraction(positions: Sequence[int], input_sets: List[Set[str]],
+def find_contraction(positions: Collection[int], input_sets: List[Set[str]],
                      output_set: Set[str]) -> Tuple[Set[str], List[Set[str]], Set[str], Set[str]]:
     """
     Finds the contraction for a given set of input and output sets.
@@ -135,7 +135,7 @@ def find_contraction(positions: Sequence[int], input_sets: List[Set[str]],
     return new_result, remaining, idx_removed, idx_contract
 
 
-def flop_count(idx_contraction: str, inner: bool, num_terms: int, size_dictionary: Dict[str, int]) -> int:
+def flop_count(idx_contraction: Collection[str], inner: bool, num_terms: int, size_dictionary: Dict[str, int]) -> int:
     """
     Computes the number of FLOPS in the contraction.
 
