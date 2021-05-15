@@ -44,3 +44,4 @@ nav:
   - Examples:
     - Reusing Intermediaries with Dask: examples/dask_reusing_intermediaries.md
     - Large Expressions with Greedy: examples/large_expr_with_greedy.md
+  - Changelog: changelog.md

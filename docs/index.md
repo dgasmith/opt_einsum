@@ -16,12 +16,12 @@ this repository can be enabled with ``numpy.einsum(..., optimize=True)``. Howeve
 this repository often has more up to date algorithms for complex contractions.
 Several advanced features are as follows:
 
-* Inspect `detailed information <path_finding.html>`_ about the path chosen.
-* Perform contractions with `numerous backends <backends.html>`_, including on the GPU and with libraries such as `TensorFlow <https://www.tensorflow.org>`_ and `PyTorch <https://pytorch.org>`_.
-* Generate `reusable expressions <reusing_paths.html>`_, potentially with `constant tensors <reusing_paths.html#specifying-constants>`_, that can be compiled for greater performance.
-* Use an arbitrary number of indices to find contractions for `hundreds or even thousands of tensors <ex_large_expr_with_greedy.html>`_.
-* Share `intermediate computations <sharing_intermediates.html>`_ among multiple contractions.
-* Compute gradients of tensor contractions using `Autograd <https://github.com/HIPS/autograd>`_ or `JAX <https://github.com/google/jax>`_.
+* Inspect [detailed information](paths/introduction.md) about the path chosen.
+* Perform contractions with [numerous backends](getting_started/backends.md), including on the GPU and with libraries such as [TensorFlow](https://www.tensorflow.org) and [PyTorch](https://pytorch.org).
+* Generate [reusable expressions](getting_started/reusing_paths.md), potentially with constant tensors, that can be compiled for greater performance.
+* Use an arbitrary number of indices to find contractions for [hundreds or even thousands of tensors](examples/large_expr_with_greedy.md).
+* Share `intermediate computations <sharing_intermediates.html) among multiple contractions.
+* Compute gradients of tensor contractions using [Autograd](https://github.com/HIPS/autograd) or [JAX](https://github.com/google/jax).
 
 ## Example
 
