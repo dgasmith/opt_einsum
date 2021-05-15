@@ -27,23 +27,15 @@ if __name__ == "__main__":
             'numpy>=1.7',
         ],
         extras_require={
-            'docs': [
-                'sphinx==1.2.3',  # autodoc was broken in 1.3.1
-                'sphinxcontrib-napoleon',
-                'sphinx_rtd_theme',
-                'numpydoc',
-            ],
             'tests': [
                 'pytest',
                 'pytest-cov',
-                'pytest-pep8',
             ],
         },
 
         tests_require=[
             'pytest',
             'pytest-cov',
-            'pytest-pep8',
         ],
 
         classifiers=[
@@ -57,6 +49,7 @@ if __name__ == "__main__":
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.9',
         ],
         zip_safe=True,
         long_description=long_description,
