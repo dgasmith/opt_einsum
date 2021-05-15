@@ -13,15 +13,10 @@ __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpr
 class PathInfo(object):
     """A printable object to contain information about a contraction path.
 
-    Attributes
-    ----------
-    naive_cost : int
-        The estimate FLOP cost of a naive einsum contraction.
-    opt_cost : int
-        The estimate FLOP cost of this optimized contraction path.
-    largest_intermediate : int
-        The number of elements in the largest intermediate array that will be
-        produced during the contraction.
+    ## Attributes
+    - **naive_cost** - *(int)* The estimate FLOP cost of a naive einsum contraction.
+    - **opt_cost** - *(int)* The estimate FLOP cost of this optimized contraction path.
+    - **largest_intermediate** - *(int)* The number of elements in the largest intermediate array that will be produced during the contraction.
     """
     def __init__(self, contraction_list, input_subscripts, output_subscript, indices, path, scale_list, naive_cost,
                  opt_cost, size_list, size_dict):
@@ -90,104 +85,115 @@ _VALID_CONTRACT_KWARGS = {'optimize', 'path', 'memory_limit', 'einsum_call', 'us
 
 def contract_path(*operands, **kwargs):
     """
-    Find a contraction order 'path', without performing the contraction.
+    Find a contraction order `path`, without performing the contraction.
 
-    Parameters
-    ----------
-    subscripts : str
-        Specifies the subscripts for summation.
-    *operands : list of array_like
-        These are the arrays for the operation.
-    optimize : str, list or bool, optional (default: ``auto``)
-        Choose the type of path.
+    **Parameters:**
+
+    - **subscripts** - *(str)* Specifies the subscripts for summation.
+    - **\*operands** - *(list of array_like)* hese are the arrays for the operation.
+    - **use_blas** - *(bool)* Do you use BLAS for valid operations, may use extra memory for more intermediates.
+    - **optimize** - *(str, list or bool, optional (default: ``auto``))* Choose the type of path.
 
         - if a list is given uses this as the path.
         - ``'optimal'`` An algorithm that explores all possible ways of
           contracting the listed tensors. Scales factorially with the number of
           terms in the contraction.
+        - ``'dp'`` A faster (but essentially optimal) algorithm that uses
+          dynamic programming to exhaustively search all contraction paths
+          without outer-products.
+        - ``'greedy'`` An cheap algorithm that heuristically chooses the best
+          pairwise contraction at each step. Scales linearly in the number of
+          terms in the contraction.
+        - ``'random-greedy'`` Run a randomized version of the greedy algorithm
+          32 times and pick the best path.
+        - ``'random-greedy-128'`` Run a randomized version of the greedy
+          algorithm 128 times and pick the best path.
         - ``'branch-all'`` An algorithm like optimal but that restricts itself
           to searching 'likely' paths. Still scales factorially.
         - ``'branch-2'`` An even more restricted version of 'branch-all' that
           only searches the best two options at each step. Scales exponentially
           with the number of terms in the contraction.
-        - ``'greedy'`` An algorithm that heuristically chooses the best pair
-          contraction at each step.
         - ``'auto'`` Choose the best of the above algorithms whilst aiming to
           keep the path finding time below 1ms.
+        - ``'auto-hq'`` Aim for a high quality contraction, choosing the best
+          of the above algorithms whilst aiming to keep the path finding time
+          below 1sec.
 
-    use_blas : bool
-        Use BLAS functions or not
-    memory_limit : int, optional (default: None)
-        Maximum number of elements allowed in intermediate arrays.
-    shapes : bool, optional
-        Whether ``contract_path`` should assume arrays (the default) or array
-        shapes have been supplied.
+    - **memory_limit** - *({None, int, 'max_input'} (default: `None`))* - Give the upper bound of the largest intermediate tensor contract will build.
+        - None or -1 means there is no limit
+        - `max_input` means the limit is set as largest input tensor
+        - a positive integer is taken as an explicit limit on the number of elements
 
-    Returns
-    -------
-    path : list of tuples
-        The einsum path
-    PathInfo : str
-        A printable object containing various information about the path found.
+        The default is None. Note that imposing a limit can make contractions
+        exponentially slower to perform.
+    
+    - **shapes** - *(bool, optional)* Whether ``contract_path`` should assume arrays (the default) or array shapes have been supplied.
 
-    Notes
-    -----
+    **Returns:**
+
+    - **path** - *(list of tuples)* The einsum path
+    - **PathInfo** - *(str)* A printable object containing various information about the path found.
+
+    **Notes:**
+
     The resulting path indicates which terms of the input contraction should be
     contracted first, the result of this contraction is then appended to the end of
     the contraction list.
 
-    Examples
-    --------
+    **Examples:**
 
     We can begin with a chain dot example. In this case, it is optimal to
     contract the b and c tensors represented by the first element of the path (1,
     2). The resulting tensor is added to the end of the contraction and the
-    remaining contraction, ``(0, 1)``, is then executed.
+    remaining contraction, `(0, 1)`, is then executed.
 
-    >>> a = np.random.rand(2, 2)
-    >>> b = np.random.rand(2, 5)
-    >>> c = np.random.rand(5, 2)
-    >>> path_info = opt_einsum.contract_path('ij,jk,kl->il', a, b, c)
-    >>> print(path_info[0])
-    [(1, 2), (0, 1)]
-    >>> print(path_info[1])
-      Complete contraction:  ij,jk,kl->il
-             Naive scaling:  4
-         Optimized scaling:  3
-          Naive FLOP count:  1.600e+02
-      Optimized FLOP count:  5.600e+01
-       Theoretical speedup:  2.857
-      Largest intermediate:  4.000e+00 elements
-    -------------------------------------------------------------------------
-    scaling                  current                                remaining
-    -------------------------------------------------------------------------
-       3                   kl,jk->jl                                ij,jl->il
-       3                   jl,ij->il                                   il->il
-
+    ```python
+    a = np.random.rand(2, 2)
+    b = np.random.rand(2, 5)
+    c = np.random.rand(5, 2)
+    path_info = opt_einsum.contract_path('ij,jk,kl->il', a, b, c)
+    print(path_info[0])
+    #> [(1, 2), (0, 1)]
+    print(path_info[1])
+    #>   Complete contraction:  ij,jk,kl->il
+    #>          Naive scaling:  4
+    #>      Optimized scaling:  3
+    #>       Naive FLOP count:  1.600e+02
+    #>   Optimized FLOP count:  5.600e+01
+    #>    Theoretical speedup:  2.857
+    #>   Largest intermediate:  4.000e+00 elements
+    #> -------------------------------------------------------------------------
+    #> scaling                  current                                remaining
+    #> -------------------------------------------------------------------------
+    #>    3                   kl,jk->jl                                ij,jl->il
+    #>    3                   jl,ij->il                                   il->il
+    ```
 
     A more complex index transformation example.
 
-    >>> I = np.random.rand(10, 10, 10, 10)
-    >>> C = np.random.rand(10, 10)
-    >>> path_info = oe.contract_path('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C)
+    ```python
+    I = np.random.rand(10, 10, 10, 10)
+    C = np.random.rand(10, 10)
+    path_info = oe.contract_path('ea,fb,abcd,gc,hd->efgh', C, C, I, C, C)
 
-    >>> print(path_info[0])
-    [(0, 2), (0, 3), (0, 2), (0, 1)]
-    >>> print(path_info[1])
-      Complete contraction:  ea,fb,abcd,gc,hd->efgh
-             Naive scaling:  8
-         Optimized scaling:  5
-          Naive FLOP count:  8.000e+08
-      Optimized FLOP count:  8.000e+05
-       Theoretical speedup:  1000.000
-      Largest intermediate:  1.000e+04 elements
-    --------------------------------------------------------------------------
-    scaling                  current                                remaining
-    --------------------------------------------------------------------------
-       5               abcd,ea->bcde                      fb,gc,hd,bcde->efgh
-       5               bcde,fb->cdef                         gc,hd,cdef->efgh
-       5               cdef,gc->defg                            hd,defg->efgh
-       5               defg,hd->efgh                               efgh->efgh
+    print(path_info[0])
+    #> [(0, 2), (0, 3), (0, 2), (0, 1)]
+    print(path_info[1])
+    #>   Complete contraction:  ea,fb,abcd,gc,hd->efgh
+    #>          Naive scaling:  8
+    #>      Optimized scaling:  5
+    #>       Naive FLOP count:  8.000e+08
+    #>   Optimized FLOP count:  8.000e+05
+    #>    Theoretical speedup:  1000.000
+    #>   Largest intermediate:  1.000e+04 elements
+    #> --------------------------------------------------------------------------
+    #> scaling                  current                                remaining
+    #> --------------------------------------------------------------------------
+    #>    5               abcd,ea->bcde                      fb,gc,hd,bcde->efgh
+    #>    5               bcde,fb->cdef                         gc,hd,cdef->efgh
+    #>    5               cdef,gc->defg                            hd,defg->efgh
+    #>    5               defg,hd->efgh                               efgh->efgh
+    ```
     """
 
     # Make sure all keywords are valid
@@ -375,30 +381,22 @@ def _tensordot(x, y, axes, backend='numpy'):
 # Rewrite einsum to handle different cases
 def contract(*operands, **kwargs):
     """
-    contract(subscripts, *operands, out=None, dtype=None, order='K', casting='safe', use_blas=True, optimize=True, memory_limit=None, backend='numpy')
+    contract(subscripts, \*operands, out=None, dtype=None, order='K', casting='safe', use_blas=True, optimize=True, memory_limit=None, backend='numpy')
 
     Evaluates the Einstein summation convention on the operands. A drop in
     replacement for NumPy's einsum function that optimizes the order of contraction
     to reduce overall scaling at the cost of several intermediate arrays.
 
-    Parameters
-    ----------
-    subscripts : str
-        Specifies the subscripts for summation.
-    *operands : list of array_like
-        These are the arrays for the operation.
-    out : array_like
-        A output array in which set the resulting output.
-    dtype : str
-        The dtype of the given contraction, see np.einsum.
-    order : str
-        The order of the resulting contraction, see np.einsum.
-    casting : str
-        The casting procedure for operations of different dtype, see np.einsum.
-    use_blas : bool
-        Do you use BLAS for valid operations, may use extra memory for more intermediates.
-    optimize : str, list or bool, optional (default: ``auto``)
-        Choose the type of path.
+    **Parameters:**
+
+    - **subscripts** - *(str)* Specifies the subscripts for summation.
+    - **\*operands** - *(list of array_like)* hese are the arrays for the operation.
+    - **out** - *(array_like)* A output array in which set the sresulting output.
+    - **dtype** - *(str)* The dtype of the given contraction, see np.einsum.
+    - **order** - *(str)* The order of the resulting contraction, see np.einsum.
+    - **casting** - *(str)* The casting procedure for operations of different dtype, see np.einsum.
+    - **use_blas** - *(bool)* Do you use BLAS for valid operations, may use extra memory for more intermediates.
+    - **optimize** - *(str, list or bool, optional (default: ``auto``))* Choose the type of path.
 
         - if a list is given uses this as the path.
         - ``'optimal'`` An algorithm that explores all possible ways of
@@ -425,28 +423,25 @@ def contract(*operands, **kwargs):
           of the above algorithms whilst aiming to keep the path finding time
           below 1sec.
 
-    memory_limit : {None, int, 'max_input'} (default: None)
-        Give the upper bound of the largest intermediate tensor contract will build.
-
+    - **memory_limit** - *({None, int, 'max_input'} (default: `None`))* - Give the upper bound of the largest intermediate tensor contract will build.
         - None or -1 means there is no limit
-        - 'max_input' means the limit is set as largest input tensor
+        - `max_input` means the limit is set as largest input tensor
         - a positive integer is taken as an explicit limit on the number of elements
 
         The default is None. Note that imposing a limit can make contractions
         exponentially slower to perform.
-    backend : str, optional (default: ``auto``)
-        Which library to use to perform the required ``tensordot``, ``transpose``
+
+    - **backend** - *(str, optional (default: ``auto``))* Which library to use to perform the required ``tensordot``, ``transpose``
         and ``einsum`` calls. Should match the types of arrays supplied, See
         :func:`contract_expression` for generating expressions which convert
         numpy arrays to and from the backend library automatically.
 
-    Returns
-    -------
-    out : array_like
-        The result of the einsum expression.
+    **Returns:**
 
-    Notes
-    -----
+    - **out** - *(array_like)* The result of the einsum expression.
+
+    **Notes:**
+
     This function should produce a result identical to that of NumPy's einsum
     function. The primary difference is ``contract`` will attempt to form
     intermediates which reduce the overall scaling of the given einsum contraction.
@@ -458,12 +453,6 @@ def contract(*operands, **kwargs):
     NumPy's built-in BLAS functionality to ensure that the given operation is
     preformed optimally. When NumPy is linked to a threaded BLAS, potential
     speedups are on the order of 20-100 for a six core machine.
-
-    Examples
-    --------
-
-    See :func:`opt_einsum.contract_path` or :func:`numpy.einsum`
-
     """
     optimize_arg = kwargs.pop('optimize', True)
     if optimize_arg is True:
@@ -806,30 +795,24 @@ def contract_expression(subscripts, *shapes, **kwargs):
     """Generate a reusable expression for a given contraction with
     specific shapes, which can, for example, be cached.
 
-    Parameters
-    ----------
-    subscripts : str
-        Specifies the subscripts for summation.
-    shapes : sequence of integer tuples
-        Shapes of the arrays to optimize the contraction for.
-    constants : sequence of int, optional
-        The indices of any constant arguments in ``shapes``, in which case the
+    **Parameters:**
+
+    - **subscripts** - *(str)* Specifies the subscripts for summation.
+    - **shapes** - *(sequence of integer tuples)* Shapes of the arrays to optimize the contraction for.
+    - **constants** - *(sequence of int, optional)* The indices of any constant arguments in `shapes`, in which case the
         actual array should be supplied at that position rather than just a
         shape. If these are specified, then constant parts of the contraction
         between calls will be reused. Additionally, if a GPU-enabled backend is
         used for example, then the constant tensors will be kept on the GPU,
         minimizing transfers.
-    kwargs :
-        Passed on to ``contract_path`` or ``einsum``. See ``contract``.
+    - **kwargs** - Passed on to `contract_path` or `einsum`. See `contract`.
 
-    Returns
-    -------
-    expr : ContractExpression
-        Callable with signature ``expr(*arrays, out=None, backend='numpy')``
-        where the array's shapes should match ``shapes``.
+    **Returns:**
 
-    Notes
-    -----
+    - **expr** - *(ContractExpression)* Callable with signature `expr(*arrays, out=None, backend='numpy')` where the array's shapes should match `shapes`.
+
+    **Notes:**
+
     - The `out` keyword argument should be supplied to the generated expression
       rather than this function.
     - The `backend` keyword argument should also be supplied to the generated
@@ -841,26 +824,29 @@ def contract_expression(subscripts, *shapes, **kwargs):
     - Constant operations will be computed upon the first call with a particular
       backend, then subsequently reused.
 
-    Examples
-    --------
+    **Examples:**
 
     Basic usage:
 
-        >>> expr = contract_expression("ab,bc->ac", (3, 4), (4, 5))
-        >>> a, b = np.random.rand(3, 4), np.random.rand(4, 5)
-        >>> c = expr(a, b)
-        >>> np.allclose(c, a @ b)
-        True
+    ```python
+    expr = contract_expression("ab,bc->ac", (3, 4), (4, 5))
+    a, b = np.random.rand(3, 4), np.random.rand(4, 5)
+    c = expr(a, b)
+    np.allclose(c, a @ b)
+    #> True
+    ```
 
-    Supply ``a`` as a constant:
+    Supply `a` as a constant:
 
-        >>> expr = contract_expression("ab,bc->ac", a, (4, 5), constants=[0])
-        >>> expr
-        <ContractExpression('[ab],bc->ac', constants=[0])>
+    ```python
+    expr = contract_expression("ab,bc->ac", a, (4, 5), constants=[0])
+    expr
+    #> <ContractExpression('[ab],bc->ac', constants=[0])>
 
-        >>> c = expr(b)
-        >>> np.allclose(c, a @ b)
-        True
+    c = expr(b)
+    np.allclose(c, a @ b)
+    #> True
+    ```
 
     """
     if not kwargs.get('optimize', True):

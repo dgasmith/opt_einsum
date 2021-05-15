@@ -11,6 +11,9 @@ extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
+extra_css:
+  - css/custom.css
+
 markdown_extensions:
   - markdown.extensions.codehilite:
       guess_lang: false
@@ -24,6 +27,7 @@ markdown_extensions:
   - pymdownx.extra
   - pymdownx.arithmatex:
       generic: true
+  - mkautodoc
 
 nav:
   - Overview: index.md
@@ -44,4 +48,5 @@ nav:
   - Examples:
     - Reusing Intermediaries with Dask: examples/dask_reusing_intermediaries.md
     - Large Expressions with Greedy: examples/large_expr_with_greedy.md
+  - API Reference: api_reference.md
   - Changelog: changelog.md
