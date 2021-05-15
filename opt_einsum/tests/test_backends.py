@@ -13,7 +13,11 @@ except ImportError:
 try:
     import tensorflow as tf
     # needed so tensorflow doesn't allocate all gpu mem
-    _TF_CONFIG = tf.ConfigProto()
+    try:
+        from tensorflow import ConfigProto
+    except ImportError:
+        from tf.compat.v1 import ConfigProto
+    _TF_CONFIG = ConfigProto()
     _TF_CONFIG.gpu_options.allow_growth = True
     found_tensorflow = True
 except ImportError:
@@ -276,7 +280,7 @@ def test_jax_with_constants(constants):  # pragma: no cover
     # check jax
     res_got = expr(var, backend='jax')
     # check jax versions of constants exist
-    assert all(array is None or infer_backend(array) == 'jax' for array in expr._evaluated_constants['jax'])
+    assert all(array is None or infer_backend(array).startswith('jax') for array in expr._evaluated_constants['jax'])
 
     assert np.allclose(res_exp, res_got)
 

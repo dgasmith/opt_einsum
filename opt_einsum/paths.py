@@ -46,7 +46,6 @@ class PathOptimizer(object):
 
     where `path` is a list of int-tuples specifiying a contraction order.
     """
-
     def _check_args_against_first_call(self, inputs, output, size_dict):
         """Utility that stateful optimizers can use to ensure they are not
         called with different contractions across separate runs.

@@ -1,7 +1,6 @@
 name: test
 channels:
   - conda-forge
-  - pytorch
 dependencies:
     # Base depends
   - python
@@ -9,20 +8,10 @@ dependencies:
   - nomkl
 
     # Backends
-  - tensorflow
-  - dask
-  - sparse
-  - theano
-  - pytorch-cpu
-  - autograd
+  - tensorflow ==1.14.*
+  - dask ==1.1.*
 
     # Testing
   - pytest
   - codecov
   - pytest-cov
-
-  # non-conda backends
-  - pip
-  - pip:
-    - jax
-    - jaxlib
