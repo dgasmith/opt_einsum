@@ -321,7 +321,7 @@ so long the *objects themselves* just support multiplication and addition (
 `__mul__` and `__add__` dunder methods respectively).
 Use it by supplying `backend='object'`.
 
-For example, imagine we want to perform a contraction of arrays made up of [sympy](www.sympy.org) symbols:
+For example, imagine we want to perform a contraction of arrays made up of [sympy](https://www.sympy.org) symbols:
 
 ```python
 import opt_einsum as oe
