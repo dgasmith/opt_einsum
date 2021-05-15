@@ -13,7 +13,8 @@ __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpr
 class PathInfo(object):
     """A printable object to contain information about a contraction path.
 
-    ## Attributes
+    **Attributes:**
+
     - **naive_cost** - *(int)* The estimate FLOP cost of a naive einsum contraction.
     - **opt_cost** - *(int)* The estimate FLOP cost of this optimized contraction path.
     - **largest_intermediate** - *(int)* The number of elements in the largest intermediate array that will be produced during the contraction.

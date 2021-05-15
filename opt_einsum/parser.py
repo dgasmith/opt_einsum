@@ -21,13 +21,15 @@ _einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 def is_valid_einsum_char(x):
     """Check if the character ``x`` is valid for numpy einsum.
 
-    Examples
-    --------
-    >>> is_valid_einsum_char("a")
-    True
+    **Examples:**
 
-    >>> is_valid_einsum_char("Ǵ")
-    False
+    ```python
+    is_valid_einsum_char("a")
+    #> True
+
+    is_valid_einsum_char("Ǵ")
+    #> False
+    ```
     """
     return (x in _einsum_symbols_base) or (x in ',->.')
 
@@ -35,13 +37,15 @@ def is_valid_einsum_char(x):
 def has_valid_einsum_chars_only(einsum_str):
     """Check if ``einsum_str`` contains only valid characters for numpy einsum.
 
-    Examples
-    --------
-    >>> has_valid_einsum_chars_only("abAZ")
-    True
+    **Examples:**
 
-    >>> has_valid_einsum_chars_only("Över")
-    False
+    ```python
+    has_valid_einsum_chars_only("abAZ")
+    #> True
+
+    has_valid_einsum_chars_only("Över")
+    #> False
+    ```
     """
     return all(map(is_valid_einsum_char, einsum_str))
 
@@ -50,16 +54,18 @@ def get_symbol(i):
     """Get the symbol corresponding to int ``i`` - runs through the usual 52
     letters before resorting to unicode characters, starting at ``chr(192)``.
 
-    Examples
-    --------
-    >>> get_symbol(2)
-    'c'
+    **Examples:**
 
-    >>> get_symbol(200)
-    'Ŕ'
+    ```python
+    get_symbol(2)
+    #> 'c'
 
-    >>> get_symbol(20000)
-    '京'
+    get_symbol(200)
+    #> 'Ŕ'
+
+    get_symbol(20000)
+    #> '京'
+    ```
     """
     if i < 52:
         return _einsum_symbols_base[i]
@@ -69,10 +75,11 @@ def get_symbol(i):
 def gen_unused_symbols(used, n):
     """Generate ``n`` symbols that are not already in ``used``.
 
-    Examples
-    --------
-    >>> list(oe.parser.gen_unused_symbols("abd", 2))
-    ['c', 'e']
+    **Examples:**
+    ```python
+    list(oe.parser.gen_unused_symbols("abd", 2))
+    #> ['c', 'e']
+    ```
     """
     i = cnt = 0
     while cnt < n:
