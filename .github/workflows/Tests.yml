@@ -9,9 +9,10 @@ on:
 jobs:
   miniconda-setup:
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.6, 3.9]
-        environment: ["minimal", "full", "minv"]
+        environment: ["minimal", "full"]
 
     name: Env (${{ matrix.environment }}) - Py${{ matrix.python-version }}
     runs-on: ubuntu-latest
