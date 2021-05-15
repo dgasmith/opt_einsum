@@ -44,6 +44,14 @@ jobs:
     - name: Test
       shell: bash -l {0}
       run: |
-        pytest -v --cov=opt_einsum opt_einsum/
+        pytest -v --cov=opt_einsum opt_einsum/ --cov-report=xml
+
+    - name: Coverage
+      shell: bash -l {0}
+      run: |
+        coverage report
 
     - uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage.xml
