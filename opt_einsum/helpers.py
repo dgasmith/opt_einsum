@@ -50,7 +50,7 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
     return views
 
 
-def compute_size_by_dict(indices: str, idx_dict: Dict[str, int]) -> int:
+def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> int:
     """
     Computes the product of the elements in indices based on the dictionary
     idx_dict.

@@ -230,7 +230,8 @@ def tensor_blas(view_left: np.ndarray, input_left: str, view_right: np.ndarray, 
     # Conventional tensordot
     else:
         # Find indices to contract over
-        left_pos, right_pos = (), ()
+        left_pos: Tuple[int, ...] = ()
+        right_pos: Tuple[int, ...] = ()
         for s in idx_removed:
             left_pos += (input_left.find(s), )
             right_pos += (input_right.find(s), )
