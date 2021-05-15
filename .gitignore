@@ -63,3 +63,5 @@ target/
 \.pytest_cache/
 
 docs/source/autosummary/
+site/
+

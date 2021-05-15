@@ -1,4 +1,6 @@
 site_name: Optimized Einsum
+repo_url: https://github.com/dgasmith/opt_einsum
+repo_name: dgasmith/opt_einsum
 theme:
   name: material
 

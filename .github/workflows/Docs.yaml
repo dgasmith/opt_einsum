@@ -3,8 +3,8 @@ on:
   push:
     branches:
       - master
-    pull-request: # Testing only
-      - master
+  pull_request: # Testing only
+    branches: master
 
 jobs:
   deploy:
