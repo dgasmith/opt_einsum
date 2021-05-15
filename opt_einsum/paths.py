@@ -5,8 +5,8 @@ Contains the path technology behind opt_einsum in addition to several path helpe
 import functools
 import heapq
 import itertools
-import random
 import operator
+import random
 from collections import Counter, OrderedDict, defaultdict
 
 import numpy as np

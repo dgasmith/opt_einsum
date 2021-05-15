@@ -4,7 +4,7 @@ Compute backends for opt_einsum.
 
 # Backends
 from .cupy import to_cupy
-from .dispatch import (get_func, has_einsum, has_tensordot, build_expression, evaluate_constants, has_backend)
+from .dispatch import build_expression, evaluate_constants, get_func, has_backend, has_einsum, has_tensordot
 from .tensorflow import to_tensorflow
 from .theano import to_theano
 from .torch import to_torch

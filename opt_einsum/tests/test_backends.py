@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from opt_einsum import (backends, contract, contract_expression, helpers, sharing)
+from opt_einsum import backends, contract, contract_expression, helpers, sharing
 from opt_einsum.contract import Shaped, infer_backend, parse_backend
 
 try:
@@ -12,6 +12,7 @@ except ImportError:
 
 try:
     import tensorflow as tf
+
     # needed so tensorflow doesn't allocate all gpu mem
     try:
         from tensorflow import ConfigProto
