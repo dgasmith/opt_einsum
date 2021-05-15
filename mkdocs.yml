@@ -33,3 +33,6 @@ nav:
    - "Backends & GPU Support": getting_started/backends.md
    - Reusing Paths: getting_started/reusing_paths.md
    - Sharing Intermediates: getting_started/sharing_intermediates.md
+ - Examples:
+    - Reusing Intermediaries with Dask: examples/dask_reusing_intermediaries.md
+    - Large Expressions with Greedy: examples/large_expr_with_greedy.md
