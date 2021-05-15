@@ -1,7 +1,7 @@
 # Custom Path Optimizers
 
 If you want to implement or just experiment with custom contaction paths then
-you can easily by subclassing the :class:`~opt_einsum.paths.PathOptimizer`
+you can easily by subclassing the [`opt_einsum.paths.PathOptimizer`](../api_reference.md#opt_einsumpathspathoptimizer)
 object. For example, imagine we want to test the path that just blindly
 contracts the first pair of tensors again and again. We would implement this
 as:
@@ -49,7 +49,8 @@ machinery of the random-greedy approach. Namely:
 - Parallelization using a pool-executor
 
 This is done by subclassing the
-:class:`~opt_einsum.path_random.RandomOptimizer` object and implementing a
+[`opt_einsum.paths.RandomOptimizer`](../api_reference.md#opt_einsumpathsrandomoptimizer)
+ object and implementing a
 `setup` method. Here's an example where we just randomly select any path
 (again, although we get a considerable speedup over `einsum` this is
 not a good strategy to take in general):
@@ -110,5 +111,7 @@ There are a few things to note here:
    parse the standard arguments (into a network for example), it thus only
    needs to be done once per optimization
 
-More details about :class:`~opt_einsum.path_random.RandomOptimizer` options can
-be found in :ref:`RandomGreedyPathPage` section.
+More details about
+[`opt_einsum.paths.RandomOptimizer`](../api_reference.md#opt_einsumpath_randomrandomoptimizer)
+options can
+be found in [`RandomGreedyPathPage`](./random_greedy_path.md) section.

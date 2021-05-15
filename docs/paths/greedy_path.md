@@ -22,7 +22,7 @@ tensor). As such, the algorithm scales well to very large sparse contractions
 of low-rank tensors, and indeed, often finds the optimal, or close to optimal
 path in such cases.
 
-The `greedy` functionality is provided by :func:`~opt_einsum.paths.greedy`,
+The `greedy` functionality is provided by [`opt_einsum.paths.greedy`](../api_reference.md#opt_einsumpathsgreedy),
 and is selected by the default `optimize='auto'` mode of `opt_einsum` for
 expressions with many inputs. Expressions of up to a thousand tensors
 should still take well less than a second to find paths for.
@@ -90,4 +90,4 @@ The greedy path is a local optimizer in that it only ever assesses pairs of
 tensors to contract, assigning each a heuristic 'cost' and then choosing the
 'best' of these. Custom greedy approaches can be implemented by supplying
 callables to the `cost_fn` and `choose_fn` arguments of
-:func:`~opt_einsum.paths.greedy`.
+[`opt_einsum.paths.greedy`](../api_reference.md#opt_einsumpathsgreedy).

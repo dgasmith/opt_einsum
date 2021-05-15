@@ -1,6 +1,6 @@
 # Sharing Intermediates
 
-If you want to compute multiple similar contractions with common terms, you can embed them in a :func:`~opt_einsum.shared_intermediates` context. Computations of subexpressions in this context will be memoized, and will be garbage collected when the contexts exits.
+If you want to compute multiple similar contractions with common terms, you can embed them in a [`opt_einsum.shared_intermediates`](../api_reference.md#opt_einsumshared_intermediates) context. Computations of subexpressions in this context will be memoized, and will be garbage collected when the contexts exits.
 
 For example, suppose we want to compute marginals at each point in a factor chain:
 
@@ -36,7 +36,7 @@ for output in 'abcdef':
 del cache  # garbage collect intermediates
 ```
 
-Note that sharing contexts can be nested, so it is safe to to use :func:`~opt_einsum.shared_intermediates` in library code without leaking intermediates into user caches.
+Note that sharing contexts can be nested, so it is safe to to use [`opt_einsum.shared_intermediates`](../api_reference.md#opt_einsumshared_intermediatese in library code without leaking intermediates into user caches.
 
 !!! note
     By default a cache is thread safe, to share intermediates between threads explicitly pass the same cache to each thread.

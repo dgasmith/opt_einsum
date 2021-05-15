@@ -10,7 +10,7 @@ The better the quality of path found in the first step, the quicker the actual
 contraction in the second step can be -- often dramatically. However, finding
 the *optimal* path is an NP-hard problem that can quickly become intractable,
 meaning that a  balance must be struck between the time spent finding a path,
-and its quality. :mod:`opt_einsum` handles this by using several path finding
+and its quality. `opt_einsum` handles this by using several path finding
 algorithms, which can be manually specified using the `optimize` keyword.
 These are:
 
@@ -20,7 +20,7 @@ These are:
 - The `'greedy'` strategy - finds a path one step at a time using a cost
   heuristic
 
-By default (`optimize='auto'`), :func:`~opt_einsum.contract` will select the
+By default (`optimize='auto'`), [`opt_einsum.contract`](../api_reference.md#opt_einsumcontract) will select the
 best of these it can while aiming to keep path finding times below around 1ms.
 An analysis of each of these approaches' performance can be found at the bottom of this page.
 
@@ -28,7 +28,7 @@ For large and complex contractions, there is the `'random-greedy'` approach,
 which samples many (by default 32) greedy paths and can be customized to
 explicitly spend a maximum amount of time searching. Another preset,
 `'random-greedy-128'`, uses 128 paths for a more exhaustive search.
-See :ref:`RandomGreedyPathPage` page for more details on configuring these.
+See [`RandomGreedyPath`](paths/random_greedy_path.md) page for more details on configuring these.
 
 Finally, there is the `'auto-hq'` preset which targets a much larger search
 time (~1sec) in return for finding very high quality paths, dispatching to the
@@ -37,7 +37,7 @@ depending on contraction size.
 
 If you want to find the path separately to performing the
 contraction, or just inspect information about the path found, you can use the
-function :func:`~opt_einsum.contract_path`.
+function [`opt_einsum.contract_path`](../api_reference.md#opt_einsumcontract_path).
 
 
 ## Examining the Path
@@ -142,7 +142,7 @@ terms = ['a', 'a'] contraction = (0, 1)
 
 
 A path specified in this format can explicitly be supplied directly to
-:func:`~opt_einsum.contract` using the `optimize` keyword:
+[`opt_einsum.contract`](../api_reference.md#opt_einsumcontract) using the `optimize` keyword:
 
 ```python
 contract_result = oe.contract("bdik,acaj,ikab,ajac,ikbd->", *views, optimize=opt_path)
@@ -185,7 +185,7 @@ One can see that the heirarchy of path qualities is:
 
 !!! note
     The performance of the `'random=greedy'` approach (which is never used
-    automatically) can be found separately in :ref:`RandomGreedyPathPage` section.
+    automatically) can be found separately in [`RandomGreedyPath`](paths/random_greedy_path.md) section.
 
 There are a few important caveats to note with this graph. Firstly, the
 benefits of more advanced path finding are very dependent on the complexity of

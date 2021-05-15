@@ -3,14 +3,14 @@
 The `opt_einsum` package was originally designed as a drop-in replacement for the `np.einsum`
 function and supports all input formats that `np.einsum` supports. There are
 two styles of input accepted, a basic introduction to which can be found in the
-documentation for :func:`numpy.einsum`. In addition to this, `opt_einsum`
+documentation for `numpy.einsum`. In addition to this, `opt_einsum`
 extends the allowed index labels to unicode or arbitrary hashable, comparable
 objects in order to handle large contractions with many indices.
 
 
 ## 'Equation' Input
 
-As with :func:`numpy.einsum`, here you specify an equation as a string,
+As with `numpy.einsum`, here you specify an equation as a string,
 followed by the array arguments:
 
 ```python
@@ -32,8 +32,7 @@ oe.contract(eq, x, y).shape
 ```
 
 This enables access to thousands of possible index labels. One way to access
-these programmatically is through the function
-:func:`~opt_einsum.parser.get_symbol`:
+these programmatically is through the function [`get_symbols`](../api_reference.md#opt_einsumget_symbol):
 
 ```python
 oe.get_symbol(805)
@@ -41,7 +40,7 @@ oe.get_symbol(805)
 ```
 
 which maps an `int` to a unicode characater. Note that as with
-:func:`numpy.einsum` if the output is not specified with `->` it will default
+`numpy.einsum` if the output is not specified with `->` it will default
 to the sorted order of all indices appearing once:
 
 ```python
@@ -55,7 +54,7 @@ oe.contract(eq, x, y).shape
 
 The other input format is to 'interleave' the array arguments with their index
 labels ('subscripts') in pairs, optionally specifying the output indices as a
-final argument. As with :func:`numpy.einsum`, integers are allowed as these
+final argument. As with `numpy.einsum`, integers are allowed as these
 index labels:
 
 ```python
@@ -64,7 +63,7 @@ oe.contract(x, [1, 2, 3], y, [2, 3, 4], [4, 1]).shape
 ```
 
 with the default output order again specified by the sorted order of indices
-appearing once. However, unlike :func:`numpy.einsum`, in `opt_einsum` you can
+appearing once. However, unlike `numpy.einsum`, in `opt_einsum` you can
 also put *anything* hashable and comparable such as `str` in the subscript list.
 A simple example of this syntax is:
 

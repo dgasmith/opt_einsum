@@ -1,4 +1,4 @@
-# opt_einsum
+# Overview
 
 Optimized einsum can significantly reduce the overall execution time of einsum-like
 expressions by optimizing the expression's contraction order and dispatching

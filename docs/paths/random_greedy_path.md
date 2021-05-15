@@ -28,7 +28,7 @@ So here the random-greedy approach has found a path about
 
 This approach works by randomly choosing from the best `n` contractions at
 each step, weighted by a
-`Boltzmann factor <https://en.wikipedia.org/wiki/Boltzmann_distribution>`_ with
+[Boltzmann factor](https://en.wikipedia.org/wiki/Boltzmann_distribution) with
 respect to the contraction with the 'best' cost. As such, contractions with
 very similar costs will be explored with equal probability, whereas those with
 higher costs will be less likely, but still possible. In this way, the
@@ -49,14 +49,16 @@ with either 8, 32 (the default), or 128 repeats:
 ## Customizing the Random-Greedy Path
 
 The random-greedy optimizer can be customized by instantiating your own
-:class:`~opt_einsum.path_random.RandomGreedy` object. Here you can control:
+[`opt_einsum.paths.RandomGreedy`](../api_reference.md#opt_einsumpath_randomrandomgreedy)
+object. Here you can control:
 
 - `temperature` - how far to stray from the locally 'best' contractions
 - `rel_temperature` - whether to normalize the temperature
 - `nbranch` - how many contractions (branches) to consider at each step
 - `cost_fn` - how to cost potential contractions
 
-There are also the main :class:`~opt_einsum.path_random.RandomOptimizer`
+There are also the main
+[`opt_einsum.paths.RandomOptimizer`](../api_reference.md#opt_einsumpath_randomrandomoptimizer)
 options:
 
 - `max_repeats` - the maximum number of repeats

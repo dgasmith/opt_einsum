@@ -32,9 +32,9 @@
 ::: opt_einsum.get_symbol
     :docstring:
 
-### `opt_einsum.sharing.shared_intermediates`
+### `opt_einsum.shared_intermediates`
 
-::: opt_einsum.sharing.shared_intermediates
+::: opt_einsum.shared_intermediates
     :docstring:
 
 ### `opt_einsum.paths.optimal`

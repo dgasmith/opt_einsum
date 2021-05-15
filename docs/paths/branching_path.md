@@ -7,10 +7,10 @@ unless absolutely necessary. Additionally, by trying a 'good' path first, it
 should be possible to quickly establish a threshold FLOP cost which can then be
 used to prune many bad paths.
 
-The **branching** strategy (provided by :func:`~opt_einsum.paths.branch`) does
+The **branching** strategy (provided by [`opt_einsum.paths.branch`](../api_reference.md#opt_einsumpathsbranch)) does
 this by taking the recursive, depth-first approach of
-:func:`~opt_einsum.paths.optimal`, whilst also sorting potential contractions
-based on a heuristic cost, as in :func:`~opt_einsum.paths.greedy`.
+[`opt_einsum.paths.optimal`](../api_reference.md#opt_einsumpathsoptimal), whilst also sorting potential contractions
+based on a heuristic cost, as in [`opt_einsum.paths.greedy`](../api_reference.md#opt_einsumpathsgreedy).
 
 There are two main flavours:
 
@@ -20,7 +20,7 @@ There are two main flavours:
   estimated best **two** possible contractions, leading to a maximum of
   2^N paths assessed.
 
-In both cases, :func:`~opt_einsum.paths.branch` takes an active approach to
+In both cases, [`opt_einsum.paths.branch`](../api_reference.md#opt_einsumpathsbranch) takes an active approach to
 pruning paths well before they hit the best *total* FLOP count, by comparing
 them to the FLOP count (times some factor) achieved by the best path at the
 same point in the contraction.
@@ -44,7 +44,7 @@ Customizing the Branching Path
 ------------------------------
 
 The 'branch and bound' path can be customized by creating a custom
-:class:`~opt_einsum.paths.BranchBound` instance. For example:
+[`opt_einsum.paths.BranchBound`](../api_reference.md#opt_einsumpathsbranchbound) instance. For example:
 
 ```python
 optimizer = oe.BranchBound(nbranch=3, minimize='size', cutoff_flops_factor=None)

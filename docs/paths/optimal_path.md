@@ -2,7 +2,7 @@
 
 The most optimal path can be found by searching through every possible way to contract the tensors together, this includes all combinations with the new intermediate tensors as well.
 While this algorithm scales like N!, and can often become more costly to compute than the unoptimized contraction itself, it provides an excellent benchmark.
-The function that computes this path in opt_einsum is called :func:`~opt_einsum.paths.optimal` and works by performing a recursive, depth-first search. By keeping track of the
+The function that computes this path in opt_einsum is called [`opt_einsum.paths.optimal`](../api_reference.md#opt_einsumpathsoptimal) and works by performing a recursive, depth-first search. By keeping track of the
 best path found so far, in terms of total estimated FLOP count, the search can
 then quickly prune many paths as soon as as they exceed this best.
 This optimal strategy is used by default with the `optimize='auto'` mode of

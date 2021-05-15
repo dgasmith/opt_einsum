@@ -4,10 +4,10 @@
 it uses, since finding the contraction path only relies on getting the shape
 attribute of each array supplied.
 It can perform the underlying tensor contractions with various
-libraries. In fact, any library that provides a :func:`~numpy.tensordot` and
-:func:`~numpy.transpose` implementation can perform most normal contractions.
+libraries. In fact, any library that provides a `numpy.tensordot` and
+`numpy.transpose` implementation can perform most normal contractions.
 While more special functionality such as axes reduction is reliant on a
-:func:`~numpy.einsum` implementation.
+`numpy.einsum` implementation.
 The following is a brief overview of libraries which have been tested with
 `opt_einsum`:
 
@@ -30,10 +30,10 @@ The following is a brief overview of libraries which have been tested with
 it uses, since finding the contraction path only relies on getting the shape
 attribute of each array supplied.
 It can perform the underlying tensor contractions with various
-libraries. In fact, any library that provides a :func:`~numpy.tensordot` and
-:func:`~numpy.transpose` implementation can perform most normal contractions.
+libraries. In fact, any library that provides a `numpy.tensordot` and
+`~numpy.transpose` implementation can perform most normal contractions.
 While more special functionality such as axes reduction is reliant on a
-:func:`~numpy.einsum` implementation.
+`numpy.einsum` implementation.
 
 !!! note
     For a contraction to be possible without using a backend einsum, it must
@@ -47,8 +47,8 @@ While more special functionality such as axes reduction is reliant on a
 The automatic backend detection will be detected based on the first supplied
 array (default), this can be overridden by specifying the correct `backend`
 argument for the type of arrays supplied when calling
-:func:`~opt_einsum.contract`. For example, if you had a library installed
-called `'foo'` which provided an :class:`~numpy.ndarray` like object with a
+[`opt_einsum.contract`](../api_reference.md##opt_einsumcontract). For example, if you had a library installed
+called `'foo'` which provided an `numpy.ndarray` like object with a
 `.shape` attribute as well as `foo.tensordot` and `foo.transpose` then
 you could contract them with something like:
 
@@ -56,16 +56,14 @@ you could contract them with something like:
 contract(einsum_str, *foo_arrays, backend='foo')
 ```
 
-Behind the scenes :mod:`opt_einsum` will find the contraction path, perform
+Behind the scenes `opt_einsum` will find the contraction path, perform
 pairwise contractions using e.g. `foo.tensordot` and finally return the canonical
 type those functions return.
 
-## Dask
+### Dask
 
-`dask <https://dask.pydata.org/>`_ is an example of a library which satisfies
+[dask](https://dask.pydata.org/) is an example of a library which satisfies
 these requirements. For example:
-
-.. code-block:: python
 
 ```python
 import opt_einsum as oe
@@ -94,7 +92,7 @@ attribute, and `opt_einsum` can find `dask.array.tensordot` and
 `dask.array.transpose`.
 
 
-## Sparse
+### Sparse
 
 The [sparse](https://sparse.pydata.org/) library also fits the requirements and is
 supported. An example:
@@ -113,7 +111,7 @@ oe.contract("ab,bc,cd", *sxs)
 ```
 
 
-## Autograd
+### Autograd
 
 The [autograd](https://github.com/HIPS/autograd) library is a drop-in for
 `numpy` that can automatically compute the gradients of array expressions.
@@ -148,7 +146,7 @@ dx, dy, dz
 #>         [1.10840828, 1.16722494]]))
 ```
 
-## Jax
+### Jax
 
 [jax](https://github.com/google/jax) is itself a drop-in for `autograd`,
 that additionally uses [XLA](https://www.tensorflow.org/xla) to compile the
@@ -185,7 +183,7 @@ jit_dfoo([x, y, z])
 
 
 
-# Special (GPU) backends for numpy arrays
+## Special (GPU) backends for numpy arrays
 
 A particular case is if numpy arrays are required for the input and output,
 however, a more performant backend is required such as performing the contraction on a GPU.
@@ -200,15 +198,15 @@ Currently `opt_einsum` can handle this automatically for:
 
 all of which offer GPU support. Since `tensorflow` and `theano` both require
 compiling the expression, this functionality is encapsulated in generating a
-:class:`~opt_einsum.ContractExpression` using
-:func:`~opt_einsum.contract_expression`, which can then be called using numpy
+[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsumcontractcontractexpression) using
+[`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression), which can then be called using numpy
 arrays whilst specifiying `backend='tensorflow'` etc.
 Additionally, if arrays are marked as `constant`
-(see :ref:`constants-section`), then these arrays will be kept on the device
+(see [`constants-section`](./reusing_paths.md#specifying-constants)), then these arrays will be kept on the device
 for optimal performance.
 
 
-## Theano
+### Theano
 
 If `theano` is installed, using it as backend is as simple as specifiying
 `backend='theano'`:
@@ -234,7 +232,7 @@ Note that you can still supply `theano.tensor.TensorType` directly to
 relevant `theano` type.
 
 
-## Tensorflow
+### Tensorflow
 
 To run the expression with **tensorflow**, you need to register a default
 session:
@@ -270,12 +268,12 @@ tf.enable_eager_execution()
 
 After which `opt_einsum` will automatically detect eager mode if
 `backend='tensorflow'` is supplied to a
-:class:`~opt_einsum.ContractExpression`.
+[`opt_einsum.ContractExpression`](../api_reference.md###opt_einsumcontractcontractexpression).
 
 
-## Pytorch & Cupy
+### Pytorch & Cupy
 
-Both `pytorch <https://pytorch.org>`_ and `cupy <https://cupy.chainer.org/>`_
+Both [pytorch](https://pytorch.org) and [cupy](https://cupy.chainer.org/)
 offer numpy-like, GPU-enabled arrays which execute eagerly rather than
 requiring any compilation. If they are installed, no steps are required to
 utilize them other than specifiying the `backend` keyword:
@@ -298,7 +296,7 @@ And as with the other GPU backends, if raw `cupy` or `pytorch` arrays are
 supplied the returned array will be of the same type, with no conversion
 to or from `numpy` arrays.
 
-## Jax
+### Jax
 
 [jax](https://github.com/google/jax), as introduced above, can compile tensor
 functions, in doing so often achieving better performance.
@@ -314,7 +312,7 @@ expr(*xs, backend='jax')
 ```
 
 
-# Contracting arbitrary objects
+## Contracting arbitrary objects
 
 There is one more explicit backend that can handle arbitrary arrays of objects,
 so long the *objects themselves* just support multiplication and addition (
@@ -348,9 +346,9 @@ There are a few things to note here:
 
 - The returned array is a `numpy.ndarray` but since it has `dtype=object`
   it can really hold *any* python objects
-- We had to explicitly use `backend='object'`, since :func:`numpy.einsum`
+- We had to explicitly use `backend='object'`, since `numpy.einsum`
   would have otherwise been dispatched to, which can't handle `dtype=object`
-  (though :func:`numpy.tensordot` in fact can)
+  (though `numpy.tensordot` in fact can)
 - Although an optimized pairwise contraction order is used, the looping in each
   single contraction is **performed in python so performance will be
   drastically lower than for numeric dtypes!**

@@ -19,7 +19,7 @@ O-O-O-O-O-O-     -O-O-O-O-O-O
 The meaning of this is not that important other than its a large, useful
 contraction. For `n=100` it involves 200 different tensors and about 300
 unique indices. With this many indices it can be useful to generate them with
-the function :func:`~opt_einsum.parser.get_symbol`.
+the function `opt_einsum.parser.get_symbol`.
 
 ### Setup the string
 

@@ -53,7 +53,7 @@ Customizing the Dynamic Programming Path
 ----------------------------------------
 
 The default `optimize='dp'` approach has sensible defaults but can be
-customized with the :class:`~opt_einsum.paths.DynamicProgramming` object.
+customized with the [`opt_einsum.paths.DynamicProgramming`](../api_reference.md#opt_einsumpathsdynamicprogramming) object.
 
 ```python
 import opt_einsum as oe

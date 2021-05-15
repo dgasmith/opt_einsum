@@ -1,6 +1,8 @@
 # Reusing Paths
 
-If you expect to use a particular contraction repeatedly, it can make things simpler and more efficient not to compute the path each time. Instead, supplying :func:`~opt_einsum.contract_expression` with the contraction string and the shapes of the tensors generates a :class:`~opt_einsum.contract.ContractExpression` which can then be repeatedly called with any matching set of arrays. For example:
+If you expect to use a particular contraction repeatedly, it can make things simpler and more efficient not to compute the path each time.
+Instead, supplying [`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression) with the contraction string and the shapes of the tensors generates a [`opt_einsum.ContractExpression`](../api_reference.md#opt_einsumcontractcontractexpression) which can then be repeatedly called with any matching set of arrays.
+For example:
 
 ```python
 my_expr = oe.contract_expression("abc,cd,dbe->ea", (2, 3, 4), (4, 5), (5, 3, 6))
@@ -30,7 +32,7 @@ Note that few checks are performed when calling the expression, and while it wil
 
 Often one generates contraction expressions where some of the tensor arguments
 will remain *constant* across many calls.
-:func:`~opt_einsum.contract_expression` allows you to specify the indices of
+[`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression) allows you to specify the indices of
 these constant arguments, allowing `opt_einsum` to build and then reuse as
 many constant contractions as possible.
 
@@ -43,7 +45,7 @@ eq = "ij,jk,kl,lm,mn->ni"
 where we know that *only* the first and last tensors will vary between calls.
 We can specify this by marking the middle three as constant - we then need to
 supply the actual arrays rather than just the shapes to
-:func:`~opt_einsum.contract_expression`:
+[`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression):
 
 ```python
 #           A       B       C       D       E
@@ -95,7 +97,7 @@ two contractions to compute the output.
 !!! note
     The constant part of an expression is lazily generated upon the first call
     (specific to each backend), though it can also be explicitly built by calling
-    :meth:`~opt_einsum.contract.ContractExpression.evaluate_constants`.
+    [`opt_einsum.contract.ContractExpression.evaluate_constants`](../api_reference.md#opt_einsumcontractcontractexpression).
 
 We can confirm the advantage of using expressions and constants by timing the
 following scenarios, first setting
