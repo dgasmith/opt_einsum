@@ -4,6 +4,7 @@ Contains the primary optimization and contraction routines.
 
 from collections import namedtuple
 from decimal import Decimal
+from typing import Any, List, Optional, Sequence, Tuple
 
 from . import backends, blas, helpers, parser, paths, sharing
 
@@ -41,7 +42,7 @@ class PathInfo(object):
         self.eq = "{}->{}".format(input_subscripts, output_subscript)
         self.largest_intermediate = Decimal(max(size_list))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # Return the path along with a nice string representation
         header = ("scaling", "BLAS", "current", "remaining")
 
@@ -69,7 +70,7 @@ class PathInfo(object):
         return "".join(path_print)
 
 
-def _choose_memory_arg(memory_limit, size_list):
+def _choose_memory_arg(memory_limit: int, size_list: List[int]) -> Optional[int]:
     if memory_limit == 'max_input':
         return max(size_list)
 
@@ -802,7 +803,7 @@ def shape_only(shape):
     return Shaped(shape)
 
 
-def contract_expression(subscripts, *shapes, **kwargs):
+def contract_expression(subscripts: str, *shapes: Sequence[Tuple[int, ...]], **kwargs: Any):
     """Generate a reusable expression for a given contraction with
     specific shapes, which can, for example, be cached.
 

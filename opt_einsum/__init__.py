@@ -10,7 +10,7 @@ from .paths import BranchBound, DynamicProgramming
 from .sharing import shared_intermediates
 
 # Handle versioneer
-from ._version import get_versions # isort:skip
+from ._version import get_versions  # isort:skip
 
 versions = get_versions()
 __version__ = versions['version']

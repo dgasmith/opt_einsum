@@ -3,6 +3,7 @@ Contains helper functions for opt_einsum testing scripts
 """
 
 from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 
@@ -15,13 +16,13 @@ _sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4])
 _default_dim_dict = {c: s for c, s in zip(_valid_chars, _sizes)}
 
 
-def build_views(string, dimension_dict=None):
+def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> List[np.ndarray]:
     """
     Builds random numpy arrays for testing.
 
     Parameters
     ----------
-    string : list of str
+    string : str
         List of tensor strings to build
     dimension_dict : dictionary
         Dictionary of index _sizes
@@ -33,7 +34,7 @@ def build_views(string, dimension_dict=None):
 
     Examples
     --------
-    >>> view = build_views(['abbc'], {'a': 2, 'b':3, 'c':5})
+    >>> view = build_views('abbc', {'a': 2, 'b':3, 'c':5})
     >>> view[0].shape
     (2, 3, 3, 5)
 
@@ -50,7 +51,7 @@ def build_views(string, dimension_dict=None):
     return views
 
 
-def compute_size_by_dict(indices, idx_dict):
+def compute_size_by_dict(indices: str, idx_dict: Dict[str, int]) -> int:
     """
     Computes the product of the elements in indices based on the dictionary
     idx_dict.
@@ -79,7 +80,8 @@ def compute_size_by_dict(indices, idx_dict):
     return ret
 
 
-def find_contraction(positions, input_sets, output_set):
+def find_contraction(positions: Sequence[int], input_sets: List[Set[str]],
+                     output_set: Set[str]) -> Tuple[Set[str], List[Set[str]], Set[str], Set[str]]:
     """
     Finds the contraction for a given set of input and output sets.
 
@@ -134,7 +136,7 @@ def find_contraction(positions, input_sets, output_set):
     return new_result, remaining, idx_removed, idx_contract
 
 
-def flop_count(idx_contraction, inner, num_terms, size_dictionary):
+def flop_count(idx_contraction: str, inner: bool, num_terms: int, size_dictionary: Dict[str, int]) -> int:
     """
     Computes the number of FLOPS in the contraction.
 
@@ -173,7 +175,14 @@ def flop_count(idx_contraction, inner, num_terms, size_dictionary):
     return overall_size * op_factor
 
 
-def rand_equation(n, reg, n_out=0, d_min=2, d_max=9, seed=None, global_dim=False, return_size_dict=False):
+def rand_equation(n: int,
+                  reg: int,
+                  n_out: int = 0,
+                  d_min: int = 2,
+                  d_max: int = 9,
+                  seed: Optional[int] = None,
+                  global_dim: bool = False,
+                  return_size_dict: bool = False) -> Any:
     """Generate a random contraction and shapes.
 
     Parameters

@@ -8,21 +8,10 @@ import math
 import numbers
 import time
 from collections import deque
+from random import choices as random_choices
+from random import seed as random_seed
 
 from . import helpers, paths
-
-# random.choices was introduced in python 3.6
-try:
-    from random import choices as random_choices
-    from random import seed as random_seed
-except ImportError:
-    import numpy as np
-
-    def random_choices(population, weights):
-        norm = sum(weights)
-        return np.random.choice(population, p=[w / norm for w in weights], size=1)
-
-    random_seed = np.random.seed
 
 __all__ = ["RandomGreedy", "random_greedy", "random_greedy_128"]
 

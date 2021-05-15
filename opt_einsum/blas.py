@@ -2,14 +2,20 @@
 Determines if a contraction can use BLAS or not
 """
 
+from typing import List, Sequence, Set, Tuple, Union
+
 import numpy as np
+import numpy.typing as npt
 
 from . import helpers
 
 __all__ = ["can_blas", "tensor_blas"]
 
 
-def can_blas(inputs, result, idx_removed, shapes=None):
+def can_blas(inputs: List[str],
+             result: str,
+             idx_removed: Set[str],
+             shapes: Sequence[Tuple[int]] = None) -> Union[str, bool]:
     """
     Checks if we can use a BLAS call.
 
@@ -120,7 +126,8 @@ def can_blas(inputs, result, idx_removed, shapes=None):
         return 'TDOT'
 
 
-def tensor_blas(view_left, input_left, view_right, input_right, index_result, idx_removed):
+def tensor_blas(view_left: np.ndarray, input_left: str, view_right: np.ndarray, input_right: str, index_result: str,
+                idx_removed: Set[str]) -> np.ndarray:
     """
     Computes the dot product between two tensors, attempts to use np.dot and
     then tensordot if that fails.

@@ -20,7 +20,7 @@ __all__ = [
 _SHARING_STACK = defaultdict(list)
 
 
-def currently_sharing():
+def currently_sharing() -> bool:
     """Check if we are currently sharing a cache -- thread specific.
     """
     return threading.get_ident() in _SHARING_STACK
