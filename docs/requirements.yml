@@ -1,9 +1,10 @@
 ansi2html==1.*
 black
 devtools
-mkdocs==1.*
 markdown==3.*
 markdown-include==0.*
+mkautodoc==0.1.*
+mkdocs==1.*
 mkdocs-awesome-pages-plugin==2.*
 mkdocs-exclude==1.*
 mkdocs-material==5.*
