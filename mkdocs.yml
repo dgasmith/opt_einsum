@@ -1,0 +1,35 @@
+site_name: Optimized Einsum
+theme:
+  name: material
+
+plugins:
+    - search
+    - awesome-pages
+
+extra_javascript:
+  - javascripts/config.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+markdown_extensions:
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - markdown_include.include:
+      base_path: docs
+  - pymdownx.arithmatex:
+      generic: true
+  - admonition
+  - codehilite
+  - extra
+  - pymdownx.extra
+  - pymdownx.arithmatex:
+      generic: true
+
+nav:
+ - Overview: index.md
+ - Getting Started:
+   - Installing: getting_started/install.md
+   - Input Format: getting_started/input_format.md
+   - "Backends & GPU Support": getting_started/backends.md
+   - Reusing Paths: getting_started/reusing_paths.md
+   - Sharing Intermediates: getting_started/sharing_intermediates.md
