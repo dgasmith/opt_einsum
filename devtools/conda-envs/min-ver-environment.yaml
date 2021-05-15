@@ -1,6 +1,4 @@
 name: test
-channels:
-  - conda-forge
 dependencies:
     # Base depends
   - python
@@ -10,7 +8,6 @@ dependencies:
     # Backends
   - tensorflow ==1.14.*
   - dask ==1.1.*
-  - pytorch-cpu ==1.6.*
 
     # Testing
   - pytest

@@ -13,7 +13,11 @@ except ImportError:
 try:
     import tensorflow as tf
     # needed so tensorflow doesn't allocate all gpu mem
-    _TF_CONFIG = tf.ConfigProto()
+    try:
+        from tensorflow import ConfigProto
+    except ImportError:
+        from tf.compat.v1 import ConfigProto
+    _TF_CONFIG = ConfigProto()
     _TF_CONFIG.gpu_options.allow_growth = True
     found_tensorflow = True
 except ImportError:
