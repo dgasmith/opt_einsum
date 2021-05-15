@@ -9,7 +9,6 @@ on:
 jobs:
   miniconda-setup:
     strategy:
-      fail-fast: true
       matrix:
         python-version: [3.6, 3.9]
         environment: ["minimal", "full", "minv"]

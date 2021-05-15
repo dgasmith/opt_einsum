@@ -9,10 +9,10 @@ dependencies:
   - nomkl
 
     # Backends
-  - tensorflow == 1.2
-  - dask == 1.1
-  - sparse == 0.5
-  - pytorch-cpu == 0.4.1
+  - tensorflow-base ==1.2
+  - dask ==1.1
+  - sparse ==0.7
+  - pytorch-cpu ==1.0.1
 
     # Testing
   - pytest

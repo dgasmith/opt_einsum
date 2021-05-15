@@ -9,20 +9,17 @@ dependencies:
   - nomkl
 
     # Backends
-  - tensorflow
+  - tensorflow-base
   - dask
   - sparse
   - theano
   - pytorch-cpu
   - autograd
+  - jax
+  - jaxlib
 
     # Testing
   - pytest
   - codecov
   - pytest-cov
 
-  # non-conda backends
-  - pip
-  - pip:
-    - jax
-    - jaxlib
