@@ -17,9 +17,13 @@ jobs:
       with:
         python-version: 3.x
 
-    - run: pip install -r docs/requirements.yml
+    - name: Install
+      run: |
+        pip install -r docs/requirements.yml
+        pip install -e .
 
-    - run: mkdocs build 
+    - name: Build Docs
+      run: mkdocs build 
 
     # Only deploy if master, otherwise just build for testing
     - name: Deploy
