@@ -5,11 +5,11 @@ A functionally equivalent parser of the numpy.einsum input parser
 """
 
 import itertools
-from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Tuple
-from .typing import TensorShapeType
 
 import numpy as np
+
+from .typing import TensorShapeType
 
 __all__ = [
     "is_valid_einsum_char", "has_valid_einsum_chars_only", "get_symbol", "gen_unused_symbols",

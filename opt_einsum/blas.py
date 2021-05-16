@@ -2,12 +2,12 @@
 Determines if a contraction can use BLAS or not
 """
 
-from typing import List, Sequence, Set, Tuple, Union
+from typing import List, Sequence, Tuple, Union
 
 import numpy as np
-from .typing import TensorIndexType
 
 from . import helpers
+from .typing import TensorIndexType
 
 __all__ = ["can_blas", "tensor_blas"]
 

@@ -2,7 +2,7 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, Collection
+from typing import Collection, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 

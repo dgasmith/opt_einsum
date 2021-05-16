@@ -5,7 +5,7 @@ constants.
 """
 
 import importlib
-from typing import Dict, List, Sequence, Any
+from typing import Any, Dict
 
 import numpy
 

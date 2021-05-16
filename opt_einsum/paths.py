@@ -8,7 +8,7 @@ import itertools
 import operator
 import random
 from collections import Counter, OrderedDict, defaultdict
-from typing import List, Set, FrozenSet, Dict, Tuple, Callable, Optional, Any
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Tuple
 
 import numpy as np
 
