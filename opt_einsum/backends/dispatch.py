@@ -5,10 +5,9 @@ constants.
 """
 
 import importlib
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Any
 
 import numpy
-import numpy.typing as npt
 
 from . import cupy as _cupy
 from . import jax as _jax
@@ -30,7 +29,7 @@ _aliases = {
 }
 
 
-def _import_func(func: str, backend: str, default=None):
+def _import_func(func: str, backend: str, default: Any = None) -> Any:
     """Try and import ``{backend}.{func}``.
     If library is installed and func is found, return the func;
     otherwise if default is provided, return default;
@@ -59,7 +58,7 @@ _cached_funcs = {
 }
 
 
-def get_func(func: str, backend: str = 'numpy', default=None):
+def get_func(func: str, backend: str = 'numpy', default: Any = None) -> Any:
     """Return ``{backend}.{func}``, e.g. ``numpy.einsum``,
     or a default func if provided. Cache result.
     """

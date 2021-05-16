@@ -15,13 +15,13 @@ try:
     import cupy
     cupy_if_found = 'cupy'
 except ImportError:
-    cupy_if_found = pytest.param('cupy', marks=[pytest.mark.skip(reason="CuPy not installed.")])
+    cupy_if_found = pytest.param('cupy', marks=[pytest.mark.skip(reason="CuPy not installed.")])  # type: ignore
 
 try:
     import torch
     torch_if_found = 'torch'
 except ImportError:
-    torch_if_found = pytest.param('torch', marks=[pytest.mark.skip(reason="PyTorch not installed.")])
+    torch_if_found = pytest.param('torch', marks=[pytest.mark.skip(reason="PyTorch not installed.")])  # type: ignore
 
 backends = ['numpy', torch_if_found, cupy_if_found]
 equations = [

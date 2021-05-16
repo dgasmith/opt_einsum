@@ -192,10 +192,11 @@ def optimal(inputs: List[TensorIndexType],
     >>> optimal(isets, oset, idx_sizes, 5000)
     [(0, 2), (0, 1)]
     """
-    inputs_set = tuple(map(frozenset, inputs))
+    inputs_set = tuple(map(frozenset, inputs))  # type: ignore
     output_set = frozenset(output)
 
-    best = {'flops': float('inf'), 'ssa_path': (tuple(range(len(inputs))), )}
+    best_flops = {'flops': float('inf')}
+    best_ssa_path = {'ssa_path': (tuple(range(len(inputs))), )}
     size_cache: Dict[FrozenSet[str], int] = {}
     result_cache: Dict[Tuple[TensorIndexType, TensorIndexType], Tuple[FrozenSet[str], int]] = {}
 
@@ -203,8 +204,8 @@ def optimal(inputs: List[TensorIndexType],
 
         # reached end of path (only ever get here if flops is best found so far)
         if len(remaining) == 1:
-            best['flops'] = flops
-            best['ssa_path'] = path
+            best_flops['flops'] = flops
+            best_ssa_path['ssa_path'] = path
             return
 
         # check all possible remaining paths
@@ -219,7 +220,7 @@ def optimal(inputs: List[TensorIndexType],
 
             # sieve based on current best flops
             new_flops = flops + flops12
-            if new_flops >= best['flops']:
+            if new_flops >= best_flops['flops']:
                 continue
 
             # sieve based on memory limit
@@ -232,9 +233,9 @@ def optimal(inputs: List[TensorIndexType],
                 # possibly terminate this path with an all-terms einsum
                 if size12 > memory_limit:
                     new_flops = flops + _compute_oversize_flops(inputs, remaining, output_set, size_dict)
-                    if new_flops < best['flops']:
-                        best['flops'] = new_flops
-                        best['ssa_path'] = path + (tuple(remaining), )
+                    if new_flops < best_flops['flops']:
+                        best_flops['flops'] = new_flops
+                        best_ssa_path['ssa_path'] = path + (tuple(remaining), )
                     continue
 
             # add contraction and recurse into all remaining
@@ -245,7 +246,7 @@ def optimal(inputs: List[TensorIndexType],
 
     _optimal_iterate(path=(), inputs=inputs_set, remaining=set(range(len(inputs))), flops=0)
 
-    return ssa_to_linear(best['ssa_path'])
+    return ssa_to_linear(best_ssa_path['ssa_path'])
 
 
 # functions for comparing which of two paths is 'better'
@@ -335,8 +336,8 @@ class BranchBound(PathOptimizer):
         return ssa_to_linear(self.best['ssa_path'])
 
     def __call__(self,
-                 inputs: List[TensorIndexType],
-                 output: TensorIndexType,
+                 inputs_: List[TensorIndexType],
+                 output_: TensorIndexType,
                  size_dict: Dict[str, int],
                  memory_limit: Optional[int] = None) -> PathType:
         """
@@ -365,13 +366,13 @@ class BranchBound(PathOptimizer):
         >>> optimal(isets, oset, idx_sizes, 5000)
         [(0, 2), (0, 1)]
         """
-        self._check_args_against_first_call(inputs, output, size_dict)
+        self._check_args_against_first_call(inputs_, output_, size_dict)
 
-        inputs = tuple(map(frozenset, inputs))
-        output = frozenset(output)
+        inputs: Tuple[FrozenSet[str]] = tuple(map(frozenset, inputs_))  # type: ignore
+        output: FrozenSet[str] = frozenset(output_)
 
         size_cache = {k: helpers.compute_size_by_dict(k, size_dict) for k in inputs}
-        result_cache = {}
+        result_cache: Dict[Tuple[FrozenSet[str], FrozenSet[str]], Tuple[FrozenSet[str], int]] = {}
 
         def _branch_iterate(path, inputs, remaining, flops, size):
 
@@ -382,7 +383,7 @@ class BranchBound(PathOptimizer):
                 self.best['ssa_path'] = path
                 return
 
-            def _assess_candidate(k1, k2, i, j):
+            def _assess_candidate(k1: FrozenSet[str], k2: FrozenSet[str], i: int, j: int) -> Any:
                 # find resulting indices and flops
                 try:
                     k12, flops12 = result_cache[k1, k2]
@@ -409,9 +410,9 @@ class BranchBound(PathOptimizer):
                     return None
 
                 # sieve based on memory limit
-                if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):
+                if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):  # type: ignore
                     # terminate path here, but check all-terms contract first
-                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
+                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output_, size_dict)
                     if new_flops < self.best['flops']:
                         self.best['flops'] = new_flops
                         self.best['ssa_path'] = path + (tuple(remaining), )
@@ -680,7 +681,7 @@ def greedy(inputs: List[TensorIndexType],
     [(0, 2), (0, 1)]
     """
     if memory_limit not in _UNLIMITED_MEM:
-        return branch(inputs, output, size_dict, memory_limit, nbranch=1, cost_fn=cost_fn)
+        return branch(inputs, output, size_dict, memory_limit, nbranch=1, cost_fn=cost_fn)  # type: ignore
 
     ssa_path = ssa_greedy_optimize(inputs, output, size_dict, cost_fn=cost_fn, choose_fn=choose_fn)
     return ssa_to_linear(ssa_path)
@@ -941,8 +942,8 @@ class DynamicProgramming(PathOptimizer):
         self.cost_cap = cost_cap
 
     def __call__(self,
-                 inputs: List[TensorIndexType],
-                 output: TensorIndexType,
+                 inputs_: List[TensorIndexType],
+                 output_: TensorIndexType,
                  size_dict: Dict[str, int],
                  memory_limit: Optional[int] = None) -> PathType:
         """
@@ -981,15 +982,15 @@ class DynamicProgramming(PathOptimizer):
         >>> o(i_all, set(), s)
         [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
         """
-        ind_counts = Counter(itertools.chain(*inputs, output))
+        ind_counts = Counter(itertools.chain(*inputs_, output_))
         all_inds = tuple(ind_counts)
 
         # convert all indices to integers (makes set operations ~10 % faster)
         symbol2int = {c: j for j, c in enumerate(all_inds)}
-        inputs = [set(symbol2int[c] for c in i) for i in inputs]
-        output = set(symbol2int[c] for c in output)
-        size_dict = {symbol2int[c]: v for c, v in size_dict.items() if c in symbol2int}
-        size_dict = [size_dict[j] for j in range(len(size_dict))]
+        inputs = [set(symbol2int[c] for c in i) for i in inputs_]
+        output = set(symbol2int[c] for c in output_)
+        size_dict = {symbol2int[c]: v for c, v in size_dict.items() if c in symbol2int}  # type: ignore
+        size_dict = [size_dict[j] for j in range(len(size_dict))]  # type: ignore
         naive_cost = len(inputs) * functools.reduce(operator.mul, size_dict)
 
         inputs, inputs_done, inputs_contractions = _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts)
@@ -1021,11 +1022,11 @@ class DynamicProgramming(PathOptimizer):
             # the set of n tensors is represented by a bitmap: if bit j is 1,
             # tensor j is in the set, e.g. 0b100101 = {0,2,5}; set unions
             # (intersections) can then be computed by bitwise or (and);
-            x = [None] * 2 + [dict() for j in range(len(g) - 1)]
+            x: List[Any] = [None] * 2 + [dict() for j in range(len(g) - 1)]  # type: ignore
             x[1] = OrderedDict((1 << j, (inputs[j], 0, inputs_contractions[j])) for j in g)
 
             # convert set of tensors g to a bitmap set:
-            g = functools.reduce(lambda x, y: x | y, (1 << j for j in g))
+            g = functools.reduce(lambda x, y: x | y, (1 << j for j in g))  # type: ignore
 
             # try to find contraction with cost <= cost_cap and increase
             # cost_cap successively if no such contraction is found;
@@ -1035,7 +1036,7 @@ class DynamicProgramming(PathOptimizer):
             if self.cost_cap is True:
                 cost_cap = helpers.compute_size_by_dict(subgraph_inds & output, size_dict)
             elif self.cost_cap is False:
-                cost_cap = float('inf')
+                cost_cap = float('inf')  # type: ignore
             else:
                 cost_cap = self.cost_cap
             # set the factor to increase the cost by each iteration (ensure > 1)
@@ -1063,7 +1064,7 @@ class DynamicProgramming(PathOptimizer):
                                                                 xn, g, all_tensors, inputs, i1_cut_i2_wo_output,
                                                                 memory_limit, cntrct1, cntrct2)
 
-                if (cost_cap > naive_cost) and (len(x[-1]) == 0):
+                if (cost_cap > naive_cost) and (len(x[-1]) == 0):  # type: ignore
                     raise RuntimeError("No contraction found for given `memory_limit`.")
 
                 # increase cost cap for next iteration:

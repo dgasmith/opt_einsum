@@ -803,7 +803,7 @@ def shape_only(shape):
     return Shaped(shape)
 
 
-def contract_expression(subscripts: str, *shapes: Sequence[Tuple[int, ...]], **kwargs: Any):
+def contract_expression(subscripts: str, *shapes: Sequence[Tuple[int, ...]], **kwargs: Any) -> Any:
     """Generate a reusable expression for a given contraction with
     specific shapes, which can, for example, be cached.
 
