@@ -7,6 +7,7 @@ A functionally equivalent parser of the numpy.einsum input parser
 import itertools
 from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Tuple
+from .typing import TensorShapeType
 
 import numpy as np
 
@@ -140,7 +141,7 @@ def find_output_str(subscripts: str) -> str:
     return "".join(s for s in sorted(set(tmp_subscripts)) if tmp_subscripts.count(s) == 1)
 
 
-def find_output_shape(inputs: List[str], shapes: List[Tuple[int, ...]], output: str) -> Tuple[int, ...]:
+def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: str) -> TensorShapeType:
     """Find the output shape for given inputs, shapes and output string, taking
     into account broadcasting.
 
@@ -208,7 +209,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands):
+def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
     """Convert 'interleaved' input to standard einsum input.
     """
     tmp_operands = list(operands)

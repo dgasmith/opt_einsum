@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, Colle
 import numpy as np
 
 from .parser import get_symbol
+from .typing import PathType, TensorIndexType
 
 __all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
 
@@ -79,8 +80,9 @@ def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> 
     return ret
 
 
-def find_contraction(positions: Collection[int], input_sets: List[Set[str]],
-                     output_set: Set[str]) -> Tuple[Set[str], List[Set[str]], Set[str], Set[str]]:
+def find_contraction(
+        positions: Collection[int], input_sets: List[TensorIndexType],
+        output_set: TensorIndexType) -> Tuple[Set[str], List[TensorIndexType], TensorIndexType, TensorIndexType]:
     """
     Finds the contraction for a given set of input and output sets.
 
@@ -174,16 +176,14 @@ def flop_count(idx_contraction: Collection[str], inner: bool, num_terms: int, si
     return overall_size * op_factor
 
 
-def rand_equation(
-    n: int,
-    reg: int,
-    n_out: int = 0,
-    d_min: int = 2,
-    d_max: int = 9,
-    seed: Optional[int] = None,
-    global_dim: bool = False,
-    return_size_dict: bool = False
-) -> Union[Tuple[str, List[Tuple[int, ...]], Dict[str, int]], Tuple[str, List[Tuple[int, ...]]]]:
+def rand_equation(n: int,
+                  reg: int,
+                  n_out: int = 0,
+                  d_min: int = 2,
+                  d_max: int = 9,
+                  seed: Optional[int] = None,
+                  global_dim: bool = False,
+                  return_size_dict: bool = False) -> Union[Tuple[str, PathType, Dict[str, int]], Tuple[str, PathType]]:
     """Generate a random contraction and shapes.
 
     Parameters

@@ -8,11 +8,12 @@ import itertools
 import operator
 import random
 from collections import Counter, OrderedDict, defaultdict
-from typing import Dict, FrozenSet, List, Set, Tuple
+from typing import List, Set, FrozenSet, Dict, Tuple, Callable, Optional, Any
 
 import numpy as np
 
 from . import helpers
+from .typing import PathType, TensorIndexType
 
 __all__ = [
     "optimal", "BranchBound", "branch", "greedy", "auto", "auto_hq", "get_path_fn", "DynamicProgramming",
@@ -21,10 +22,8 @@ __all__ = [
 
 _UNLIMITED_MEM = {-1, None, float('inf')}
 
-PathType = List[Tuple[int, ...]]
 
-
-class PathOptimizer(object):
+class PathOptimizer:
     """Base class for different path optimizers to inherit from.
 
     Subclassed optimizers should define a call method with signature::
@@ -47,7 +46,8 @@ class PathOptimizer(object):
 
     where ``path`` is a list of int-tuples specifiying a contraction order.
     """
-    def _check_args_against_first_call(self, inputs, output, size_dict):
+    def _check_args_against_first_call(self, inputs: List[TensorIndexType], output: TensorIndexType,
+                                       size_dict: Dict[str, int]) -> None:
         """Utility that stateful optimizers can use to ensure they are not
         called with different contractions across separate runs.
         """
@@ -59,7 +59,11 @@ class PathOptimizer(object):
             raise ValueError("The arguments specifiying the contraction that this path optimizer "
                              "instance was called with have changed - try creating a new instance.")
 
-    def __call__(self, inputs, output, size_dict, memory_limit=None):
+    def __call__(self,
+                 inputs: List[TensorIndexType],
+                 output: TensorIndexType,
+                 size_dict: Dict[str, int],
+                 memory_limit: Optional[int] = None) -> PathType:
         raise NotImplementedError
 
 
@@ -142,18 +146,22 @@ def calc_k12_flops(inputs: Tuple[FrozenSet[str]], output: FrozenSet[str], remain
     return k12, cost
 
 
-def _compute_oversize_flops(inputs, remaining, output, size_dict):
+def _compute_oversize_flops(inputs: Tuple[FrozenSet[str]], remaining: List[TensorIndexType], output: TensorIndexType,
+                            size_dict: Dict[str, int]) -> int:
     """
     Compute the flop count for a contraction of all remaining arguments. This
     is used when a memory limit means that no pairwise contractions can be made.
     """
-    idx_contraction = frozenset.union(*map(inputs.__getitem__, remaining))
+    idx_contraction = frozenset.union(*map(inputs.__getitem__, remaining))  # type: ignore
     inner = idx_contraction - output
     num_terms = len(remaining)
-    return helpers.flop_count(idx_contraction, inner, num_terms, size_dict)
+    return helpers.flop_count(idx_contraction, bool(inner), num_terms, size_dict)
 
 
-def optimal(inputs, output, size_dict, memory_limit=None):
+def optimal(inputs: List[TensorIndexType],
+            output: TensorIndexType,
+            size_dict: Dict[str, int],
+            memory_limit: Optional[int] = None) -> PathType:
     """
     Computes all possible pair contractions in a depth-first recursive manner,
     sieving results based on ``memory_limit`` and the best path found so far.
@@ -184,12 +192,12 @@ def optimal(inputs, output, size_dict, memory_limit=None):
     >>> optimal(isets, oset, idx_sizes, 5000)
     [(0, 2), (0, 1)]
     """
-    inputs = tuple(map(frozenset, inputs))
-    output = frozenset(output)
+    inputs_set = tuple(map(frozenset, inputs))
+    output_set = frozenset(output)
 
     best = {'flops': float('inf'), 'ssa_path': (tuple(range(len(inputs))), )}
-    size_cache = {}
-    result_cache = {}
+    size_cache: Dict[FrozenSet[str], int] = {}
+    result_cache: Dict[Tuple[TensorIndexType, TensorIndexType], Tuple[FrozenSet[str], int]] = {}
 
     def _optimal_iterate(path, remaining, inputs, flops):
 
@@ -207,7 +215,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
             try:
                 k12, flops12 = result_cache[key]
             except KeyError:
-                k12, flops12 = result_cache[key] = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+                k12, flops12 = result_cache[key] = calc_k12_flops(inputs, output_set, remaining, i, j, size_dict)
 
             # sieve based on current best flops
             new_flops = flops + flops12
@@ -223,7 +231,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
 
                 # possibly terminate this path with an all-terms einsum
                 if size12 > memory_limit:
-                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output, size_dict)
+                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output_set, size_dict)
                     if new_flops < best['flops']:
                         best['flops'] = new_flops
                         best['ssa_path'] = path + (tuple(remaining), )
@@ -235,7 +243,7 @@ def optimal(inputs, output, size_dict, memory_limit=None):
                              remaining=remaining - {i, j} | {len(inputs)},
                              flops=new_flops)
 
-    _optimal_iterate(path=(), inputs=inputs, remaining=set(range(len(inputs))), flops=0)
+    _optimal_iterate(path=(), inputs=inputs_set, remaining=set(range(len(inputs))), flops=0)
 
     return ssa_to_linear(best['ssa_path'])
 
@@ -243,11 +251,11 @@ def optimal(inputs, output, size_dict, memory_limit=None):
 # functions for comparing which of two paths is 'better'
 
 
-def better_flops_first(flops, size, best_flops, best_size):
+def better_flops_first(flops: int, size: int, best_flops: int, best_size: int) -> bool:
     return (flops, size) < (best_flops, best_size)
 
 
-def better_size_first(flops, size, best_flops, best_size):
+def better_size_first(flops: int, size: int, best_flops: int, best_size: int) -> bool:
     return (size, flops) < (best_size, best_flops)
 
 
@@ -257,7 +265,7 @@ _BETTER_FNS = {
 }
 
 
-def get_better_fn(key):
+def get_better_fn(key: str) -> Callable[[int, int, int, int], bool]:
     return _BETTER_FNS[key]
 
 
@@ -323,10 +331,14 @@ class BranchBound(PathOptimizer):
         self.best_progress = defaultdict(lambda: float('inf'))
 
     @property
-    def path(self):
+    def path(self) -> PathType:
         return ssa_to_linear(self.best['ssa_path'])
 
-    def __call__(self, inputs, output, size_dict, memory_limit=None):
+    def __call__(self,
+                 inputs: List[TensorIndexType],
+                 output: TensorIndexType,
+                 size_dict: Dict[str, int],
+                 memory_limit: Optional[int] = None) -> PathType:
         """
 
         Parameters
@@ -452,7 +464,11 @@ class BranchBound(PathOptimizer):
         return self.path
 
 
-def branch(inputs, output, size_dict, memory_limit=None, **optimizer_kwargs):
+def branch(inputs: List[TensorIndexType],
+           output: TensorIndexType,
+           size_dict: Dict[str, int],
+           memory_limit: Optional[int] = None,
+           **optimizer_kwargs: Dict[str, Any]) -> PathType:
     optimizer = BranchBound(**optimizer_kwargs)
     return optimizer(inputs, output, size_dict, memory_limit)
 
@@ -619,7 +635,12 @@ def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-r
     return ssa_path
 
 
-def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn='memory-removed'):
+def greedy(inputs: List[TensorIndexType],
+           output: TensorIndexType,
+           size_dict: Dict[str, int],
+           memory_limit: Optional[int] = None,
+           choose_fn: Any = None,
+           cost_fn: str = 'memory-removed') -> PathType:
     """
     Finds the path by a three stage algorithm:
 
@@ -901,7 +922,7 @@ class DynamicProgramming(PathOptimizer):
         product, this option allows searching such contractions but may well
         slow down the path finding considerably on all but very small graphs.
     """
-    def __init__(self, minimize='flops', cost_cap=True, search_outer=False):
+    def __init__(self, minimize: str = 'flops', cost_cap: bool = True, search_outer: bool = False) -> None:
 
         # set whether inner function minimizes against flops or size
         self.minimize = minimize
@@ -919,7 +940,11 @@ class DynamicProgramming(PathOptimizer):
 
         self.cost_cap = cost_cap
 
-    def __call__(self, inputs, output, size_dict, memory_limit=None):
+    def __call__(self,
+                 inputs: List[TensorIndexType],
+                 output: TensorIndexType,
+                 size_dict: Dict[str, int],
+                 memory_limit: Optional[int] = None) -> PathType:
         """
         Parameters
         ----------
@@ -1061,7 +1086,11 @@ class DynamicProgramming(PathOptimizer):
         return _tree_to_sequence(tree)
 
 
-def dynamic_programming(inputs, output, size_dict, memory_limit=None, **kwargs):
+def dynamic_programming(inputs: List[TensorIndexType],
+                        output: TensorIndexType,
+                        size_dict: Dict[str, int],
+                        memory_limit: Optional[int] = None,
+                        **kwargs: Any) -> PathType:
     optimizer = DynamicProgramming(**kwargs)
     return optimizer(inputs, output, size_dict, memory_limit)
 

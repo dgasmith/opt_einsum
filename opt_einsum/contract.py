@@ -11,7 +11,7 @@ from . import backends, blas, helpers, parser, paths, sharing
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only"]
 
 
-class PathInfo(object):
+class PathInfo:
     """A printable object to contain information about a contraction path.
 
     Attributes
