@@ -20,7 +20,7 @@ Several advanced features are as follows:
 * Perform contractions with [numerous backends](getting_started/backends.md), including on the GPU and with libraries such as [TensorFlow](https://www.tensorflow.org) and [PyTorch](https://pytorch.org).
 * Generate [reusable expressions](getting_started/reusing_paths.md), potentially with constant tensors, that can be compiled for greater performance.
 * Use an arbitrary number of indices to find contractions for [hundreds or even thousands of tensors](examples/large_expr_with_greedy.md).
-* Share `intermediate computations <sharing_intermediates.html) among multiple contractions.
+* Share [intermediate computations](./sharing_intermediates.md) among multiple contractions.
 * Compute gradients of tensor contractions using [Autograd](https://github.com/HIPS/autograd) or [JAX](https://github.com/google/jax).
 
 ## Example
