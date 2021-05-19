@@ -52,7 +52,7 @@ class RandomOptimizer(paths.PathOptimizer):
 
 
     **Parameters:**
-    ----------
+
     - **max_repeats** - *(int, optional)* The maximum number of repeat trials to have.
     - **max_time** - *(float, optional)* The maximum amount of time to run the algorithm for.
     - **minimize** - *({'flops', 'size'}, optional)* Whether to favour paths that minimize the total estimated flop-count or

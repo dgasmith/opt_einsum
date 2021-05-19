@@ -39,7 +39,7 @@ nav:
     - "Backends & GPU Support": getting_started/backends.md
     - Reusing Paths: getting_started/reusing_paths.md
     - Sharing Intermediates: getting_started/sharing_intermediates.md
-  - Path Infomration:
+  - Path Information:
     - Introduction: paths/introduction.md
     - Optimal Path: paths/optimal_path.md
     - Branching Path: paths/branching_path.md
