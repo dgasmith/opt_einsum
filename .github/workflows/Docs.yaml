@@ -28,4 +28,4 @@ jobs:
     # Only deploy if master, otherwise just build for testing
     - name: Deploy
       if: endsWith(github.ref, '/master')
-      run: mkdocs gh-deploy
+      run: mkdocs gh-deploy --force
