@@ -1,0 +1,54 @@
+site_name: Optimized Einsum
+repo_url: https://github.com/dgasmith/opt_einsum
+repo_name: dgasmith/opt_einsum
+theme:
+  name: material
+
+plugins:
+    - search
+    - awesome-pages
+
+extra_javascript:
+  - javascripts/config.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - css/custom.css
+
+markdown_extensions:
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - markdown_include.include:
+      base_path: docs
+  - pymdownx.arithmatex:
+      generic: true
+  - admonition
+  - codehilite
+  - extra
+  - pymdownx.extra
+  - pymdownx.arithmatex:
+      generic: true
+  - mkautodoc
+
+nav:
+  - Overview: index.md
+  - Getting Started:
+    - Installing: getting_started/install.md
+    - Input Format: getting_started/input_format.md
+    - "Backends & GPU Support": getting_started/backends.md
+    - Reusing Paths: getting_started/reusing_paths.md
+    - Sharing Intermediates: getting_started/sharing_intermediates.md
+  - Path Information:
+    - Introduction: paths/introduction.md
+    - Optimal Path: paths/optimal_path.md
+    - Branching Path: paths/branching_path.md
+    - Greedy Path: paths/greedy_path.md
+    - Random-Greedy Path: paths/random_greedy_path.md
+    - Dynamic Programming Path: paths/dp_path.md
+    - Custom Path Optimizers: paths/custom_paths.md
+  - Examples:
+    - Reusing Intermediaries with Dask: examples/dask_reusing_intermediaries.md
+    - Large Expressions with Greedy: examples/large_expr_with_greedy.md
+  - API Reference: api_reference.md
+  - Changelog: changelog.md

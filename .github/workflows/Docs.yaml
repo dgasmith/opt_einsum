@@ -1,0 +1,31 @@
+name: Docs
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.x
+
+    - name: Install
+      run: |
+        pip install -r docs/requirements.yml
+        pip install -e .
+
+    - name: Build Docs
+      run: mkdocs build 
+
+    # Only deploy if master, otherwise just build for testing
+    - name: Deploy
+      if: endsWith(github.ref, '/master')
+      run: mkdocs gh-deploy

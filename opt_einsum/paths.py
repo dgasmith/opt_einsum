@@ -24,25 +24,27 @@ _UNLIMITED_MEM = {-1, None, float('inf')}
 class PathOptimizer(object):
     """Base class for different path optimizers to inherit from.
 
-    Subclassed optimizers should define a call method with signature::
+    Subclassed optimizers should define a call method with signature:
 
-        def __call__(self, inputs, output, size_dict, memory_limit=None):
-            \"\"\"
-            Parameters
-            ----------
-            inputs : list[set[str]]
-                The indices of each input array.
-            outputs : set[str]
-                The output indices
-            size_dict : dict[str, int]
-                The size of each index
-            memory_limit : int, optional
-                If given, the maximum allowed memory.
-            \"\"\"
-            # ... compute path here ...
-            return path
+    ```python
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+        \"\"\"
+        **Parameters:**
+        ----------
+        inputs : list[set[str]]
+            The indices of each input array.
+        outputs : set[str]
+            The output indices
+        size_dict : dict[str, int]
+            The size of each index
+        memory_limit : int, optional
+            If given, the maximum allowed memory.
+        \"\"\"
+        # ... compute path here ...
+        return path
+    ```
 
-    where ``path`` is a list of int-tuples specifiying a contraction order.
+    where `path` is a list of int-tuples specifiying a contraction order.
     """
     def _check_args_against_first_call(self, inputs, output, size_dict):
         """Utility that stateful optimizers can use to ensure they are not
@@ -63,10 +65,12 @@ class PathOptimizer(object):
 def ssa_to_linear(ssa_path):
     """
     Convert a path with static single assignment ids to a path with recycled
-    linear ids. For example::
+    linear ids. For example:
 
-        >>> ssa_to_linear([(0, 3), (2, 4), (1, 5)])
-        [(0, 3), (1, 2), (0, 1)]
+    ```python
+    ssa_to_linear([(0, 3), (2, 4), (1, 5)])
+    #> [(0, 3), (1, 2), (0, 1)]
+    ```
     """
     ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
     path = []
@@ -82,8 +86,10 @@ def linear_to_ssa(path):
     Convert a path with recycled linear ids to a path with static single
     assignment ids. For example::
 
-        >>> linear_to_ssa([(0, 3), (1, 2), (0, 1)])
-        [(0, 3), (2, 4), (1, 5)]
+    ```python
+    linear_to_ssa([(0, 3), (1, 2), (0, 1)])
+    #> [(0, 3), (2, 4), (1, 5)]
+    ```
     """
     num_inputs = sum(map(len, path)) - len(path) + 1
     linear_to_ssa = list(range(num_inputs))
@@ -102,30 +108,21 @@ def calc_k12_flops(inputs, output, remaining, i, j, size_dict):
     Calculate the resulting indices and flops for a potential pairwise
     contraction - used in the recursive (optimal/branch) algorithms.
 
-    Parameters
-    ----------
-    inputs : tuple[frozenset[str]]
-        The indices of each tensor in this contraction, note this includes
+    **Parameters:**
+
+    - **inputs** - *(tuple[frozenset[str]])* The indices of each tensor in this contraction, note this includes
         tensors unavaiable to contract as static single assignment is used ->
         contracted tensors are not removed from the list.
-    output : frozenset[str]
-        The set of output indices for the whole contraction.
-    remaining : frozenset[int]
-        The set of indices (corresponding to ``inputs``) of tensors still
-        available to contract.
-    i : int
-        Index of potential tensor to contract.
-    j : int
-        Index of potential tensor to contract.
-    size_dict dict[str, int]
-        Size mapping of all the indices.
+    - **output** - *(frozenset[str])* The set of output indices for the whole contraction.
+    - **remaining** - *(frozenset[int])* The set of indices (corresponding to ``inputs``) of tensors still available to contract.
+    - **i** - *(int)* Index of potential tensor to contract.
+    - **j** - *(int)* Index of potential tensor to contract.
+    - **size_dict : dict[str, int] )* Size mapping of all the indices.
 
-    Returns
-    -------
-    k12 : frozenset
-        The resulting indices of the potential tensor.
-    cost : int
-        Estimated flop count of operation.
+    **Returns:**
+
+    - **k12** - *(frozenset)* The resulting indices of the potential tensor.
+    - **cost** - *(int)* Estimated flop count of operation.
     """
     k1, k2 = inputs[i], inputs[j]
     either = k1 | k2
@@ -152,33 +149,30 @@ def _compute_oversize_flops(inputs, remaining, output, size_dict):
 def optimal(inputs, output, size_dict, memory_limit=None):
     """
     Computes all possible pair contractions in a depth-first recursive manner,
-    sieving results based on ``memory_limit`` and the best path found so far.
-    Returns the lowest cost path. This algorithm scales factoriallly with
-    respect to the elements in the list ``input_sets``.
+    sieving results based on `memory_limit` and the best path found so far.
+    **Returns:** the lowest cost path. This algorithm scales factoriallly with
+    respect to the elements in the list `input_sets`.
 
-    Parameters
-    ----------
-    inputs : list
-        List of sets that represent the lhs side of the einsum subscript.
-    output : set
-        Set that represents the rhs side of the overall einsum subscript.
-    size_dict : dictionary
-        Dictionary of index sizes.
-    memory_limit : int
-        The maximum number of elements in a temporary array.
+    **Parameters:**
 
-    Returns
-    -------
-    path : list
-        The optimal contraction order within the memory limit constraint.
+    - **inputs** - *(list)* List of sets that represent the lhs side of the einsum subscript.
+    - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript.
+    - **size_dict** - *(dictionary)* Dictionary of index sizes.
+    - **memory_limit** - *(int)* The maximum number of elements in a temporary array.
 
-    Examples
-    --------
-    >>> isets = [set('abd'), set('ac'), set('bdc')]
-    >>> oset = set('')
-    >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> optimal(isets, oset, idx_sizes, 5000)
-    [(0, 2), (0, 1)]
+    **Returns:**
+
+    - **path** - *(list)* The optimal contraction order within the memory limit constraint.
+
+    **Examples:**
+
+    ```python
+    isets = [set('abd'), set('ac'), set('bdc')]
+    oset = set('')
+    idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
+    optimal(isets, oset, idx_sizes, 5000)
+    #> [(0, 2), (0, 1)]
+    ```
     """
     inputs = tuple(map(frozenset, inputs))
     output = frozenset(output)
@@ -283,30 +277,26 @@ _COST_FNS = {
 class BranchBound(PathOptimizer):
     """
     Explores possible pair contractions in a depth-first recursive manner like
-    the ``optimal`` approach, but with extra heuristic early pruning of branches
-    as well sieving by ``memory_limit`` and the best path found so far. Returns
+    the `optimal` approach, but with extra heuristic early pruning of branches
+    as well sieving by `memory_limit` and the best path found so far. **Returns:**
     the lowest cost path. This algorithm still scales factorially with respect
-    to the elements in the list ``input_sets`` if ``nbranch`` is not set, but it
-    scales exponentially like ``nbranch**len(input_sets)`` otherwise.
+    to the elements in the list `input_sets` if `nbranch` is not set, but it
+    scales exponentially like `nbranch**len(input_sets)` otherwise.
 
-    Parameters
-    ----------
-    nbranch : None or int, optional
-        How many branches to explore at each contraction step. If None, explore
+    **Parameters:**
+    
+    - **nbranch** - *(None or int, optional)* How many branches to explore at each contraction step. If None, explore
         all possible branches. If an integer, branch into this many paths at
         each step. Defaults to None.
-    cutoff_flops_factor : float, optional
-        If at any point, a path is doing this much worse than the best path
+    - **cutoff_flops_factor** - *(float, optional)* If at any point, a path is doing this much worse than the best path
         found so far was, terminate it. The larger this is made, the more paths
         will be fully explored and the slower the algorithm. Defaults to 4.
-    minimize : {'flops', 'size'}, optional
-        Whether to optimize the path with regard primarily to the total
+    - **minimize** - *({'flops', 'size'}, optional)* Whether to optimize the path with regard primarily to the total
         estimated flop-count, or the size of the largest intermediate. The
         option not chosen will still be used as a secondary criterion.
-    cost_fn : callable, optional
-        A function that returns a heuristic 'cost' of a potential contraction
+    - **cost_fn** - *(callable, optional)* A function that returns a heuristic 'cost' of a potential contraction
         with which to sort candidates. Should have signature
-        ``cost_fn(size12, size1, size2, k12, k1, k2)``.
+        `cost_fn(size12, size1, size2, k12, k1, k2)`.
     """
     def __init__(self, nbranch=None, cutoff_flops_factor=4, minimize='flops', cost_fn='memory-removed'):
         self.nbranch = nbranch
@@ -325,29 +315,25 @@ class BranchBound(PathOptimizer):
     def __call__(self, inputs, output, size_dict, memory_limit=None):
         """
 
-        Parameters
-        ----------
-        input_sets : list
-            List of sets that represent the lhs side of the einsum subscript
-        output_set : set
-            Set that represents the rhs side of the overall einsum subscript
-        idx_dict : dictionary
-            Dictionary of index sizes
-        memory_limit : int
-            The maximum number of elements in a temporary array
+        **Parameters:**
 
-        Returns
-        -------
-        path : list
-            The contraction order within the memory limit constraint.
+        - **input_sets** - *(list)* List of sets that represent the lhs side of the einsum subscript
+        - **output_set** - *(set)* Set that represents the rhs side of the overall einsum subscript
+        - **idx_dict** - *(dictionary)* Dictionary of index sizes
+        - **memory_limit** - *(int)* The maximum number of elements in a temporary array
 
-        Examples
-        --------
-        >>> isets = [set('abd'), set('ac'), set('bdc')]
-        >>> oset = set('')
-        >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-        >>> optimal(isets, oset, idx_sizes, 5000)
-        [(0, 2), (0, 1)]
+        **Returns:**
+
+        - **path** - *(list)* The contraction order within the memory limit constraint.
+
+        **Examples:**
+
+        ```python
+        isets = [set('abd'), set('ac'), set('bdc')]
+        oset = set('')
+        idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
+        optimal(isets, oset, idx_sizes, 5000)
+        #> [(0, 2), (0, 1)]
         """
         self._check_args_against_first_call(inputs, output, size_dict)
 
@@ -620,39 +606,34 @@ def greedy(inputs, output, size_dict, memory_limit=None, choose_fn=None, cost_fn
     Finds the path by a three stage algorithm:
 
     1. Eagerly compute Hadamard products.
-    2. Greedily compute contractions to maximize ``removed_size``
+    2. Greedily compute contractions to maximize `removed_size`
     3. Greedily compute outer products.
 
     This algorithm scales quadratically with respect to the
     maximum number of elements sharing a common dim.
 
-    Parameters
-    ----------
-    inputs : list
-        List of sets that represent the lhs side of the einsum subscript
-    output : set
-        Set that represents the rhs side of the overall einsum subscript
-    size_dict : dictionary
-        Dictionary of index sizes
-    memory_limit : int
-        The maximum number of elements in a temporary array
-    choose_fn : callable, optional
-        A function that chooses which contraction to perform from the queu
-    cost_fn : callable, optional
-        A function that assigns a potential contraction a cost.
+    **Parameters:**
 
-    Returns
-    -------
-    path : list
-        The contraction order (a list of tuples of ints).
+    - **inputs** - *(list)* List of sets that represent the lhs side of the einsum subscript
+    - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript
+    - **size_dict** - *(dictionary)* Dictionary of index sizes
+    - **memory_limit** - *(int)* The maximum number of elements in a temporary array
+    - **choose_fn** - *(callable, optional)* A function that chooses which contraction to perform from the queu
+    - **cost_fn** - *(callable, optional)* A function that assigns a potential contraction a cost.
 
-    Examples
-    --------
-    >>> isets = [set('abd'), set('ac'), set('bdc')]
-    >>> oset = set('')
-    >>> idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    >>> greedy(isets, oset, idx_sizes)
-    [(0, 2), (0, 1)]
+    **Returns:**
+
+    - **path** - *(list)* The contraction order (a list of tuples of ints).
+
+    **Examples:**
+
+    ```python
+    isets = [set('abd'), set('ac'), set('bdc')]
+    oset = set('')
+    idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
+    greedy(isets, oset, idx_sizes)
+    #> [(0, 2), (0, 1)]
+    ```
     """
     if memory_limit not in _UNLIMITED_MEM:
         return branch(inputs, output, size_dict, memory_limit, nbranch=1, cost_fn=cost_fn)
@@ -670,20 +651,20 @@ def _tree_to_sequence(c):
     contractions are commutative, e.g. (j, k, l) = (k, l, j). Note that in
     general, solutions are not unique.
 
-    Parameters
-    ----------
-    c : tuple or int
-        Contraction tree
+    **Parameters:**
 
-    Returns
-    -------
-    path : list[set[int]]
-        Contraction path
+    - **c** - *(tuple or int)* Contraction tree
 
-    Examples
-    --------
-    >>> _tree_to_sequence(((1,2),(0,(4,5,3))))
-    [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
+    **Returns:**
+
+    - **path** - *(list[set[int]])* Contraction path
+
+    **Examples:**
+
+    ```python
+    _tree_to_sequence(((1,2),(0,(4,5,3))))
+    #> [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
+    ```
     """
 
     # ((1,2),(0,(4,5,3))) --> [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
@@ -725,25 +706,23 @@ def _find_disconnected_subgraphs(inputs, output):
     connected if they share summation indices. Note: Disconnected subgraphs
     can be contracted independently before forming outer products.
 
-    Parameters
-    ----------
-    inputs : list[set]
-        List of sets that represent the lhs side of the einsum subscript
-    output : set
-        Set that represents the rhs side of the overall einsum subscript
+    **Parameters:**
+    - **inputs** - *(list[set])* List of sets that represent the lhs side of the einsum subscript
+    - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript
 
-    Returns
-    -------
-    subgraphs : list[set[int]]
-        List containing sets of indices for each subgraph
+    **Returns:**
 
-    Examples
-    --------
-    >>> _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("bd"))
-    [{0, 2}, {1}]
+    - **subgraphs** - *(list[set[int]])* List containing sets of indices for each subgraph
 
-    >>> _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("abd"))
-    [{0}, {1}, {2}]
+    **Examples:**
+    
+    ```python
+    _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("bd"))
+    #> [{0, 2}, {1}]
+
+    _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("abd"))
+    #> [{0}, {1}, {2}]
+    ```
     """
 
     subgraphs = []
@@ -797,13 +776,13 @@ def _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2):
 def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
                       i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
     """Performs the inner comparison of whether the two subgraphs (the bitmaps
-    ``s1`` and ``s2``) should be merged and added to the dynamic programming
+    `s1` and `s2`) should be merged and added to the dynamic programming
     search. Will skip for a number of reasons:
 
-    1. If the number of operations to form ``s = s1 | s2`` including previous
+    1. If the number of operations to form `s = s1 | s2` including previous
        contractions is above the cost-cap.
-    2. If we've already found a better way of making ``s``.
-    3. If the intermediate tensor corresponding to ``s`` is going to break the
+    2. If we've already found a better way of making `s`.
+    3. If the intermediate tensor corresponding to `s` is going to break the
        memory limit.
     """
     cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
@@ -818,7 +797,7 @@ def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn
 
 def _dp_compare_size(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
                      i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
-    """Like ``_dp_compare_flops`` but sieves the potential contraction based
+    """Like `_dp_compare_flops` but sieves the potential contraction based
     on the size of the intermediate tensor created, rather than the number of
     operations, and so calculates that first.
     """
@@ -833,21 +812,23 @@ def _dp_compare_size(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn,
 
 
 def simple_tree_tuple(seq):
-    """Make a simple left to right binary tree out of iterable ``seq``.
+    """Make a simple left to right binary tree out of iterable `seq`.
 
-        >>> tuple_nest([1, 2, 3, 4])
-        (((1, 2), 3), 4)
+    ```python
+    tuple_nest([1, 2, 3, 4])
+    #> (((1, 2), 3), 4)
+    ```
 
     """
     return functools.reduce(lambda x, y: (x, y), seq)
 
 
 def _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts):
-    """Take ``inputs`` and parse for single term index operations, i.e. where
+    """Take `inputs` and parse for single term index operations, i.e. where
     an index appears on one tensor and nowhere else.
 
     If a term is completely reduced to a scalar in this way it can be removed
-    to ``inputs_done``. If only some indices can be summed then add a 'single
+    to `inputs_done`. If only some indices can be summed then add a 'single
     term contraction' that will perform this summation.
     """
     i_single = {i for i, c in enumerate(all_inds) if ind_counts[c] == 1}
@@ -880,20 +861,17 @@ class DynamicProgramming(PathOptimizer):
     linearly in the number of disconnected subgraphs and only exponentially
     with the number of inputs per subgraph.
 
-    Parameters
-    ----------
-    minimize : {'flops', 'size'}, optional
-        Whether to find the contraction that minimizes the number of
+    **Parameters:**
+    
+    - **minimize** - *({'flops', 'size'}, optional)* Whether to find the contraction that minimizes the number of
         operations or the size of the largest intermediate tensor.
-    cost_cap : {True, False, int}, optional
-        How to implement cost-capping:
+    - **cost_cap** - *({True, False, int}, optional)* How to implement cost-capping:
 
-            * True - iteratively increase the cost-cap
-            * False - implement no cost-cap at all
-            * int - use explicit cost cap
+        - True - iteratively increase the cost-cap
+        - False - implement no cost-cap at all
+        - int - use explicit cost cap
 
-    search_outer : bool, optional
-        In rare circumstances the optimal contraction may involve an outer
+    - **search_outer** - *(bool, optional)* In rare circumstances the optimal contraction may involve an outer
         product, this option allows searching such contractions but may well
         slow down the path finding considerably on all but very small graphs.
     """
@@ -917,40 +895,37 @@ class DynamicProgramming(PathOptimizer):
 
     def __call__(self, inputs, output, size_dict, memory_limit=None):
         """
-        Parameters
-        ----------
-        inputs : list
-            List of sets that represent the lhs side of the einsum subscript
-        output : set
-            Set that represents the rhs side of the overall einsum subscript
-        size_dict : dictionary
-            Dictionary of index sizes
-        memory_limit : int
-            The maximum number of elements in a temporary array
+        **Parameters:**
 
-        Returns
-        -------
-        path : list
-            The contraction order (a list of tuples of ints).
+        - **inputs** - *(list)* List of sets that represent the lhs side of the einsum subscript
+        - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript
+        - **size_dict** - *(dictionary)* Dictionary of index sizes
+        - **memory_limit** - *(int)* The maximum number of elements in a temporary array
 
-        Examples
-        --------
-        >>> n_in = 3  # exponential scaling
-        >>> n_out = 2 # linear scaling
-        >>> s = dict()
-        >>> i_all = []
-        >>> for _ in range(n_out):
-        >>>     i = [set() for _ in range(n_in)]
-        >>>     for j in range(n_in):
-        >>>         for k in range(j+1, n_in):
-        >>>             c = oe.get_symbol(len(s))
-        >>>             i[j].add(c)
-        >>>             i[k].add(c)
-        >>>             s[c] = 2
-        >>>     i_all.extend(i)
-        >>> o = DynamicProgramming()
-        >>> o(i_all, set(), s)
-        [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
+        **Returns:**
+
+        - **path** - *(list)* The contraction order (a list of tuples of ints).
+
+        **Examples:**
+
+        ```python
+        n_in = 3  # exponential scaling
+        n_out = 2 # linear scaling
+        s = dict()
+        i_all = []
+        for _ in range(n_out):
+            i = [set() for _ in range(n_in)]
+            for j in range(n_in):
+                for k in range(j+1, n_in):
+                    c = oe.get_symbol(len(s))
+                    i[j].add(c)
+                    i[k].add(c)
+                    s[c] = 2
+            i_all.extend(i)
+        o = DynamicProgramming()
+        o(i_all, set(), s)
+        #> [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
+        ```
         """
         ind_counts = Counter(itertools.chain(*inputs, output))
         all_inds = tuple(ind_counts)

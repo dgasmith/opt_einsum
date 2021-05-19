@@ -51,16 +51,13 @@ def shared_intermediates(cache=None):
     1. this context exits, and
     2. the yielded cache is garbage collected (if it was captured).
 
-    Parameters
-    ----------
-    cache : dict
-        If specified, a user-stored dict in which intermediate results will
-        be stored. This can be used to interleave sharing contexts.
+    **Parameters:**
 
-    Returns
-    -------
-    cache : dict
-        A dictionary in which sharing results are stored. If ignored,
+    - **cache** - *(dict)* If specified, a user-stored dict in which intermediate results will be stored. This can be used to interleave sharing contexts.
+
+    **Returns:**
+
+    - **cache** - *(dict)* A dictionary in which sharing results are stored. If ignored,
         sharing results will be garbage collected when this context is
         exited. This dict can be passed to another context to resume
         sharing.
