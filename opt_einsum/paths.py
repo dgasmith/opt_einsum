@@ -1107,7 +1107,10 @@ for i in range(9, 15):
     _AUTO_CHOICES[i] = branch_1
 
 
-def auto(inputs, output, size_dict, memory_limit=None):
+def auto(inputs: List[TensorIndexType],
+         output: TensorIndexType,
+         size_dict: Dict[str, int],
+         memory_limit: Optional[int] = None) -> PathType:
     """Finds the contraction path by automatically choosing the method based on
     how many input arguments there are.
     """
@@ -1122,7 +1125,10 @@ for i in range(6, 17):
     _AUTO_HQ_CHOICES[i] = dynamic_programming
 
 
-def auto_hq(inputs, output, size_dict, memory_limit=None):
+def auto_hq(inputs: List[TensorIndexType],
+            output: TensorIndexType,
+            size_dict: Dict[str, int],
+            memory_limit: Optional[int] = None) -> PathType:
     """Finds the contraction path by automatically choosing the method based on
     how many input arguments there are, but targeting a more generous
     amount of search time than ``'auto'``.
@@ -1133,7 +1139,8 @@ def auto_hq(inputs, output, size_dict, memory_limit=None):
     return _AUTO_HQ_CHOICES.get(N, random_greedy_128)(inputs, output, size_dict, memory_limit)
 
 
-_PATH_OPTIONS = {
+PathSearchFunctionType = Callable[[List[TensorIndexType], TensorIndexType, Dict[str, int], Optional[int]], PathType]
+_PATH_OPTIONS: Dict[str, PathSearchFunctionType] = {
     'auto': auto,
     'auto-hq': auto_hq,
     'optimal': optimal,
@@ -1148,7 +1155,7 @@ _PATH_OPTIONS = {
 }
 
 
-def register_path_fn(name, fn):
+def register_path_fn(name: str, fn: PathSearchFunctionType) -> None:
     """Add path finding function ``fn`` as an option with ``name``.
     """
     if name in _PATH_OPTIONS:
@@ -1157,9 +1164,10 @@ def register_path_fn(name, fn):
     _PATH_OPTIONS[name.lower()] = fn
 
 
-def get_path_fn(path_type):
+def get_path_fn(path_type: str) -> PathSearchFunctionType:
     """Get the correct path finding function from str ``path_type``.
     """
+    path_type = path_type.lower()
     if path_type not in _PATH_OPTIONS:
         raise KeyError("Path optimizer '{}' not found, valid options are {}.".format(
             path_type, set(_PATH_OPTIONS.keys())))
