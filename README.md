@@ -5,7 +5,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/opt_einsum/badges/version.svg)](https://anaconda.org/conda-forge/opt_einsum)
 [![PyPI](https://img.shields.io/pypi/v/opt_einsum.svg)](https://pypi.org/project/opt-einsum/#description)
 [![PyPIStats](https://img.shields.io/pypi/dm/opt_einsum)](https://pypistats.org/packages/opt-einsum)
-[![Documentation Status](https://github.com/dgasmith/opt_einsum/actions/workflows/Docs.yaml/badge.svg))](https://dgasmith.github.io/opt_einsum/)
+[![Documentation Status](https://github.com/dgasmith/opt_einsum/actions/workflows/Docs.yaml/badge.svg)](https://dgasmith.github.io/opt_einsum/)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.00753/status.svg)](https://doi.org/10.21105/joss.00753)
 
 ## Optimized Einsum: A tensor contraction order optimizer
