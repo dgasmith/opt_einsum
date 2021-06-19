@@ -1,4 +1,4 @@
-name: Tests
+name: Linting
 
 on:
   push:
@@ -7,13 +7,13 @@ on:
     branches: master
 
 jobs:
-  miniconda-setup:
-    name: Env (${{ matrix.environment }}) - Py${{ matrix.python-version }}
+  mypy:
+    name: MyPy
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7]
-        environment: ["min-deps", "full", "min-ver"]
+        python-version: [3.7]
+        environment: ["min-deps"]
 
     runs-on: ubuntu-latest
 
@@ -41,17 +41,32 @@ jobs:
       run: |
         python -m pip install . --no-deps
 
-    - name: Test
+    - name: MyPy
       shell: bash -l {0}
       run: |
-        pytest -v --cov=opt_einsum opt_einsum/ --cov-report=xml
+        mypy opt_einsum
 
-    - name: Coverage
-      shell: bash -l {0}
-      run: |
-        coverage report
+  yapf:
+    name: yapf
+    runs-on: ubuntu-latest
 
-    - uses: codecov/codecov-action@v1
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Python Setup
+      uses: actions/setup-python@v2.2.1
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./coverage.xml
+        python-version: 3.8
+
+    - name: Create Environment
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install yapf
+
+    - name: Lint
+      shell: bash
+      run: |
+        set -e
+        echo "Checking formatting for $GITHUB_REPOSITORY"
+        sh -c "yapf --diff --recursive opt_einsum $*"
