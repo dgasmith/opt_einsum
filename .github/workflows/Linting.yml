@@ -69,4 +69,5 @@ jobs:
       run: |
         set -e
         echo "Checking formatting for $GITHUB_REPOSITORY"
+        yapf --diff --recursive opt_einsum
         sh -c "yapf --diff --recursive opt_einsum $*"
