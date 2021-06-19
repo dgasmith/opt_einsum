@@ -5,9 +5,11 @@ A functionally equivalent parser of the numpy.einsum input parser
 """
 
 import itertools
-from collections import OrderedDict
+from typing import Any, Dict, Iterator, List, Tuple
 
 import numpy as np
+
+from .typing import TensorShapeType
 
 __all__ = [
     "is_valid_einsum_char", "has_valid_einsum_chars_only", "get_symbol", "gen_unused_symbols",
@@ -18,7 +20,7 @@ __all__ = [
 _einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
-def is_valid_einsum_char(x):
+def is_valid_einsum_char(x: str) -> bool:
     """Check if the character ``x`` is valid for numpy einsum.
 
     **Examples:**
@@ -34,7 +36,7 @@ def is_valid_einsum_char(x):
     return (x in _einsum_symbols_base) or (x in ',->.')
 
 
-def has_valid_einsum_chars_only(einsum_str):
+def has_valid_einsum_chars_only(einsum_str: str) -> bool:
     """Check if ``einsum_str`` contains only valid characters for numpy einsum.
 
     **Examples:**
@@ -50,7 +52,7 @@ def has_valid_einsum_chars_only(einsum_str):
     return all(map(is_valid_einsum_char, einsum_str))
 
 
-def get_symbol(i):
+def get_symbol(i: int) -> str:
     """Get the symbol corresponding to int ``i`` - runs through the usual 52
     letters before resorting to unicode characters, starting at ``chr(192)``.
 
@@ -72,7 +74,7 @@ def get_symbol(i):
     return chr(i + 140)
 
 
-def gen_unused_symbols(used, n):
+def gen_unused_symbols(used: str, n: int) -> Iterator[str]:
     """Generate ``n`` symbols that are not already in ``used``.
 
     **Examples:**
@@ -91,7 +93,7 @@ def gen_unused_symbols(used, n):
         cnt += 1
 
 
-def convert_to_valid_einsum_chars(einsum_str):
+def convert_to_valid_einsum_chars(einsum_str: str) -> str:
     """Convert the str ``einsum_str`` to contain only the alphabetic characters
     valid for numpy einsum. If there are too many symbols, let the backend
     throw an error.
@@ -106,7 +108,7 @@ def convert_to_valid_einsum_chars(einsum_str):
     return "".join(replacer.get(x, x) for x in einsum_str)
 
 
-def alpha_canonicalize(equation):
+def alpha_canonicalize(equation: str) -> str:
     """Alpha convert an equation in an order-independent canonical way.
 
     Examples
@@ -117,7 +119,7 @@ def alpha_canonicalize(equation):
     >>> oe.parser.alpha_canonicalize("Ĥěļļö")
     'abccd'
     """
-    rename = OrderedDict()
+    rename: Dict[str, str] = {}
     for name in equation:
         if name in '.,->':
             continue
@@ -126,7 +128,7 @@ def alpha_canonicalize(equation):
     return ''.join(rename.get(x, x) for x in equation)
 
 
-def find_output_str(subscripts):
+def find_output_str(subscripts: str) -> str:
     """
     Find the output string for the inputs ``subscripts`` under canonical einstein summation rules.
     That is, repeated indices are summed over by default.
@@ -146,7 +148,7 @@ def find_output_str(subscripts):
     return "".join(s for s in sorted(set(tmp_subscripts)) if tmp_subscripts.count(s) == 1)
 
 
-def find_output_shape(inputs, shapes, output):
+def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: str) -> TensorShapeType:
     """Find the output shape for given inputs, shapes and output string, taking
     into account broadcasting.
 
@@ -163,7 +165,7 @@ def find_output_shape(inputs, shapes, output):
         max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
 
 
-def possibly_convert_to_numpy(x):
+def possibly_convert_to_numpy(x: Any) -> Any:
     """Convert things without a 'shape' to ndarrays, but leave everything else.
 
     Examples
@@ -194,7 +196,7 @@ def possibly_convert_to_numpy(x):
         return x
 
 
-def convert_subscripts(old_sub, symbol_map):
+def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     """Convert user custom subscripts list to subscript string according to `symbol_map`.
 
     Examples
@@ -214,7 +216,7 @@ def convert_subscripts(old_sub, symbol_map):
     return new_sub
 
 
-def convert_interleaved_input(operands):
+def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
     """Convert 'interleaved' input to standard einsum input.
     """
     tmp_operands = list(operands)
@@ -251,7 +253,7 @@ def convert_interleaved_input(operands):
     return subscripts, operands
 
 
-def parse_einsum_input(operands):
+def parse_einsum_input(operands: Any) -> Tuple[str, str, List[Any]]:
     """
     A reproduction of einsum c side einsum parsing in python.
 

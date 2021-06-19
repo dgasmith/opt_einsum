@@ -2,14 +2,20 @@
 Determines if a contraction can use BLAS or not
 """
 
+from typing import List, Sequence, Tuple, Union
+
 import numpy as np
 
 from . import helpers
+from .typing import TensorIndexType
 
 __all__ = ["can_blas", "tensor_blas"]
 
 
-def can_blas(inputs, result, idx_removed, shapes=None):
+def can_blas(inputs: List[str],
+             result: str,
+             idx_removed: TensorIndexType,
+             shapes: Sequence[Tuple[int]] = None) -> Union[str, bool]:
     """
     Checks if we can use a BLAS call.
 
@@ -120,7 +126,8 @@ def can_blas(inputs, result, idx_removed, shapes=None):
         return 'TDOT'
 
 
-def tensor_blas(view_left, input_left, view_right, input_right, index_result, idx_removed):
+def tensor_blas(view_left: np.ndarray, input_left: str, view_right: np.ndarray, input_right: str, index_result: str,
+                idx_removed: TensorIndexType) -> np.ndarray:
     """
     Computes the dot product between two tensors, attempts to use np.dot and
     then tensordot if that fails.
@@ -195,8 +202,8 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
     dim_right = helpers.compute_size_by_dict(keep_right, dimension_dict)
     dim_removed = helpers.compute_size_by_dict(idx_removed, dimension_dict)
     tensor_result = input_left + input_right
-    for s in idx_removed:
-        tensor_result = tensor_result.replace(s, "")
+    for sidx in idx_removed:
+        tensor_result = tensor_result.replace(sidx, "")
 
     # This is ugly, but can vastly speed up certain operations
     # Vectordot
@@ -223,10 +230,11 @@ def tensor_blas(view_left, input_left, view_right, input_right, index_result, id
     # Conventional tensordot
     else:
         # Find indices to contract over
-        left_pos, right_pos = (), ()
-        for s in idx_removed:
-            left_pos += (input_left.find(s), )
-            right_pos += (input_right.find(s), )
+        left_pos: Tuple[int, ...] = ()
+        right_pos: Tuple[int, ...] = ()
+        for fidx in idx_removed:
+            left_pos += (input_left.find(fidx), )
+            right_pos += (input_right.find(fidx), )
         new_view = np.tensordot(view_left, view_right, axes=(left_pos, right_pos))
 
     # Make sure the resulting shape is correct

@@ -2,9 +2,10 @@
 Functions for performing contractions with array elements which are objects.
 """
 
-import numpy as np
 import functools
 import operator
+
+import numpy as np
 
 
 def object_einsum(eq, *arrays):

@@ -4,13 +4,15 @@ Contains the primary optimization and contraction routines.
 
 from collections import namedtuple
 from decimal import Decimal
+from typing import Any, List, Optional, Sequence, Tuple
 
 from . import backends, blas, helpers, parser, paths, sharing
+from .typing import TensorShapeType, PathType
 
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only"]
 
 
-class PathInfo(object):
+class PathInfo:
     """A printable object to contain information about a contraction path.
 
     **Attributes:**
@@ -37,7 +39,7 @@ class PathInfo(object):
         self.eq = "{}->{}".format(input_subscripts, output_subscript)
         self.largest_intermediate = Decimal(max(size_list))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # Return the path along with a nice string representation
         header = ("scaling", "BLAS", "current", "remaining")
 
@@ -65,7 +67,7 @@ class PathInfo(object):
         return "".join(path_print)
 
 
-def _choose_memory_arg(memory_limit, size_list):
+def _choose_memory_arg(memory_limit: int, size_list: List[int]) -> Optional[int]:
     if memory_limit == 'max_input':
         return max(size_list)
 
@@ -496,7 +498,7 @@ def contract(*operands, **kwargs):
     return _core_contract(operands, contraction_list, backend=backend, **einsum_kwargs)
 
 
-def infer_backend(x):
+def infer_backend(x: Any) -> str:
     return x.__class__.__module__.split('.')[0]
 
 
@@ -596,7 +598,7 @@ def _core_contract(operands, contraction_list, backend='auto', evaluate_constant
         return operands[0]
 
 
-def format_const_einsum_str(einsum_str, constants):
+def format_const_einsum_str(einsum_str: str, constants: List[int]) -> str:
     """Add brackets to the constant terms in ``einsum_str``. For example:
 
         >>> format_const_einsum_str('ab,bc,cd->ad', [0, 2])
@@ -793,7 +795,7 @@ def shape_only(shape):
     return Shaped(shape)
 
 
-def contract_expression(subscripts, *shapes, **kwargs):
+def contract_expression(subscripts: str, *shapes: PathType, **kwargs: Any) -> Any:
     """Generate a reusable expression for a given contraction with
     specific shapes, which can, for example, be cached.
 

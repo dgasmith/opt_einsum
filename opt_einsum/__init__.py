@@ -2,18 +2,15 @@
 Main init function for opt_einsum.
 """
 
-from . import blas
-from . import helpers
-from . import paths
-from . import path_random
-from .contract import contract, contract_path, contract_expression
+from . import blas, helpers, path_random, paths
+from .contract import contract, contract_expression, contract_path
 from .parser import get_symbol
-from .sharing import shared_intermediates
-from .paths import BranchBound, DynamicProgramming
 from .path_random import RandomGreedy
+from .paths import BranchBound, DynamicProgramming
+from .sharing import shared_intermediates
 
 # Handle versioneer
-from ._version import get_versions
+from ._version import get_versions  # isort:skip
 
 versions = get_versions()
 __version__ = versions['version']

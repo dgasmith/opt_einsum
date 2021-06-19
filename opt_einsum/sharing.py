@@ -9,6 +9,7 @@ import functools
 import numbers
 import threading
 from collections import Counter, defaultdict
+from typing import Any
 
 from .parser import alpha_canonicalize, parse_einsum_input
 
@@ -17,10 +18,10 @@ __all__ = [
     "einsum_cache_wrap", "to_backend_cache_wrap"
 ]
 
-_SHARING_STACK = defaultdict(list)
+_SHARING_STACK: Any = defaultdict(list)
 
 
-def currently_sharing():
+def currently_sharing() -> bool:
     """Check if we are currently sharing a cache -- thread specific.
     """
     return threading.get_ident() in _SHARING_STACK

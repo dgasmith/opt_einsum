@@ -5,12 +5,13 @@ constants.
 """
 
 import importlib
+from typing import Any, Dict
 
 import numpy
 
-from . import object_arrays
 from . import cupy as _cupy
 from . import jax as _jax
+from . import object_arrays
 from . import tensorflow as _tensorflow
 from . import theano as _theano
 from . import torch as _torch
@@ -28,7 +29,7 @@ _aliases = {
 }
 
 
-def _import_func(func, backend, default=None):
+def _import_func(func: str, backend: str, default: Any = None) -> Any:
     """Try and import ``{backend}.{func}``.
     If library is installed and func is found, return the func;
     otherwise if default is provided, return default;
@@ -57,7 +58,7 @@ _cached_funcs = {
 }
 
 
-def get_func(func, backend='numpy', default=None):
+def get_func(func: str, backend: str = 'numpy', default: Any = None) -> Any:
     """Return ``{backend}.{func}``, e.g. ``numpy.einsum``,
     or a default func if provided. Cache result.
     """
@@ -70,10 +71,10 @@ def get_func(func, backend='numpy', default=None):
 
 
 # mark libs with einsum, else try to use tensordot/transpose as much as possible
-_has_einsum = {}
+_has_einsum: Dict[str, bool] = {}
 
 
-def has_einsum(backend):
+def has_einsum(backend: str) -> bool:
     """Check if ``{backend}.einsum`` exists, cache result for performance.
     """
     try:
@@ -88,10 +89,10 @@ def has_einsum(backend):
         return _has_einsum[backend]
 
 
-_has_tensordot = {}
+_has_tensordot: Dict[str, bool] = {}
 
 
-def has_tensordot(backend):
+def has_tensordot(backend: str) -> bool:
     """Check if ``{backend}.tensordot`` exists, cache result for performance.
     """
     try:
@@ -139,7 +140,7 @@ def evaluate_constants(backend, arrays, expr):
     return EVAL_CONSTS_BACKENDS[backend](arrays, expr)
 
 
-def has_backend(backend):
+def has_backend(backend: str) -> bool:
     """Checks if the backend is known.
     """
     return backend.lower() in CONVERT_BACKENDS
