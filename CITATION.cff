@@ -1,0 +1,14 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Smith
+    given-names: Daniel
+    orcid: https://orcid.org/0000-0001-8626-0900
+  - family-names: Gray
+    given-names: Johnnie
+    orcid: https://orcid.org/0000-0001-9461-3024
+title: "`opt_einsum` - A Python package for optimizing contraction order for einsum-like expressions"
+version: 3.3.0
+doi: 10.21105/joss.00753
+date-released: 2019-06-28
+url: "https://github.com/dgasmith/opt_einsum"
