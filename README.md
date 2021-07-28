@@ -1,12 +1,11 @@
-
 # Optimized Einsum
 
-[![Build Status](https://travis-ci.org/dgasmith/opt_einsum.svg?branch=master)](https://travis-ci.org/dgasmith/opt_einsum)
+[![Tests](https://github.com/dgasmith/opt_einsum/actions/workflows/Tests.yml/badge.svg)](https://github.com/dgasmith/opt_einsum/actions/workflows/Tests.yml)
 [![codecov](https://codecov.io/gh/dgasmith/opt_einsum/branch/master/graph/badge.svg)](https://codecov.io/gh/dgasmith/opt_einsum)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/opt_einsum/badges/version.svg)](https://anaconda.org/conda-forge/opt_einsum)
 [![PyPI](https://img.shields.io/pypi/v/opt_einsum.svg)](https://pypi.org/project/opt-einsum/#description)
 [![PyPIStats](https://img.shields.io/pypi/dm/opt_einsum)](https://pypistats.org/packages/opt-einsum)
-[![Documentation Status](https://readthedocs.org/projects/optimized-einsum/badge/?version=latest)](http://optimized-einsum.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://github.com/dgasmith/opt_einsum/actions/workflows/Docs.yaml/badge.svg)](https://dgasmith.github.io/opt_einsum/)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.00753/status.svg)](https://doi.org/10.21105/joss.00753)
 
 ## Optimized Einsum: A tensor contraction order optimizer
@@ -24,12 +23,12 @@ Optimized
 einsum is agnostic to the backend and can handle NumPy, Dask, PyTorch,
 Tensorflow, CuPy, Sparse, Theano, JAX, and Autograd arrays as well as potentially
 any library which conforms to a standard API. See the
-[**documentation**](http://optimized-einsum.readthedocs.io) for more
+[**documentation**](https://dgasmith.github.io/opt_einsum/) for more
 information.
 
 ## Example usage
 
-The [`opt_einsum.contract`](https://optimized-einsum.readthedocs.io/en/latest/autosummary/opt_einsum.contract.html#opt-einsum-contract)
+The [`opt_einsum.contract`](https://dgasmith.github.io/opt_einsum/api_reference.html#opt_einsumcontract)
 function can often act as a drop-in replacement for `einsum`
 functions without further changes to the code while providing superior performance.
 Here, a tensor contraction is preformed with and without optimization:
@@ -51,7 +50,7 @@ I = np.random.rand(N, N, N, N)
 
 In this particular example, we see a ~3000x performance improvement which is
 not uncommon when compared against unoptimized contractions. See the [backend
-examples](https://optimized-einsum.readthedocs.io/en/latest/backends.html)
+examples](https://dgasmith.github.io/opt_einsum/getting_started/backends.html)
 for more information on using other backends.
 
 ## Features
@@ -64,18 +63,19 @@ this repository often has more up to date algorithms for complex contractions.
 
 The following capabilities are enabled by `opt_einsum`:
 
-* Inspect [detailed information](http://optimized-einsum.readthedocs.io/en/latest/path_finding.html) about the path chosen.
-* Perform contractions with [numerous backends](http://optimized-einsum.readthedocs.io/en/latest/backends.html), including on the GPU and with libraries such as [TensorFlow](https://www.tensorflow.org) and [PyTorch](https://pytorch.org).
-* Generate [reusable expressions](http://optimized-einsum.readthedocs.io/en/latest/reusing_paths.html), potentially with [constant tensors](http://optimized-einsum.readthedocs.io/en/latest/reusing_paths.html#specifying-constants), that can be compiled for greater performance.
-* Use an arbitrary number of indices to find contractions for [hundreds or even thousands of tensors](http://optimized-einsum.readthedocs.io/en/latest/ex_large_expr_with_greedy.html).
-* Share [intermediate computations](http://optimized-einsum.readthedocs.io/en/latest/sharing_intermediates.html) among multiple contractions.
+* Inspect [detailed information](https://dgasmith.github.io/opt_einsum/paths/introduction.html) about the path chosen.
+* Perform contractions with [numerous backends](https://dgasmith.github.io/opt_einsum/getting_started/backends.html), including on the GPU and with libraries such as [TensorFlow](https://www.tensorflow.org) and [PyTorch](https://pytorch.org).
+* Generate [reusable expressions](https://dgasmith.github.io/opt_einsum/getting_started/reusing_paths.html), potentially with [constant tensors](https://dgasmith.github.io/opt_einsum/getting_started/reusing_paths.html#specifying-constants), that can be compiled for greater performance.
+* Use an arbitrary number of indices to find contractions for [hundreds or even thousands of tensors](https://dgasmith.github.io/opt_einsum/examples/large_expr_with_greedy.html).
+* Share [intermediate computations](https://dgasmith.github.io/opt_einsum/getting_started/sharing_intermediates.html) among multiple contractions.
 * Compute gradients of tensor contractions using [autograd](https://github.com/HIPS/autograd) or [jax](https://github.com/google/jax)
 
-Please see the [documentation](http://optimized-einsum.readthedocs.io/en/latest/?badge=latest) for more features!
+Please see the [documentation](https://dgasmith.github.io/opt_einsum/index.html) for more features!
 
 ## Installation
 
-`opt_einsum` can either be installed via `pip install opt_einsum` or from conda `conda install opt_einsum -c conda-forge`. See the installation [documentation](http://optimized-einsum.readthedocs.io/en/latest/install.html) for further methods.
+`opt_einsum` can either be installed via `pip install opt_einsum` or from conda `conda install opt_einsum -c conda-forge`.
+See the installation [documentation](https://dgasmith.github.io/opt_einsum/getting_started/install.html) for further methods.
 
 ## Citation
 
