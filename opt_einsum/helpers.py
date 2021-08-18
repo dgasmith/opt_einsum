@@ -161,10 +161,10 @@ def flop_count(idx_contraction: Collection[str], inner: bool, num_terms: int, si
     --------
 
     >>> flop_count('abc', False, 1, {'a': 2, 'b':3, 'c':5})
-    90
+    30
 
     >>> flop_count('abc', True, 2, {'a': 2, 'b':3, 'c':5})
-    270
+    60
 
     """
 
