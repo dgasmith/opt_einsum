@@ -51,6 +51,17 @@ path_edge_tests = [
     ['dp', 'dcc,fce,ea,dbf->ab', ((1, 2), (0, 2), (0, 1))],
 ]
 
+# note that these tests have no unique solution due to the chosen dimensions
+path_scalar_tests = [
+    [
+        'a,->a',
+        1,
+    ],
+    ['ab,->ab', 1],
+    [',a,->a', 2],
+    [',,a,->a', 3],
+]
+
 
 def check_path(test_output, benchmark, bypass=False):
     if not isinstance(test_output, list):
@@ -170,6 +181,17 @@ def test_path_edge_cases(alg, expression, order):
     # Test tiny memory limit
     path_ret = oe.contract_path(expression, *views, optimize=alg)
     assert check_path(path_ret[0], order)
+
+
+@pytest.mark.parametrize("expression,order", path_scalar_tests)
+@pytest.mark.parametrize("alg", oe.paths._PATH_OPTIONS)
+def test_path_scalar_cases(alg, expression, order):
+    views = oe.helpers.build_views(expression)
+
+    # Test tiny memory limit
+    path_ret = oe.contract_path(expression, *views, optimize=alg)
+    # print(path_ret[0])
+    assert len(path_ret[0]) == order
 
 
 def test_optimal_edge_cases():
