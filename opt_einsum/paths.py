@@ -1016,7 +1016,7 @@ class DynamicProgramming(PathOptimizer):
                 cost_cap = self.cost_cap
             # set the factor to increase the cost by each iteration (ensure > 1)
             if len(subgraph_inds) == 0:
-                cost_increment = 1
+                cost_increment = 2
             else:
                 cost_increment = max(min(map(size_dict.__getitem__, subgraph_inds)), 2)
 
