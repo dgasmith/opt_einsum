@@ -6,9 +6,14 @@ import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_expression, contract_path, helpers
-from opt_einsum.paths import linear_to_ssa, ssa_to_linear
+from opt_einsum.paths import linear_to_ssa, ssa_to_linear, _PATH_OPTIONS
 
 tests = [
+    # Test scalar-like operations
+    'a,->a',
+    'ab,->ab',
+    ',ab,->ab',
+
     # Test hadamard-like products
     'a,ab,abc->abc',
     'a,b,ab->ab',
@@ -96,14 +101,9 @@ tests = [
     'aef,fbc,dca->bde',
 ]
 
-all_optimizers = [
-    'optimal', 'branch-all', 'branch-2', 'branch-1', 'greedy', 'random-greedy', 'random-greedy-128', 'dp', 'auto',
-    'auto-hq'
-]
-
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", all_optimizers)
+@pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare(optimize, string):
     views = helpers.build_views(string)
 
@@ -120,7 +120,7 @@ def test_drop_in_replacement(string):
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", all_optimizers)
+@pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_greek(optimize, string):
     views = helpers.build_views(string)
 
@@ -134,7 +134,7 @@ def test_compare_greek(optimize, string):
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", all_optimizers)
+@pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_blas(optimize, string):
     views = helpers.build_views(string)
 
@@ -144,7 +144,7 @@ def test_compare_blas(optimize, string):
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", all_optimizers)
+@pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_blas_greek(optimize, string):
     views = helpers.build_views(string)
 
@@ -175,12 +175,12 @@ def test_printing():
 
 
 @pytest.mark.parametrize("string", tests)
-@pytest.mark.parametrize("optimize", all_optimizers)
+@pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 @pytest.mark.parametrize("use_blas", [False, True])
 @pytest.mark.parametrize("out_spec", [False, True])
 def test_contract_expressions(string, optimize, use_blas, out_spec):
     views = helpers.build_views(string)
-    shapes = [view.shape for view in views]
+    shapes = [view.shape if hasattr(view, "shape") else tuple() for view in views]
     expected = contract(string, *views, optimize=False, use_blas=False)
 
     expr = contract_expression(string, *shapes, optimize=optimize, use_blas=use_blas)
@@ -220,7 +220,7 @@ def test_contract_expression_with_constants(string, constants):
     views = helpers.build_views(string)
     expected = contract(string, *views, optimize=False, use_blas=False)
 
-    shapes = [view.shape for view in views]
+    shapes = [view.shape if hasattr(view, "shape") else tuple() for view in views]
 
     expr_args = []
     ctrc_args = []
@@ -232,7 +232,6 @@ def test_contract_expression_with_constants(string, constants):
             ctrc_args.append(view)
 
     expr = contract_expression(string, *expr_args, constants=constants)
-    print(expr)
     out = expr(*ctrc_args)
     assert np.allclose(expected, out)
 

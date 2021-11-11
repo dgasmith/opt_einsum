@@ -861,7 +861,7 @@ def _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts):
     inputs_parsed, inputs_done, inputs_contractions = [], [], []
     for j, i in enumerate(inputs):
         i_reduced = i - i_single
-        if not i_reduced:
+        if (not i_reduced) and (len(i) > 0):
             # input reduced to scalar already - remove
             inputs_done.append((j, ))
         else:
@@ -1015,7 +1015,10 @@ class DynamicProgramming(PathOptimizer):
             else:
                 cost_cap = self.cost_cap
             # set the factor to increase the cost by each iteration (ensure > 1)
-            cost_increment = max(min(map(size_dict.__getitem__, subgraph_inds)), 2)
+            if len(subgraph_inds) == 0:
+                cost_increment = 2
+            else:
+                cost_increment = max(min(map(size_dict.__getitem__, subgraph_inds)), 2)
 
             while len(x[-1]) == 0:
                 for n in range(2, len(x[1]) + 1):
