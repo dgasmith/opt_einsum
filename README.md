@@ -31,7 +31,7 @@ information.
 The [`opt_einsum.contract`](https://dgasmith.github.io/opt_einsum/api_reference.html#opt_einsumcontract)
 function can often act as a drop-in replacement for `einsum`
 functions without further changes to the code while providing superior performance.
-Here, a tensor contraction is preformed with and without optimization:
+Here, a tensor contraction is performed with and without optimization:
 
 ```python
 import numpy as np

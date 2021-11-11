@@ -97,7 +97,7 @@ decreasing the time to find paths for 50-200+ tensors. See `Path Overview <path_
 **Enhancements**
 
 - [\#48](https://github.com/dgasmith/opt_einsum/pull/48) Expressions are now mapped to non-unicode index set so that unicode input is support for all backends.
-- [\#54](https://github.com/dgasmith/opt_einsum/pull/54) General documenation update.
+- [\#54](https://github.com/dgasmith/opt_einsum/pull/54) General documentation update.
 
 **Bug fixes**
 

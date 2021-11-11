@@ -46,7 +46,7 @@ class PathOptimizer:
         return path
     ```
 
-    where `path` is a list of int-tuples specifiying a contraction order.
+    where `path` is a list of int-tuples specifying a contraction order.
     """
     def _check_args_against_first_call(self, inputs: List[TensorIndexType], output: TensorIndexType,
                                        size_dict: Dict[str, int]) -> None:
@@ -58,7 +58,7 @@ class PathOptimizer:
             # simply set the attribute as currently there is no global PathOptimizer init
             self._first_call_args = args
         elif args != self._first_call_args:
-            raise ValueError("The arguments specifiying the contraction that this path optimizer "
+            raise ValueError("The arguments specifying the contraction that this path optimizer "
                              "instance was called with have changed - try creating a new instance.")
 
     def __call__(self,
@@ -119,7 +119,7 @@ def calc_k12_flops(inputs: Tuple[FrozenSet[str]], output: FrozenSet[str], remain
     **Parameters:**
 
     - **inputs** - *(tuple[frozenset[str]])* The indices of each tensor in this contraction, note this includes
-        tensors unavaiable to contract as static single assignment is used ->
+        tensors unavailable to contract as static single assignment is used ->
         contracted tensors are not removed from the list.
     - **output** - *(frozenset[str])* The set of output indices for the whole contraction.
     - **remaining** - *(frozenset[int])* The set of indices (corresponding to ``inputs``) of tensors still available to contract.
@@ -644,7 +644,7 @@ def greedy(inputs: List[TensorIndexType],
     - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript
     - **size_dict** - *(dictionary)* Dictionary of index sizes
     - **memory_limit** - *(int)* The maximum number of elements in a temporary array
-    - **choose_fn** - *(callable, optional)* A function that chooses which contraction to perform from the queu
+    - **choose_fn** - *(callable, optional)* A function that chooses which contraction to perform from the queue
     - **cost_fn** - *(callable, optional)* A function that assigns a potential contraction a cost.
 
     **Returns:**
@@ -876,7 +876,7 @@ class DynamicProgramming(PathOptimizer):
     """
     Finds the optimal path of pairwise contractions without intermediate outer
     products based a dynamic programming approach presented in
-    Phys. Rev. E 90, 033315 (2014) (the corresponding preprint is publically
+    Phys. Rev. E 90, 033315 (2014) (the corresponding preprint is publicly
     available at https://arxiv.org/abs/1304.6112). This method is especially
     well-suited in the area of tensor network states, where it usually
     outperforms all the other optimization strategies.

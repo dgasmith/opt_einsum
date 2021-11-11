@@ -175,7 +175,7 @@ to find, `'greedy'`):
 
 ![Path Finding](../img/path_found_flops.png)
 
-One can see that the heirarchy of path qualities is:
+One can see that the hierarchy of path qualities is:
 
 1. `'optimal'` (used by auto for `n <= 4`)
 2. `'branch-all'` (used by auto for `n <= 6`)

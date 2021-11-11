@@ -35,7 +35,7 @@ resulting in a dramatic increase in overall execution time.  Expressions with
 many tensors are particularly prevalent in many-body theories such as quantum
 chemistry, particle physics, and nuclear physics in addition to other fields
 such as machine learning.  At the extreme case, matrix product state theory can
-have thousands of tensors meaning that the computation cannot procede in a
+have thousands of tensors meaning that the computation cannot proceed in a
 naive fashion.
 
 The canonical NumPy ``einsum`` function considers expressions as a single unit
