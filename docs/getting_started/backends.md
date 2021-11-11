@@ -200,7 +200,7 @@ all of which offer GPU support. Since `tensorflow` and `theano` both require
 compiling the expression, this functionality is encapsulated in generating a
 [`opt_einsum.ContractExpression`](../api_reference.md#opt_einsumcontractcontractexpression) using
 [`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression), which can then be called using numpy
-arrays whilst specifiying `backend='tensorflow'` etc.
+arrays whilst specifying `backend='tensorflow'` etc.
 Additionally, if arrays are marked as `constant`
 (see [`constants-section`](./reusing_paths.md#specifying-constants)), then these arrays will be kept on the device
 for optimal performance.
@@ -208,7 +208,7 @@ for optimal performance.
 
 ### Theano
 
-If `theano` is installed, using it as backend is as simple as specifiying
+If `theano` is installed, using it as backend is as simple as specifying
 `backend='theano'`:
 
 ```python
@@ -276,7 +276,7 @@ After which `opt_einsum` will automatically detect eager mode if
 Both [pytorch](https://pytorch.org) and [cupy](https://cupy.chainer.org/)
 offer numpy-like, GPU-enabled arrays which execute eagerly rather than
 requiring any compilation. If they are installed, no steps are required to
-utilize them other than specifiying the `backend` keyword:
+utilize them other than specifying the `backend` keyword:
 
 ```python
 expr(*xs, backend='torch')

@@ -41,7 +41,7 @@ about:
     For example, let us examine the following index transformation:
     `M_{pqrs} = C_{pi} C_{qj} I_{ijkl} C_{rk} C_{sl}`
     
-    We can then develop two seperate implementations that produce the same result:
+    We can then develop two separate implementations that produce the same result:
     ```python
     N = 10
     C = np.random.rand(N, N)

@@ -10,7 +10,7 @@ You can update `opt_einsum` using [`conda`](https://www.anaconda.com/download/):
 conda install opt_einsum -c conda-forge
 ```
 
-This installs `opt_einsum` and the NumPy dependancy.
+This installs `opt_einsum` and the NumPy dependency.
 
 The `opt_einsum` package is maintained on the [conda-forge channel](https://conda-forge.github.io/).
 

@@ -455,7 +455,7 @@ def contract(*operands, **kwargs):
 
     For contractions with just two tensors this function will attempt to use
     NumPy's built-in BLAS functionality to ensure that the given operation is
-    preformed optimally. When NumPy is linked to a threaded BLAS, potential
+    performed optimally. When NumPy is linked to a threaded BLAS, potential
     speedups are on the order of 20-100 for a six core machine.
     """
     optimize_arg = kwargs.pop('optimize', True)

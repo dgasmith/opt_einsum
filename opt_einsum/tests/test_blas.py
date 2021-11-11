@@ -1,5 +1,5 @@
 """
-Tests thte BLAS capability for the opt_einsum module.
+Tests the BLAS capability for the opt_einsum module.
 """
 
 import numpy as np
