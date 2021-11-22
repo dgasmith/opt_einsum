@@ -7,7 +7,7 @@ short_description = "Optimizing numpys einsum function"
 try:
     with open("README.md", "r") as handle:
         long_description = handle.read()
-except:
+except: # noqa
     long_description = short_description
 
 
@@ -45,7 +45,6 @@ if __name__ == "__main__":
             'License :: OSI Approved',
             'Programming Language :: Python',
             'Programming Language :: Python :: 3',
-            'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',

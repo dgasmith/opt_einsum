@@ -4,10 +4,10 @@ Contains the primary optimization and contraction routines.
 
 from collections import namedtuple
 from decimal import Decimal
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional
 
 from . import backends, blas, helpers, parser, paths, sharing
-from .typing import TensorShapeType, PathType
+from .typing import PathType
 
 __all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only"]
 
@@ -130,7 +130,7 @@ def contract_path(*operands, **kwargs):
 
         The default is None. Note that imposing a limit can make contractions
         exponentially slower to perform.
-    
+
     - **shapes** - *(bool, optional)* Whether ``contract_path`` should assume arrays (the default) or array shapes have been supplied.
 
     **Returns:**

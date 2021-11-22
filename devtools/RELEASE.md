@@ -5,6 +5,7 @@
 Check for flake8 issues and spelling.
 
 ```shell
+pip install flake8-spellcheck
 flake8 --whitelist ./devtools/allowlist.txt
 ```
 

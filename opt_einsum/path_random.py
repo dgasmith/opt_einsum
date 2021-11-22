@@ -216,7 +216,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
     - **nbranch** - *(int, optional)* How many potential paths to calculate probability for and choose from at each step.
 
     **Returns:**
-    
+
     - **cost**
     - **k1**
     - **k2**
@@ -301,7 +301,7 @@ class RandomGreedy(RandomOptimizer):
     """
 
     **Parameters:**
-    
+
     - **cost_fn** - *(callable, optional)* A function that returns a heuristic 'cost' of a potential contraction
         with which to sort candidates. Should have signature
         `cost_fn(size12, size1, size2, k12, k1, k2)`.

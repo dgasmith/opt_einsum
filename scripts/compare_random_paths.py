@@ -1,15 +1,15 @@
 import numpy as np
 import pandas as pd
 import timeit
+import opt_einsum as oe
 
 import resource
+
 rsrc = resource.RLIMIT_DATA
 limit = int(1e9)
 resource.setrlimit(rsrc, (limit, limit))
 
-import opt_einsum as oe
 pd.set_option('display.width', 200)
-
 
 opt_path = 'optimal'
 
@@ -30,17 +30,20 @@ max_indices = 6
 max_doubles = 1E7
 
 alpha = list('abcdefghijklmnopqrstuvwyxz')
-alpha_dict = {num:x for num, x in enumerate(alpha)}
+alpha_dict = {num: x for num, x in enumerate(alpha)}
 
 print('Maximum term size is %d' % (max_size**max_dims))
 
+
 def make_term():
-    num_dims = np.random.randint(min_dims, max_dims+1)
+    num_dims = np.random.randint(min_dims, max_dims + 1)
     term = np.random.randint(0, max_indices, num_dims)
     return term
 
+
 def get_string(term):
     return ''.join([alpha_dict[x] for x in term])
+
 
 def random_contraction():
 
@@ -56,12 +59,13 @@ def random_contraction():
 
     # Compute einsum string and return string
     sum_string = ','.join([get_string(s) for s in int_terms])
-    out_string = sum_string.replace(',','')
-    out_string = [x for x in alpha if out_string.count(x)==1]
+    out_string = sum_string.replace(',', '')
+    out_string = [x for x in alpha if out_string.count(x) == 1]
 
-    #sum_string += '->'
+    # sum_string += '->'
     sum_string += '->' + ''.join(out_string)
     return (sum_string, views, index_size)
+
 
 out = []
 for x in range(200):
@@ -69,13 +73,13 @@ for x in range(200):
 
     try:
         ein = np.einsum(sum_string, *views)
-    except Exception as error:
+    except Exception:
         out.append(['Einsum failed', sum_string, index_size, 0, 0])
         continue
 
     try:
         opt = oe.contract(sum_string, *views, path=opt_path)
-    except Exception as error:
+    except Exception:
         out.append(['Opt_einsum failed', sum_string, index_size, 0, 0])
         continue
 
@@ -86,6 +90,7 @@ for x in range(200):
 
     setup = "import numpy as np; import opt_einsum as oe; \
              from __main__ import sum_string, views, current_opt_path"
+
     einsum_string = "np.einsum(sum_string, *views)"
     contract_string = "oe.contract(sum_string, *views, path=current_opt_path)"
 
@@ -98,26 +103,23 @@ for x in range(200):
 
 df = pd.DataFrame(out)
 df.columns = ['Flag', 'String', 'Path', 'Einsum time', 'Opt_einsum time']
-df['Ratio'] = df['Einsum time']/df['Opt_einsum time']
+df['Ratio'] = df['Einsum time'] / df['Opt_einsum time']
 
-diff_flags = df['Flag']!=True
+diff_flags = df['Flag'] is not True
 print('\nNumber of contract different than einsum: %d.' % np.sum(diff_flags))
-if sum(diff_flags)>0:
+if sum(diff_flags) > 0:
     print('Terms different than einsum')
-    print(df[df['Flag']!=True])
+    print(df[df['Flag'] is not True])
 
 print('\nDescription of speedup in relative terms:')
 print(df['Ratio'].describe())
 
-print('\nNumber of contract slower than einsum:   %d.' % np.sum(df['Ratio']<0.90))
-tmp = df.loc[df['Ratio']<0.90].copy()
-tmp['Diff (us)'] = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
+print('\nNumber of contract slower than einsum:   %d.' % np.sum(df['Ratio'] < 0.90))
+tmp = df.loc[df['Ratio'] < 0.90].copy()
+tmp['Diff (us)'] = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time']) * 1e6
 tmp = tmp.sort_values('Diff (us)', ascending=False)
 print(tmp)
 
-#diff_us = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
+# diff_us = np.abs(tmp['Einsum time'] - tmp['Opt_einsum time'])*1e6
 print('\nDescription of slowdown:')
 print(tmp.describe())
-
-
-

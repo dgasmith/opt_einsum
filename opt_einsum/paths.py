@@ -297,7 +297,7 @@ class BranchBound(PathOptimizer):
     scales exponentially like `nbranch**len(input_sets)` otherwise.
 
     **Parameters:**
-    
+
     - **nbranch** - *(None or int, optional)* How many branches to explore at each contraction step. If None, explore
         all possible branches. If an integer, branch into this many paths at
         each step. Defaults to None.
@@ -741,7 +741,7 @@ def _find_disconnected_subgraphs(inputs, output):
     - **subgraphs** - *(list[set[int]])* List containing sets of indices for each subgraph
 
     **Examples:**
-    
+
     ```python
     _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("bd"))
     #> [{0, 2}, {1}]
@@ -888,7 +888,7 @@ class DynamicProgramming(PathOptimizer):
     with the number of inputs per subgraph.
 
     **Parameters:**
-    
+
     - **minimize** - *({'flops', 'size'}, optional)* Whether to find the contraction that minimizes the number of
         operations or the size of the largest intermediate tensor.
     - **cost_cap** - *({True, False, int}, optional)* How to implement cost-capping:

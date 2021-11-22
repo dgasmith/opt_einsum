@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_expression, contract_path, helpers
-from opt_einsum.paths import linear_to_ssa, ssa_to_linear, _PATH_OPTIONS
+from opt_einsum.paths import _PATH_OPTIONS, linear_to_ssa, ssa_to_linear
 
 tests = [
     # Test scalar-like operations
