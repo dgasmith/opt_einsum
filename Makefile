@@ -35,7 +35,4 @@ test:
 
 .PHONY: docs
 docs:
-	yapf -l 80 docs/examples
-	python docs/build/evaluate_examples.py
-	python docs/generate/models_to_markdown.py
 	mkdocs build

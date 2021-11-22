@@ -9,16 +9,20 @@ import functools
 import numbers
 import threading
 from collections import Counter, defaultdict
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple, Generator, Union
 
 from .parser import alpha_canonicalize, parse_einsum_input
+from .typing import ArrayType
+
+CacheKeyType = Union[Tuple[str, str, int, Tuple[int, ...]], Tuple[str, int]]
+CacheType = Dict[CacheKeyType, ArrayType]
 
 __all__ = [
     "currently_sharing", "get_sharing_cache", "shared_intermediates", "count_cached_ops", "transpose_cache_wrap",
     "einsum_cache_wrap", "to_backend_cache_wrap"
 ]
 
-_SHARING_STACK: Any = defaultdict(list)
+_SHARING_STACK: Dict[int, List[CacheType]] = defaultdict(list)
 
 
 def currently_sharing() -> bool:
@@ -27,17 +31,17 @@ def currently_sharing() -> bool:
     return threading.get_ident() in _SHARING_STACK
 
 
-def get_sharing_cache():
+def get_sharing_cache() -> CacheType:
     """Return the most recent sharing cache -- thread specific.
     """
     return _SHARING_STACK[threading.get_ident()][-1]
 
 
-def _add_sharing_cache(cache):
+def _add_sharing_cache(cache: CacheType) -> Any:
     _SHARING_STACK[threading.get_ident()].append(cache)
 
 
-def _remove_sharing_cache():
+def _remove_sharing_cache() -> None:
     tid = threading.get_ident()
     _SHARING_STACK[tid].pop()
     if not _SHARING_STACK[tid]:
@@ -45,7 +49,7 @@ def _remove_sharing_cache():
 
 
 @contextlib.contextmanager
-def shared_intermediates(cache=None):
+def shared_intermediates(cache: Optional[CacheType] = None) -> Generator[CacheType, None, None]:
     """Context in which contract intermediate results are shared.
 
     Note that intermediate computations will not be garbage collected until
@@ -72,14 +76,14 @@ def shared_intermediates(cache=None):
         _remove_sharing_cache()
 
 
-def count_cached_ops(cache):
+def count_cached_ops(cache: CacheType) -> Counter[str]:
     """Returns a counter of the types of each op in the cache.
     This is useful for profiling to increase sharing.
     """
     return Counter(key[0] for key in cache.keys())
 
 
-def _save_tensors(*tensors):
+def _save_tensors(*tensors: ArrayType) -> None:
     """Save tensors in the cache to prevent their ids from being recycled.
     This is needed to prevent false cache lookups.
     """
@@ -88,7 +92,7 @@ def _save_tensors(*tensors):
         cache['tensor', id(tensor)] = tensor
 
 
-def _memoize(key, fn, *args, **kwargs):
+def _memoize(key: CacheKeyType, fn: Any, *args: Any, **kwargs: Any) -> ArrayType:
     """Memoize ``fn(*args, **kwargs)`` using the given ``key``.
     Results will be stored in the innermost ``cache`` yielded by
     :func:`shared_intermediates`.
@@ -101,7 +105,7 @@ def _memoize(key, fn, *args, **kwargs):
     return result
 
 
-def transpose_cache_wrap(transpose):
+def transpose_cache_wrap(transpose: Any) -> Any:
     """Decorates a ``transpose()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
@@ -119,7 +123,7 @@ def transpose_cache_wrap(transpose):
     return cached_transpose
 
 
-def tensordot_cache_wrap(tensordot):
+def tensordot_cache_wrap(tensordot: Any) -> Any:
     """Decorates a ``tensordot()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
@@ -139,7 +143,7 @@ def tensordot_cache_wrap(tensordot):
     return cached_tensordot
 
 
-def einsum_cache_wrap(einsum):
+def einsum_cache_wrap(einsum: Any) -> Any:
     """Decorates an ``einsum()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
@@ -168,7 +172,7 @@ def einsum_cache_wrap(einsum):
     return cached_einsum
 
 
-def to_backend_cache_wrap(to_backend=None, constants=False):
+def to_backend_cache_wrap(to_backend: Any = None, constants: Any = False) -> Any:
     """Decorates an ``to_backend()`` implementation to be memoized inside a
     :func:`shared_intermediates` context (e.g. ``to_cupy``, ``to_torch``).
     """
