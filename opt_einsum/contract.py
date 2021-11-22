@@ -219,13 +219,13 @@ def contract_path(*operands, **kwargs):
 
     # Build a few useful list and sets
     input_list = input_subscripts.split(',')
-    input_sets = [set(x) for x in input_list]
+    input_sets = [frozenset(x) for x in input_list]
     if shapes:
         input_shps = operands
     else:
         input_shps = [x.shape for x in operands]
-    output_set = set(output_subscript)
-    indices = set(input_subscripts.replace(',', ''))
+    output_set = frozenset(output_subscript)
+    indices = frozenset(input_subscripts.replace(',', ''))
 
     # Get length of each unique dimension and ensure all dimensions are correct
     size_dict = {}

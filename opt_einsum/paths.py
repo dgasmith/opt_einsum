@@ -8,7 +8,7 @@ import itertools
 import operator
 import random
 from collections import Counter, OrderedDict, defaultdict
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, Tuple
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple, Set
 
 import numpy as np
 
@@ -267,14 +267,14 @@ def get_better_fn(key: str) -> Callable[[int, int, int, int], bool]:
 # functions for assigning a heuristic 'cost' to a potential contraction
 
 
-def cost_memory_removed(size12, size1, size2, k12, k1, k2):
+def cost_memory_removed(size12: int, size1: int, size2: int, k12: int, k1: int, k2: int) -> float:
     """The default heuristic cost, corresponding to the total reduction in
     memory of performing a contraction.
     """
     return size12 - size1 - size2
 
 
-def cost_memory_removed_jitter(size12, size1, size2, k12, k1, k2):
+def cost_memory_removed_jitter(size12: int, size1: int, size2: int, k12: int, k1: int, k2: int) -> float:
     """Like memory-removed, but with a slight amount of noise that breaks ties
     and thus jumbles the contractions a bit.
     """
@@ -464,8 +464,13 @@ branch_all = functools.partial(branch, nbranch=None)
 branch_2 = functools.partial(branch, nbranch=2)
 branch_1 = functools.partial(branch, nbranch=1)
 
+GreedyCostType = Tuple[int, int, int]
+GreedyContractionType = Tuple[GreedyCostType, TensorIndexType, TensorIndexType, TensorIndexType]  # Cost, t1,t2->t3
 
-def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn):
+
+def _get_candidate(output: TensorIndexType, sizes: Dict[str, int], remaining: Dict[TensorIndexType, int],
+                   footprints: Dict[TensorIndexType, int], dim_ref_counts: Dict[int, Set[str]], k1: TensorIndexType,
+                   k2: TensorIndexType, cost_fn: Any) -> GreedyContractionType:
     either = k1 | k2
     two = k1 & k2
     one = either - two
@@ -479,7 +484,10 @@ def _get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2,
     return cost, k1, k2, k12
 
 
-def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn):
+def _push_candidate(output: TensorIndexType, sizes: Dict[str, Any], remaining: Dict[TensorIndexType, int],
+                    footprints: Dict[TensorIndexType, int], dim_ref_counts: Dict[int, Set[str]], k1: TensorIndexType,
+                    k2s: List[TensorIndexType], queue: List[GreedyContractionType], push_all: bool,
+                    cost_fn: Any) -> None:
     candidates = (_get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn) for k2 in k2s)
     if push_all:
         # want to do this if we e.g. are using a custom 'choose_fn'
@@ -489,7 +497,8 @@ def _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2
         heapq.heappush(queue, min(candidates))
 
 
-def _update_ref_counts(dim_to_keys, dim_ref_counts, dims):
+def _update_ref_counts(dim_to_keys: Dict[str, Set[TensorIndexType]], dim_ref_counts: Dict[int, Set[str]],
+                       dims: TensorIndexType) -> None:
     for dim in dims:
         count = len(dim_to_keys[dim])
         if count <= 1:
@@ -512,7 +521,11 @@ def _simple_chooser(queue, remaining):
     return cost, k1, k2, k12
 
 
-def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-removed'):
+def ssa_greedy_optimize(inputs: List[TensorIndexType],
+                        output: TensorIndexType,
+                        sizes: Dict[str, int],
+                        choose_fn: Any = None,
+                        cost_fn: Any = 'memory-removed') -> PathType:
     """
     This is the core function for :func:`greedy` but produces a path with
     static single assignment ids rather than recycled linear ids.
@@ -537,14 +550,14 @@ def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-r
     # cannot be contracted until the final step. This avoids an expensive all-pairs
     # comparison to search for possible contractions at each step, leading to speedup
     # in many practical problems where all tensors share a common batch dimension.
-    inputs = list(map(frozenset, inputs))
-    output = frozenset(output) | frozenset.intersection(*inputs)
+    fs_inputs = [frozenset(x) for x in inputs]
+    output = frozenset(output) | frozenset.intersection(*fs_inputs)
 
     # Deduplicate shapes by eagerly computing Hadamard products.
-    remaining = {}  # key -> ssa_id
-    ssa_ids = itertools.count(len(inputs))
+    remaining: Dict[TensorIndexType, int] = {}  # key -> ssa_id
+    ssa_ids = itertools.count(len(fs_inputs))
     ssa_path = []
-    for ssa_id, key in enumerate(inputs):
+    for ssa_id, key in enumerate(fs_inputs):
         if key in remaining:
             ssa_path.append((remaining[key], ssa_id))
             remaining[key] = next(ssa_ids)
@@ -569,12 +582,13 @@ def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-r
     footprints = {key: helpers.compute_size_by_dict(key, sizes) for key in remaining}
 
     # Find initial candidate contractions.
-    queue = []
-    for dim, keys in dim_to_keys.items():
-        keys = sorted(keys, key=remaining.__getitem__)
-        for i, k1 in enumerate(keys[:-1]):
-            k2s = keys[1 + i:]
-            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn)
+    queue: List[GreedyContractionType] = []
+    for dim, dim_keys in dim_to_keys.items():
+        dim_keys_list = sorted(dim_keys, key=remaining.__getitem__)
+        for i, k1 in enumerate(dim_keys_list[:-1]):
+            k2s_guess = dim_keys_list[1 + i:]
+            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s_guess, queue, push_all,
+                            cost_fn)
 
     # Greedily contract pairs of tensors.
     while queue:
@@ -605,19 +619,21 @@ def ssa_greedy_optimize(inputs, output, sizes, choose_fn=None, cost_fn='memory-r
         k2s = set(k2 for dim in k1 for k2 in dim_to_keys[dim])
         k2s.discard(k1)
         if k2s:
-            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2s, queue, push_all, cost_fn)
+            _push_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, list(k2s), queue, push_all,
+                            cost_fn)
 
     # Greedily compute pairwise outer products.
-    queue = [(helpers.compute_size_by_dict(key & output, sizes), ssa_id, key) for key, ssa_id in remaining.items()]
-    heapq.heapify(queue)
-    _, ssa_id1, k1 = heapq.heappop(queue)
-    while queue:
-        _, ssa_id2, k2 = heapq.heappop(queue)
+    final_queue = [(helpers.compute_size_by_dict(key & output, sizes), ssa_id, key)
+                   for key, ssa_id in remaining.items()]
+    heapq.heapify(final_queue)
+    _, ssa_id1, k1 = heapq.heappop(final_queue)
+    while final_queue:
+        _, ssa_id2, k2 = heapq.heappop(final_queue)
         ssa_path.append((min(ssa_id1, ssa_id2), max(ssa_id1, ssa_id2)))
         k12 = (k1 | k2) & output
         cost = helpers.compute_size_by_dict(k12, sizes)
         ssa_id12 = next(ssa_ids)
-        _, ssa_id1, k1 = heapq.heappushpop(queue, (cost, ssa_id12, k12))
+        _, ssa_id1, k1 = heapq.heappushpop(final_queue, (cost, ssa_id12, k12))
 
     return ssa_path
 
@@ -837,7 +853,7 @@ def _dp_compare_size(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn,
                 xn[s] = (i, cost, (cntrct1, cntrct2))
 
 
-def simple_tree_tuple(seq):
+def simple_tree_tuple(seq: Iterable[int]) -> Tuple[Any, ...]:
     """Make a simple left to right binary tree out of iterable `seq`.
 
     ```python
@@ -846,7 +862,7 @@ def simple_tree_tuple(seq):
     ```
 
     """
-    return functools.reduce(lambda x, y: (x, y), seq)
+    return functools.reduce(lambda x, y: (x, y), seq)  # type: ignore
 
 
 def _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts):

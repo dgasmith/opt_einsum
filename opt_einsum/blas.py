@@ -172,9 +172,9 @@ def tensor_blas(view_left: np.ndarray, input_left: str, view_right: np.ndarray, 
 
     """
 
-    idx_removed = set(idx_removed)
-    keep_left = set(input_left) - idx_removed
-    keep_right = set(input_right) - idx_removed
+    idx_removed = frozenset(idx_removed)
+    keep_left = frozenset(input_left) - idx_removed
+    keep_right = frozenset(input_right) - idx_removed
 
     # We trust this must be called correctly
     dimension_dict = {}

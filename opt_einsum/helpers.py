@@ -2,7 +2,7 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-from typing import Collection, Dict, List, Optional, Set, Tuple, Union
+from typing import Collection, Dict, FrozenSet, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -82,7 +82,7 @@ def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> 
 
 def find_contraction(
         positions: Collection[int], input_sets: List[TensorIndexType],
-        output_set: TensorIndexType) -> Tuple[Set[str], List[TensorIndexType], TensorIndexType, TensorIndexType]:
+        output_set: TensorIndexType) -> Tuple[FrozenSet[str], List[TensorIndexType], TensorIndexType, TensorIndexType]:
     """
     Finds the contraction for a given set of input and output sets.
 
@@ -127,7 +127,7 @@ def find_contraction(
 
     remaining = list(input_sets)
     inputs = (remaining.pop(i) for i in sorted(positions, reverse=True))
-    idx_contract = set.union(*inputs)
+    idx_contract = frozenset.union(*inputs)
     idx_remain = output_set.union(*remaining)
 
     new_result = idx_remain & idx_contract
