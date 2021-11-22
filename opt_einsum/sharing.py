@@ -9,7 +9,9 @@ import functools
 import numbers
 import threading
 from collections import Counter, defaultdict
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any
+from typing import Counter as CounterType
+from typing import Dict, Generator, List, Optional, Tuple, Union
 
 from .parser import alpha_canonicalize, parse_einsum_input
 from .typing import ArrayType
@@ -76,7 +78,7 @@ def shared_intermediates(cache: Optional[CacheType] = None) -> Generator[CacheTy
         _remove_sharing_cache()
 
 
-def count_cached_ops(cache: CacheType) -> Counter[str]:
+def count_cached_ops(cache: CacheType) -> CounterType[str]:
     """Returns a counter of the types of each op in the cache.
     This is useful for profiling to increase sharing.
     """

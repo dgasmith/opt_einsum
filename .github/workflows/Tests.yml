@@ -17,6 +17,9 @@ jobs:
         exclude:
          - python-version: 3.6
            environment: "full"
+        include:
+         - python-version: 3.9
+           environment: "min-deps"
 
     runs-on: ubuntu-latest
 
