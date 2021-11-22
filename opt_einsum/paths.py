@@ -13,7 +13,7 @@ from typing import Any, Callable, Counter, Dict, FrozenSet, Generator, List, Opt
 import numpy as np
 
 from . import helpers
-from .typing import PathType, TensorIndexType
+from .typing import ArrayIndexType, PathType
 
 __all__ = [
     "optimal", "BranchBound", "branch", "greedy", "auto", "auto_hq", "get_path_fn", "DynamicProgramming",
@@ -48,7 +48,7 @@ class PathOptimizer:
 
     where `path` is a list of int-tuples specifying a contraction order.
     """
-    def _check_args_against_first_call(self, inputs: List[TensorIndexType], output: TensorIndexType,
+    def _check_args_against_first_call(self, inputs: List[ArrayIndexType], output: ArrayIndexType,
                                        size_dict: Dict[str, int]) -> None:
         """Utility that stateful optimizers can use to ensure they are not
         called with different contractions across separate runs.
@@ -62,8 +62,8 @@ class PathOptimizer:
                              "instance was called with have changed - try creating a new instance.")
 
     def __call__(self,
-                 inputs: List[TensorIndexType],
-                 output: TensorIndexType,
+                 inputs: List[ArrayIndexType],
+                 output: ArrayIndexType,
                  size_dict: Dict[str, int],
                  memory_limit: Optional[int] = None) -> PathType:
         raise NotImplementedError
@@ -143,7 +143,7 @@ def calc_k12_flops(inputs: Tuple[FrozenSet[str]], output: FrozenSet[str], remain
     return k12, cost
 
 
-def _compute_oversize_flops(inputs: Tuple[FrozenSet[str]], remaining: List[TensorIndexType], output: TensorIndexType,
+def _compute_oversize_flops(inputs: Tuple[FrozenSet[str]], remaining: List[ArrayIndexType], output: ArrayIndexType,
                             size_dict: Dict[str, int]) -> int:
     """
     Compute the flop count for a contraction of all remaining arguments. This
@@ -155,8 +155,8 @@ def _compute_oversize_flops(inputs: Tuple[FrozenSet[str]], remaining: List[Tenso
     return helpers.flop_count(idx_contraction, bool(inner), num_terms, size_dict)
 
 
-def optimal(inputs: List[TensorIndexType],
-            output: TensorIndexType,
+def optimal(inputs: List[ArrayIndexType],
+            output: ArrayIndexType,
             size_dict: Dict[str, int],
             memory_limit: Optional[int] = None) -> PathType:
     """
@@ -192,7 +192,7 @@ def optimal(inputs: List[TensorIndexType],
     best_flops = {'flops': float('inf')}
     best_ssa_path = {'ssa_path': (tuple(range(len(inputs))), )}
     size_cache: Dict[FrozenSet[str], int] = {}
-    result_cache: Dict[Tuple[TensorIndexType, TensorIndexType], Tuple[FrozenSet[str], int]] = {}
+    result_cache: Dict[Tuple[ArrayIndexType, ArrayIndexType], Tuple[FrozenSet[str], int]] = {}
 
     def _optimal_iterate(path, remaining, inputs, flops):
 
@@ -326,8 +326,8 @@ class BranchBound(PathOptimizer):
         return ssa_to_linear(self.best['ssa_path'])
 
     def __call__(self,
-                 inputs_: List[TensorIndexType],
-                 output_: TensorIndexType,
+                 inputs_: List[ArrayIndexType],
+                 output_: ArrayIndexType,
                  size_dict: Dict[str, int],
                  memory_limit: Optional[int] = None) -> PathType:
         """
@@ -451,8 +451,8 @@ class BranchBound(PathOptimizer):
         return self.path
 
 
-def branch(inputs: List[TensorIndexType],
-           output: TensorIndexType,
+def branch(inputs: List[ArrayIndexType],
+           output: ArrayIndexType,
            size_dict: Dict[str, int],
            memory_limit: Optional[int] = None,
            **optimizer_kwargs: Dict[str, Any]) -> PathType:
@@ -465,12 +465,12 @@ branch_2 = functools.partial(branch, nbranch=2)
 branch_1 = functools.partial(branch, nbranch=1)
 
 GreedyCostType = Tuple[int, int, int]
-GreedyContractionType = Tuple[GreedyCostType, TensorIndexType, TensorIndexType, TensorIndexType]  # Cost, t1,t2->t3
+GreedyContractionType = Tuple[GreedyCostType, ArrayIndexType, ArrayIndexType, ArrayIndexType]  # Cost, t1,t2->t3
 
 
-def _get_candidate(output: TensorIndexType, sizes: Dict[str, int], remaining: Dict[TensorIndexType, int],
-                   footprints: Dict[TensorIndexType, int], dim_ref_counts: Dict[int, Set[str]], k1: TensorIndexType,
-                   k2: TensorIndexType, cost_fn: Any) -> GreedyContractionType:
+def _get_candidate(output: ArrayIndexType, sizes: Dict[str, int], remaining: Dict[ArrayIndexType, int],
+                   footprints: Dict[ArrayIndexType, int], dim_ref_counts: Dict[int, Set[str]], k1: ArrayIndexType,
+                   k2: ArrayIndexType, cost_fn: Any) -> GreedyContractionType:
     either = k1 | k2
     two = k1 & k2
     one = either - two
@@ -484,9 +484,9 @@ def _get_candidate(output: TensorIndexType, sizes: Dict[str, int], remaining: Di
     return cost, k1, k2, k12
 
 
-def _push_candidate(output: TensorIndexType, sizes: Dict[str, Any], remaining: Dict[TensorIndexType, int],
-                    footprints: Dict[TensorIndexType, int], dim_ref_counts: Dict[int, Set[str]], k1: TensorIndexType,
-                    k2s: List[TensorIndexType], queue: List[GreedyContractionType], push_all: bool,
+def _push_candidate(output: ArrayIndexType, sizes: Dict[str, Any], remaining: Dict[ArrayIndexType, int],
+                    footprints: Dict[ArrayIndexType, int], dim_ref_counts: Dict[int, Set[str]], k1: ArrayIndexType,
+                    k2s: List[ArrayIndexType], queue: List[GreedyContractionType], push_all: bool,
                     cost_fn: Any) -> None:
     candidates = (_get_candidate(output, sizes, remaining, footprints, dim_ref_counts, k1, k2, cost_fn) for k2 in k2s)
     if push_all:
@@ -497,8 +497,8 @@ def _push_candidate(output: TensorIndexType, sizes: Dict[str, Any], remaining: D
         heapq.heappush(queue, min(candidates))
 
 
-def _update_ref_counts(dim_to_keys: Dict[str, Set[TensorIndexType]], dim_ref_counts: Dict[int, Set[str]],
-                       dims: TensorIndexType) -> None:
+def _update_ref_counts(dim_to_keys: Dict[str, Set[ArrayIndexType]], dim_ref_counts: Dict[int, Set[str]],
+                       dims: ArrayIndexType) -> None:
     for dim in dims:
         count = len(dim_to_keys[dim])
         if count <= 1:
@@ -521,8 +521,8 @@ def _simple_chooser(queue, remaining):
     return cost, k1, k2, k12
 
 
-def ssa_greedy_optimize(inputs: List[TensorIndexType],
-                        output: TensorIndexType,
+def ssa_greedy_optimize(inputs: List[ArrayIndexType],
+                        output: ArrayIndexType,
                         sizes: Dict[str, int],
                         choose_fn: Any = None,
                         cost_fn: Any = 'memory-removed') -> PathType:
@@ -554,7 +554,7 @@ def ssa_greedy_optimize(inputs: List[TensorIndexType],
     output = frozenset(output) | frozenset.intersection(*fs_inputs)
 
     # Deduplicate shapes by eagerly computing Hadamard products.
-    remaining: Dict[TensorIndexType, int] = {}  # key -> ssa_id
+    remaining: Dict[ArrayIndexType, int] = {}  # key -> ssa_id
     ssa_ids = itertools.count(len(fs_inputs))
     ssa_path = []
     for ssa_id, key in enumerate(fs_inputs):
@@ -638,8 +638,8 @@ def ssa_greedy_optimize(inputs: List[TensorIndexType],
     return ssa_path
 
 
-def greedy(inputs: List[TensorIndexType],
-           output: TensorIndexType,
+def greedy(inputs: List[ArrayIndexType],
+           output: ArrayIndexType,
            size_dict: Dict[str, int],
            memory_limit: Optional[int] = None,
            choose_fn: Any = None,
@@ -947,8 +947,8 @@ class DynamicProgramming(PathOptimizer):
         self.cost_cap = cost_cap
 
     def __call__(self,
-                 inputs_: List[TensorIndexType],
-                 output_: TensorIndexType,
+                 inputs_: List[ArrayIndexType],
+                 output_: ArrayIndexType,
                  size_dict_: Dict[str, int],
                  memory_limit: Optional[int] = None) -> PathType:
         """
@@ -1092,8 +1092,8 @@ class DynamicProgramming(PathOptimizer):
         return _tree_to_sequence(tree)
 
 
-def dynamic_programming(inputs: List[TensorIndexType],
-                        output: TensorIndexType,
+def dynamic_programming(inputs: List[ArrayIndexType],
+                        output: ArrayIndexType,
                         size_dict: Dict[str, int],
                         memory_limit: Optional[int] = None,
                         **kwargs: Any) -> PathType:
@@ -1112,8 +1112,8 @@ for i in range(9, 15):
     _AUTO_CHOICES[i] = branch_1
 
 
-def auto(inputs: List[TensorIndexType],
-         output: TensorIndexType,
+def auto(inputs: List[ArrayIndexType],
+         output: ArrayIndexType,
          size_dict: Dict[str, int],
          memory_limit: Optional[int] = None) -> PathType:
     """Finds the contraction path by automatically choosing the method based on
@@ -1130,8 +1130,8 @@ for i in range(6, 17):
     _AUTO_HQ_CHOICES[i] = dynamic_programming
 
 
-def auto_hq(inputs: List[TensorIndexType],
-            output: TensorIndexType,
+def auto_hq(inputs: List[ArrayIndexType],
+            output: ArrayIndexType,
             size_dict: Dict[str, int],
             memory_limit: Optional[int] = None) -> PathType:
     """Finds the contraction path by automatically choosing the method based on
@@ -1144,7 +1144,7 @@ def auto_hq(inputs: List[TensorIndexType],
     return _AUTO_HQ_CHOICES.get(N, random_greedy_128)(inputs, output, size_dict, memory_limit)
 
 
-PathSearchFunctionType = Callable[[List[TensorIndexType], TensorIndexType, Dict[str, int], Optional[int]], PathType]
+PathSearchFunctionType = Callable[[List[ArrayIndexType], ArrayIndexType, Dict[str, int], Optional[int]], PathType]
 _PATH_OPTIONS: Dict[str, PathSearchFunctionType] = {
     'auto': auto,
     'auto-hq': auto_hq,

@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterator, List, Tuple
 
 import numpy as np
 
-from .typing import TensorShapeType
+from .typing import ArrayType, TensorShapeType
 
 __all__ = [
     "is_valid_einsum_char", "has_valid_einsum_chars_only", "get_symbol", "gen_unused_symbols",
@@ -253,7 +253,7 @@ def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
     return subscripts, operands
 
 
-def parse_einsum_input(operands: Any) -> Tuple[str, str, List[Any]]:
+def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
     """
     A reproduction of einsum c side einsum parsing in python.
 

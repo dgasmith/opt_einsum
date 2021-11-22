@@ -7,7 +7,7 @@ from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Optional, T
 import numpy as np
 
 from .parser import get_symbol
-from .typing import PathType, TensorIndexType
+from .typing import ArrayIndexType, PathType
 
 __all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
 
@@ -91,8 +91,8 @@ def compute_size_by_dict(indices: Any, idx_dict: Any) -> int:
 
 
 def find_contraction(
-        positions: Collection[int], input_sets: List[TensorIndexType],
-        output_set: TensorIndexType) -> Tuple[FrozenSet[str], List[TensorIndexType], TensorIndexType, TensorIndexType]:
+        positions: Collection[int], input_sets: List[ArrayIndexType],
+        output_set: ArrayIndexType) -> Tuple[FrozenSet[str], List[ArrayIndexType], ArrayIndexType, ArrayIndexType]:
     """
     Finds the contraction for a given set of input and output sets.
 
