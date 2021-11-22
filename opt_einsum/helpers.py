@@ -2,7 +2,7 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-from typing import Collection, Dict, FrozenSet, List, Optional, Set, Tuple, Union
+from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Optional, Tuple, Union, overload
 
 import numpy as np
 
@@ -51,7 +51,17 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
     return views
 
 
+@overload
+def compute_size_by_dict(indices: Iterable[int], idx_dict: List[int]) -> int:
+    ...
+
+
+@overload
 def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> int:
+    ...
+
+
+def compute_size_by_dict(indices: Any, idx_dict: Any) -> int:
     """
     Computes the product of the elements in indices based on the dictionary
     idx_dict.

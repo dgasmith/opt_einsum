@@ -8,7 +8,7 @@ import itertools
 import operator
 import random
 from collections import Counter, OrderedDict, defaultdict
-from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Sequence, Tuple, Set, Union, Generator, Counter
+from typing import Any, Callable, Counter, Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 
@@ -817,8 +817,8 @@ def _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2):
 
 def _dp_compare_flops(cost1: int, cost2: int, i1_union_i2: Set[int], size_dict: List[int], cost_cap: int, s1: int,
                       s2: int, xn: Dict[int, Any], g: int, all_tensors: int, inputs: List[FrozenSet[int]],
-                      i1_cut_i2_wo_output: Set[int], memory_limit: Optional[int], cntrct1: Union[int, Tuple[int]],
-                      cntrct2: Union[int, Tuple[int]]) -> None:
+                      i1_cut_i2_wo_output: Set[int], memory_limit: Optional[int], contract1: Union[int, Tuple[int]],
+                      contract2: Union[int, Tuple[int]]) -> None:
     """Performs the inner comparison of whether the two subgraphs (the bitmaps
     `s1` and `s2`) should be merged and added to the dynamic programming
     search. Will skip for a number of reasons:
@@ -831,20 +831,20 @@ def _dp_compare_flops(cost1: int, cost2: int, i1_union_i2: Set[int], size_dict: 
     """
 
     # TODO: Odd usage with an Iterable[int] to map a dict of type List[int]
-    cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)  # type: ignore
+    cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
     if cost <= cost_cap:
         s = s1 | s2
         if s not in xn or cost < xn[s][1]:
             i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
-            mem = helpers.compute_size_by_dict(i, size_dict)  # type: ignore
+            mem = helpers.compute_size_by_dict(i, size_dict)
             if memory_limit is None or mem <= memory_limit:
-                xn[s] = (i, cost, (cntrct1, cntrct2))
+                xn[s] = (i, cost, (contract1, contract2))
 
 
 def _dp_compare_size(cost1: int, cost2: int, i1_union_i2: Set[int], size_dict: List[int], cost_cap: int, s1: int,
                      s2: int, xn: Dict[int, Any], g: int, all_tensors: int, inputs: List[FrozenSet[int]],
-                     i1_cut_i2_wo_output: Set[int], memory_limit: Optional[int], cntrct1: Union[int, Tuple[int]],
-                     cntrct2: Union[int, Tuple[int]]) -> None:
+                     i1_cut_i2_wo_output: Set[int], memory_limit: Optional[int], contract1: Union[int, Tuple[int]],
+                     contract2: Union[int, Tuple[int]]) -> None:
     """Like `_dp_compare_flops` but sieves the potential contraction based
     on the size of the intermediate tensor created, rather than the number of
     operations, and so calculates that first.
@@ -852,12 +852,12 @@ def _dp_compare_size(cost1: int, cost2: int, i1_union_i2: Set[int], size_dict: L
 
     s = s1 | s2
     i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
-    mem = helpers.compute_size_by_dict(i, size_dict)  # type: ignore
+    mem = helpers.compute_size_by_dict(i, size_dict)
     cost = max(cost1, cost2, mem)
     if cost <= cost_cap:
         if s not in xn or cost < xn[s][1]:
             if memory_limit is None or mem <= memory_limit:
-                xn[s] = (i, cost, (cntrct1, cntrct2))
+                xn[s] = (i, cost, (contract1, contract2))
 
 
 def simple_tree_tuple(seq: Sequence[Tuple[int, ...]]) -> Tuple[Any, ...]:
@@ -1036,7 +1036,7 @@ class DynamicProgramming(PathOptimizer):
             # output index dimensions as initial cost_cap
             subgraph_inds = frozenset.union(*_bitmap_select(bitmap_g, inputs))
             if self.cost_cap is True:
-                cost_cap = helpers.compute_size_by_dict(subgraph_inds & output, size_dict)  # type: ignore
+                cost_cap = helpers.compute_size_by_dict(subgraph_inds & output, size_dict)
             elif self.cost_cap is False:
                 cost_cap = float('inf')  # type: ignore
             else:
@@ -1053,8 +1053,8 @@ class DynamicProgramming(PathOptimizer):
 
                     # try to combine solutions from x[m] and x[n-m]
                     for m in range(1, n // 2 + 1):
-                        for s1, (i1, cost1, cntrct1) in x[m].items():
-                            for s2, (i2, cost2, cntrct2) in x[n - m].items():
+                        for s1, (i1, cost1, contract1) in x[m].items():
+                            for s2, (i2, cost2, contract2) in x[n - m].items():
 
                                 # can only merge if s1 and s2 are disjoint
                                 # and avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
@@ -1067,7 +1067,7 @@ class DynamicProgramming(PathOptimizer):
                                         i1_union_i2 = i1 | i2
                                         self._check_contraction(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2,
                                                                 xn, bitmap_g, all_tensors, inputs, i1_cut_i2_wo_output,
-                                                                memory_limit, cntrct1, cntrct2)
+                                                                memory_limit, contract1, contract2)
 
                 if (cost_cap > naive_cost) and (len(x[-1]) == 0):
                     raise RuntimeError("No contraction found for given `memory_limit`.")
@@ -1077,7 +1077,7 @@ class DynamicProgramming(PathOptimizer):
 
             i, cost, contraction = list(x[-1].values())[0]
             subgraph_contractions.append(contraction)
-            subgraph_contractions_size.append(helpers.compute_size_by_dict(i, size_dict))  # type: ignore
+            subgraph_contractions_size.append(helpers.compute_size_by_dict(i, size_dict))
 
         # sort the subgraph contractions by the size of the subgraphs in
         # ascending order (will give the cheapest contractions); note that

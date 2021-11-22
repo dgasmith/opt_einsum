@@ -12,13 +12,13 @@ from opt_einsum.parser import parse_einsum_input
 from opt_einsum.sharing import count_cached_ops, currently_sharing, get_sharing_cache
 
 try:
-    import cupy
+    import cupy  # noqa
     cupy_if_found = 'cupy'
 except ImportError:
     cupy_if_found = pytest.param('cupy', marks=[pytest.mark.skip(reason="CuPy not installed.")])  # type: ignore
 
 try:
-    import torch
+    import torch  # noqa
     torch_if_found = 'torch'
 except ImportError:
     torch_if_found = pytest.param('torch', marks=[pytest.mark.skip(reason="PyTorch not installed.")])  # type: ignore

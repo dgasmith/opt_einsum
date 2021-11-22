@@ -1,9 +1,10 @@
+import resource
+import timeit
+
 import numpy as np
 import pandas as pd
-import timeit
-import opt_einsum as oe
 
-import resource
+import opt_einsum as oe
 
 rsrc = resource.RLIMIT_DATA
 limit = int(1e9)
