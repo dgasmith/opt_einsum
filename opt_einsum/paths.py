@@ -8,7 +8,7 @@ import itertools
 import operator
 import random
 from collections import Counter, OrderedDict, defaultdict
-from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple, Set
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Sequence, Tuple, Set, Union, Generator, Counter
 
 import numpy as np
 
@@ -684,7 +684,7 @@ def greedy(inputs: List[TensorIndexType],
     return ssa_to_linear(ssa_path)
 
 
-def _tree_to_sequence(c):
+def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
     """
     Converts a contraction tree to a contraction path as it has to be
     returned by path optimizers. A contraction tree can either be an int
@@ -720,12 +720,12 @@ def _tree_to_sequence(c):
     #
     # this function iterates through the table shown above from right to left;
 
-    if type(c) == int:
+    if type(tree) == int:
         return []
 
-    c = [c]  # list of remaining contractions (lower part of columns shown above)
-    t = []  # list of elementary tensors (upper part of columns)
-    s = []  # resulting contraction sequence
+    c: List[Tuple[Any, ...]] = [tree]  # list of remaining contractions (lower part of columns shown above)
+    t: List[int] = []  # list of elementary tensors (upper part of columns)
+    s: List[Tuple[int, ...]] = []  # resulting contraction sequence
 
     while len(c) > 0:
         j = c.pop(-1)
@@ -742,7 +742,7 @@ def _tree_to_sequence(c):
     return s
 
 
-def _find_disconnected_subgraphs(inputs, output):
+def _find_disconnected_subgraphs(inputs: List[FrozenSet[int]], output: FrozenSet[int]) -> List[FrozenSet[int]]:
     """
     Finds disconnected subgraphs in the given list of inputs. Inputs are
     connected if they share summation indices. Note: Disconnected subgraphs
@@ -770,7 +770,7 @@ def _find_disconnected_subgraphs(inputs, output):
     subgraphs = []
     unused_inputs = set(range(len(inputs)))
 
-    i_sum = set.union(*inputs) - output  # all summation indices
+    i_sum = frozenset.union(*inputs) - output  # all summation indices
 
     while len(unused_inputs) > 0:
         g = set()
@@ -785,10 +785,10 @@ def _find_disconnected_subgraphs(inputs, output):
 
         subgraphs.append(g)
 
-    return subgraphs
+    return [frozenset(x) for x in subgraphs]
 
 
-def _bitmap_select(s, seq):
+def _bitmap_select(s: int, seq: List[FrozenSet[int]]) -> Generator[FrozenSet[int], None, None]:
     """Select elements of ``seq`` which are marked by the bitmap set ``s``.
 
     E.g.:
@@ -807,16 +807,18 @@ def _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2):
     r = g & (all_tensors ^ s)
     # indices of remaining indices:
     if r:
-        i_r = set.union(*_bitmap_select(r, inputs))
+        i_r = frozenset.union(*_bitmap_select(r, inputs))
     else:
-        i_r = set()
+        i_r = frozenset()
     # contraction indices:
     i_contract = i1_cut_i2_wo_output - i_r
     return i1_union_i2 - i_contract
 
 
-def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
-                      i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
+def _dp_compare_flops(cost1: int, cost2: int, i1_union_i2: Set[int], size_dict: List[int], cost_cap: int, s1: int,
+                      s2: int, xn: Dict[int, Any], g: int, all_tensors: int, inputs: List[FrozenSet[int]],
+                      i1_cut_i2_wo_output: Set[int], memory_limit: Optional[int], cntrct1: Union[int, Tuple[int]],
+                      cntrct2: Union[int, Tuple[int]]) -> None:
     """Performs the inner comparison of whether the two subgraphs (the bitmaps
     `s1` and `s2`) should be merged and added to the dynamic programming
     search. Will skip for a number of reasons:
@@ -827,25 +829,30 @@ def _dp_compare_flops(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn
     3. If the intermediate tensor corresponding to `s` is going to break the
        memory limit.
     """
-    cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
+
+    # TODO: Odd usage with an Iterable[int] to map a dict of type List[int]
+    cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)  # type: ignore
     if cost <= cost_cap:
         s = s1 | s2
         if s not in xn or cost < xn[s][1]:
             i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
-            mem = helpers.compute_size_by_dict(i, size_dict)
+            mem = helpers.compute_size_by_dict(i, size_dict)  # type: ignore
             if memory_limit is None or mem <= memory_limit:
                 xn[s] = (i, cost, (cntrct1, cntrct2))
 
 
-def _dp_compare_size(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
-                     i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
+def _dp_compare_size(cost1: int, cost2: int, i1_union_i2: Set[int], size_dict: List[int], cost_cap: int, s1: int,
+                     s2: int, xn: Dict[int, Any], g: int, all_tensors: int, inputs: List[FrozenSet[int]],
+                     i1_cut_i2_wo_output: Set[int], memory_limit: Optional[int], cntrct1: Union[int, Tuple[int]],
+                     cntrct2: Union[int, Tuple[int]]) -> None:
     """Like `_dp_compare_flops` but sieves the potential contraction based
     on the size of the intermediate tensor created, rather than the number of
     operations, and so calculates that first.
     """
+
     s = s1 | s2
     i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
-    mem = helpers.compute_size_by_dict(i, size_dict)
+    mem = helpers.compute_size_by_dict(i, size_dict)  # type: ignore
     cost = max(cost1, cost2, mem)
     if cost <= cost_cap:
         if s not in xn or cost < xn[s][1]:
@@ -853,7 +860,7 @@ def _dp_compare_size(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn,
                 xn[s] = (i, cost, (cntrct1, cntrct2))
 
 
-def simple_tree_tuple(seq: Iterable[int]) -> Tuple[Any, ...]:
+def simple_tree_tuple(seq: Sequence[Tuple[int, ...]]) -> Tuple[Any, ...]:
     """Make a simple left to right binary tree out of iterable `seq`.
 
     ```python
@@ -862,10 +869,12 @@ def simple_tree_tuple(seq: Iterable[int]) -> Tuple[Any, ...]:
     ```
 
     """
-    return functools.reduce(lambda x, y: (x, y), seq)  # type: ignore
+    return functools.reduce(lambda x, y: (x, y), seq)
 
 
-def _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts):
+def _dp_parse_out_single_term_ops(
+        inputs: List[FrozenSet[int]], all_inds: Tuple[str, ...],
+        ind_counts: Counter[str]) -> Tuple[List[FrozenSet[int]], List[Tuple[int]], List[Union[int, Tuple[int]]]]:
     """Take `inputs` and parse for single term index operations, i.e. where
     an index appears on one tensor and nowhere else.
 
@@ -873,8 +882,10 @@ def _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts):
     to `inputs_done`. If only some indices can be summed then add a 'single
     term contraction' that will perform this summation.
     """
-    i_single = {i for i, c in enumerate(all_inds) if ind_counts[c] == 1}
-    inputs_parsed, inputs_done, inputs_contractions = [], [], []
+    i_single = frozenset(i for i, c in enumerate(all_inds) if ind_counts[c] == 1)
+    inputs_parsed: List[FrozenSet[int]] = []
+    inputs_done: List[Tuple[int]] = []
+    inputs_contractions: List[Union[int, Tuple[int]]] = []
     for j, i in enumerate(inputs):
         i_reduced = i - i_single
         if (not i_reduced) and (len(i) > 0):
@@ -938,7 +949,7 @@ class DynamicProgramming(PathOptimizer):
     def __call__(self,
                  inputs_: List[TensorIndexType],
                  output_: TensorIndexType,
-                 size_dict: Dict[str, int],
+                 size_dict_: Dict[str, int],
                  memory_limit: Optional[int] = None) -> PathType:
         """
         **Parameters:**
@@ -978,10 +989,10 @@ class DynamicProgramming(PathOptimizer):
 
         # convert all indices to integers (makes set operations ~10 % faster)
         symbol2int = {c: j for j, c in enumerate(all_inds)}
-        inputs = [set(symbol2int[c] for c in i) for i in inputs_]
-        output = set(symbol2int[c] for c in output_)
-        size_dict = {symbol2int[c]: v for c, v in size_dict.items() if c in symbol2int}  # type: ignore
-        size_dict = [size_dict[j] for j in range(len(size_dict))]  # type: ignore
+        inputs = [frozenset(symbol2int[c] for c in i) for i in inputs_]
+        output = frozenset(symbol2int[c] for c in output_)
+        size_dict_canonical = {symbol2int[c]: v for c, v in size_dict_.items() if c in symbol2int}
+        size_dict = [size_dict_canonical[j] for j in range(len(size_dict_canonical))]
         naive_cost = len(inputs) * functools.reduce(operator.mul, size_dict)
 
         inputs, inputs_done, inputs_contractions = _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts)
@@ -997,7 +1008,7 @@ class DynamicProgramming(PathOptimizer):
 
         if self.search_outer:
             # optimize everything together if we are considering outer products
-            subgraphs = [set(range(len(inputs)))]
+            subgraphs = [frozenset(range(len(inputs)))]
         else:
             subgraphs = _find_disconnected_subgraphs(inputs, output)
 
@@ -1017,15 +1028,15 @@ class DynamicProgramming(PathOptimizer):
             x[1] = OrderedDict((1 << j, (inputs[j], 0, inputs_contractions[j])) for j in g)
 
             # convert set of tensors g to a bitmap set:
-            g = functools.reduce(lambda x, y: x | y, (1 << j for j in g))  # type: ignore
+            bitmap_g = functools.reduce(lambda x, y: x | y, (1 << j for j in g))
 
             # try to find contraction with cost <= cost_cap and increase
             # cost_cap successively if no such contraction is found;
             # this is a major performance improvement; start with product of
             # output index dimensions as initial cost_cap
-            subgraph_inds = set.union(*_bitmap_select(g, inputs))
+            subgraph_inds = frozenset.union(*_bitmap_select(bitmap_g, inputs))
             if self.cost_cap is True:
-                cost_cap = helpers.compute_size_by_dict(subgraph_inds & output, size_dict)
+                cost_cap = helpers.compute_size_by_dict(subgraph_inds & output, size_dict)  # type: ignore
             elif self.cost_cap is False:
                 cost_cap = float('inf')  # type: ignore
             else:
@@ -1055,10 +1066,10 @@ class DynamicProgramming(PathOptimizer):
 
                                         i1_union_i2 = i1 | i2
                                         self._check_contraction(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2,
-                                                                xn, g, all_tensors, inputs, i1_cut_i2_wo_output,
+                                                                xn, bitmap_g, all_tensors, inputs, i1_cut_i2_wo_output,
                                                                 memory_limit, cntrct1, cntrct2)
 
-                if (cost_cap > naive_cost) and (len(x[-1]) == 0):  # type: ignore
+                if (cost_cap > naive_cost) and (len(x[-1]) == 0):
                     raise RuntimeError("No contraction found for given `memory_limit`.")
 
                 # increase cost cap for next iteration:
@@ -1066,7 +1077,7 @@ class DynamicProgramming(PathOptimizer):
 
             i, cost, contraction = list(x[-1].values())[0]
             subgraph_contractions.append(contraction)
-            subgraph_contractions_size.append(helpers.compute_size_by_dict(i, size_dict))
+            subgraph_contractions_size.append(helpers.compute_size_by_dict(i, size_dict))  # type: ignore
 
         # sort the subgraph contractions by the size of the subgraphs in
         # ascending order (will give the cheapest contractions); note that
