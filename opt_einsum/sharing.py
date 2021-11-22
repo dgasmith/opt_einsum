@@ -9,7 +9,7 @@ import functools
 import numbers
 import threading
 from collections import Counter, defaultdict
-from typing import Any, Dict, List, Optional, Tuple, Generator, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 from .parser import alpha_canonicalize, parse_einsum_input
 from .typing import ArrayType

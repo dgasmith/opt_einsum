@@ -94,7 +94,7 @@ def contract_path(*operands_: Any, **kwargs: Any) -> Tuple[PathType, PathInfo]:
     **Parameters:**
 
     - **subscripts** - *(str)* Specifies the subscripts for summation.
-    - **\*operands** - *(list of array_like)* hese are the arrays for the operation.
+    - **\\*operands** - *(list of array_like)* hese are the arrays for the operation.
     - **use_blas** - *(bool)* Do you use BLAS for valid operations, may use extra memory for more intermediates.
     - **optimize** - *(str, list or bool, optional (default: `auto`))* Choose the type of path.
 
@@ -386,8 +386,6 @@ def _tensordot(x: ArrayType, y: ArrayType, axes: Tuple[int, ...], backend: str =
 # Rewrite einsum to handle different cases
 def contract(*operands_: Any, **kwargs: Any) -> ArrayType:
     """
-    contract(subscripts, \*operands, out=None, dtype=None, order='K', casting='safe', use_blas=True, optimize=True, memory_limit=None, backend='numpy')
-
     Evaluates the Einstein summation convention on the operands. A drop in
     replacement for NumPy's einsum function that optimizes the order of contraction
     to reduce overall scaling at the cost of several intermediate arrays.
@@ -395,7 +393,7 @@ def contract(*operands_: Any, **kwargs: Any) -> ArrayType:
     **Parameters:**
 
     - **subscripts** - *(str)* Specifies the subscripts for summation.
-    - **\*operands** - *(list of array_like)* hese are the arrays for the operation.
+    - **\\*operands** - *(list of array_like)* hese are the arrays for the operation.
     - **out** - *(array_like)* A output array in which set the sresulting output.
     - **dtype** - *(str)* The dtype of the given contraction, see np.einsum.
     - **order** - *(str)* The order of the resulting contraction, see np.einsum.
