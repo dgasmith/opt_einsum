@@ -31,8 +31,8 @@ def object_einsum(eq, *arrays):
     """
 
     # when called by ``opt_einsum`` we will always be given a full eq
-    lhs, output = eq.split('->')
-    inputs = lhs.split(',')
+    lhs, output = eq.split("->")
+    inputs = lhs.split(",")
 
     sizes = {}
     for term, array in zip(inputs, arrays):

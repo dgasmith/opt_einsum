@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 isort = isort opt_einsum scripts/
-yapf = yapf -ir opt_einsum scripts/
+black = black opt_einsum scripts/
 autoflake = autoflake -ir --remove-all-unused-imports --ignore-init-module-imports --remove-unused-variables opt_einsum scripts/
 mypy = mypy --ignore-missing-imports codex opt_einsum scripts/
 
@@ -12,12 +12,12 @@ install:
 format:
 	$(autoflake)
 	$(isort)
-	$(yapf)
+	$(black)
 
 .PHONY: format-check
 format-check:
 	$(isort) --check-only
-	$(yapf) --check
+	$(black) --check
 
 .PHONY: check-dist
 check-dist:

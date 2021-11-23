@@ -12,10 +12,12 @@ from .typing import ArrayIndexType
 __all__ = ["can_blas", "tensor_blas"]
 
 
-def can_blas(inputs: List[str],
-             result: str,
-             idx_removed: ArrayIndexType,
-             shapes: Sequence[Tuple[int]] = None) -> Union[str, bool]:
+def can_blas(
+    inputs: List[str],
+    result: str,
+    idx_removed: ArrayIndexType,
+    shapes: Sequence[Tuple[int]] = None,
+) -> Union[str, bool]:
     """
     Checks if we can use a BLAS call.
 
@@ -85,7 +87,7 @@ def can_blas(inputs: List[str],
     # Prefer einsum if not removing indices
     #     (N.B. tensordot outer faster for large arrays?)
     if len(idx_removed) == 0:
-        return 'OUTER/EINSUM'
+        return "OUTER/EINSUM"
 
     # Build a few temporaries
     sets = [set(x) for x in inputs]
@@ -95,39 +97,45 @@ def can_blas(inputs: List[str],
 
     # DDOT
     if inputs[0] == inputs[1]:
-        return 'DOT'
+        return "DOT"
 
     # DDOT does not make sense if you have to transpose - prefer einsum
     elif sets[0] == sets[1]:
-        return 'DOT/EINSUM'
+        return "DOT/EINSUM"
 
     # GEMM no transpose
     if input_left[-rs:] == input_right[:rs]:
-        return 'GEMM'
+        return "GEMM"
 
     # GEMM transpose both
     elif input_left[:rs] == input_right[-rs:]:
-        return 'GEMM'
+        return "GEMM"
 
     # GEMM transpose right
     elif input_left[-rs:] == input_right[-rs:]:
-        return 'GEMM'
+        return "GEMM"
 
     # GEMM transpose left
     elif input_left[:rs] == input_right[:rs]:
-        return 'GEMM'
+        return "GEMM"
 
     # Einsum is faster than vectordot if we have to copy
     elif (len(keep_left) == 0) or (len(keep_right) == 0):
-        return 'GEMV/EINSUM'
+        return "GEMV/EINSUM"
 
     # Conventional tensordot
     else:
-        return 'TDOT'
+        return "TDOT"
 
 
-def tensor_blas(view_left: np.ndarray, input_left: str, view_right: np.ndarray, input_right: str, index_result: str,
-                idx_removed: ArrayIndexType) -> np.ndarray:
+def tensor_blas(
+    view_left: np.ndarray,
+    input_left: str,
+    view_right: np.ndarray,
+    input_right: str,
+    index_result: str,
+    idx_removed: ArrayIndexType,
+) -> np.ndarray:
     """
     Computes the dot product between two tensors, attempts to use np.dot and
     then tensordot if that fails.
@@ -213,19 +221,31 @@ def tensor_blas(view_left: np.ndarray, input_left: str, view_right: np.ndarray, 
     # Matrix multiply
     # No transpose needed
     elif input_left[-rs:] == input_right[:rs]:
-        new_view = np.dot(view_left.reshape(dim_left, dim_removed), view_right.reshape(dim_removed, dim_right))
+        new_view = np.dot(
+            view_left.reshape(dim_left, dim_removed),
+            view_right.reshape(dim_removed, dim_right),
+        )
 
     # Transpose both
     elif input_left[:rs] == input_right[-rs:]:
-        new_view = np.dot(view_left.reshape(dim_removed, dim_left).T, view_right.reshape(dim_right, dim_removed).T)
+        new_view = np.dot(
+            view_left.reshape(dim_removed, dim_left).T,
+            view_right.reshape(dim_right, dim_removed).T,
+        )
 
     # Transpose right
     elif input_left[-rs:] == input_right[-rs:]:
-        new_view = np.dot(view_left.reshape(dim_left, dim_removed), view_right.reshape(dim_right, dim_removed).T)
+        new_view = np.dot(
+            view_left.reshape(dim_left, dim_removed),
+            view_right.reshape(dim_right, dim_removed).T,
+        )
 
     # Transpose left
     elif input_left[:rs] == input_right[:rs]:
-        new_view = np.dot(view_left.reshape(dim_removed, dim_left).T, view_right.reshape(dim_removed, dim_right))
+        new_view = np.dot(
+            view_left.reshape(dim_removed, dim_left).T,
+            view_right.reshape(dim_removed, dim_right),
+        )
 
     # Conventional tensordot
     else:
@@ -233,8 +253,8 @@ def tensor_blas(view_left: np.ndarray, input_left: str, view_right: np.ndarray, 
         left_pos: Tuple[int, ...] = ()
         right_pos: Tuple[int, ...] = ()
         for fidx in idx_removed:
-            left_pos += (input_left.find(fidx), )
-            right_pos += (input_right.find(fidx), )
+            left_pos += (input_left.find(fidx),)
+            right_pos += (input_right.find(fidx),)
         new_view = np.tensordot(view_left, view_right, axes=(left_pos, right_pos))
 
     # Make sure the resulting shape is correct
@@ -246,6 +266,6 @@ def tensor_blas(view_left: np.ndarray, input_left: str, view_right: np.ndarray, 
             new_view = np.squeeze(new_view)
 
     if tensor_result != index_result:
-        new_view = np.einsum(tensor_result + '->' + index_result, new_view)
+        new_view = np.einsum(tensor_result + "->" + index_result, new_view)
 
     return new_view

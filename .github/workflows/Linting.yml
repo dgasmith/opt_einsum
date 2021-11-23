@@ -46,8 +46,8 @@ jobs:
       run: |
         mypy opt_einsum
 
-  yapf:
-    name: yapf
+  black:
+    name: black
     runs-on: ubuntu-latest
 
     steps:
@@ -62,12 +62,10 @@ jobs:
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        python -m pip install yapf
+        python -m pip install black
 
     - name: Lint
       shell: bash
       run: |
         set -e
-        echo "Checking formatting for $GITHUB_REPOSITORY"
-        yapf --diff --recursive opt_einsum
-        sh -c "yapf --diff --recursive opt_einsum $*"
+        black opt_einsum --check

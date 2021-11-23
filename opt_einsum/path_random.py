@@ -65,14 +65,17 @@ class RandomOptimizer(paths.PathOptimizer):
     - **costs** - *(list[int])* The list of each trial's costs found so far.
     - **sizes** - *(list[int])* The list of each trial's largest intermediate size so far.
     """
-    def __init__(self,
-                 max_repeats: int = 32,
-                 max_time: Optional[float] = None,
-                 minimize: str = 'flops',
-                 parallel: bool = False,
-                 pre_dispatch: int = 128):
 
-        if minimize not in ('flops', 'size'):
+    def __init__(
+        self,
+        max_repeats: int = 32,
+        max_time: Optional[float] = None,
+        minimize: str = "flops",
+        parallel: bool = False,
+        pre_dispatch: int = 128,
+    ):
+
+        if minimize not in ("flops", "size"):
             raise ValueError("`minimize` should be one of {'flops', 'size'}.")
 
         self.max_repeats = max_repeats
@@ -85,7 +88,7 @@ class RandomOptimizer(paths.PathOptimizer):
 
         self.costs: List[int] = []
         self.sizes: List[int] = []
-        self.best: Dict[str, Any] = {'flops': float('inf'), 'size': float('inf')}
+        self.best: Dict[str, Any] = {"flops": float("inf"), "size": float("inf")}
 
         self._repeats_start = 0
         self._executor: Any
@@ -93,9 +96,8 @@ class RandomOptimizer(paths.PathOptimizer):
 
     @property
     def path(self) -> PathType:
-        """The best path found so far.
-        """
-        return paths.ssa_to_linear(self.best['ssa_path'])
+        """The best path found so far."""
+        return paths.ssa_to_linear(self.best["ssa_path"])
 
     @property
     def parallel(self) -> bool:
@@ -104,7 +106,7 @@ class RandomOptimizer(paths.PathOptimizer):
     @parallel.setter
     def parallel(self, parallel: bool) -> None:
         # shutdown any previous executor if we are managing it
-        if getattr(self, '_managing_executor', False):
+        if getattr(self, "_managing_executor", False):
             self._executor.shutdown()
 
         self._parallel = parallel
@@ -116,12 +118,14 @@ class RandomOptimizer(paths.PathOptimizer):
 
         if parallel is True:
             from concurrent.futures import ProcessPoolExecutor
+
             self._executor = ProcessPoolExecutor()
             self._managing_executor = True
             return
 
         if isinstance(parallel, numbers.Number):
             from concurrent.futures import ProcessPoolExecutor
+
             self._executor = ProcessPoolExecutor(parallel)
             self._managing_executor = True
             return
@@ -130,8 +134,7 @@ class RandomOptimizer(paths.PathOptimizer):
         self._executor = parallel
 
     def _gen_results_parallel(self, repeats: Iterable[int], trial_fn: Any, args: Any) -> Generator[Any, None, None]:
-        """Lazily generate results from an executor without submitting all jobs at once.
-        """
+        """Lazily generate results from an executor without submitting all jobs at once."""
         self._futures = deque()
 
         # the idea here is to submit at least ``pre_dispatch`` jobs *before* we
@@ -150,15 +153,21 @@ class RandomOptimizer(paths.PathOptimizer):
             for f in self._futures:
                 f.cancel()
 
-    def setup(self, inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str,
-                                                                                          int]) -> Tuple[Any, Any]:
+    def setup(
+        self,
+        inputs: List[ArrayIndexType],
+        output: ArrayIndexType,
+        size_dict: Dict[str, int],
+    ) -> Tuple[Any, Any]:
         raise NotImplementedError
 
-    def __call__(self,
-                 inputs: List[ArrayIndexType],
-                 output: ArrayIndexType,
-                 size_dict: Dict[str, int],
-                 memory_limit: Optional[int] = None) -> PathType:
+    def __call__(
+        self,
+        inputs: List[ArrayIndexType],
+        output: ArrayIndexType,
+        size_dict: Dict[str, int],
+        memory_limit: Optional[int] = None,
+    ) -> PathType:
         self._check_args_against_first_call(inputs, output, size_dict)
 
         # start a timer?
@@ -185,12 +194,12 @@ class RandomOptimizer(paths.PathOptimizer):
             self.sizes.append(size)
 
             # check if we have found a new best
-            found_new_best = self.better(cost, size, self.best['flops'], self.best['size'])
+            found_new_best = self.better(cost, size, self.best["flops"], self.best["size"])
 
             if found_new_best:
-                self.best['flops'] = cost
-                self.best['size'] = size
-                self.best['ssa_path'] = ssa_path
+                self.best["flops"] = cost
+                self.best["size"] = size
+                self.best["ssa_path"] = ssa_path
 
             # check if we have run out of time
             if (self.max_time is not None) and (time.time() > t0 + self.max_time):
@@ -201,7 +210,7 @@ class RandomOptimizer(paths.PathOptimizer):
 
     def __del__(self):
         # if we created the parallel pool-executor, shut it down
-        if getattr(self, '_managing_executor', False):
+        if getattr(self, "_managing_executor", False):
             self._executor.shutdown()
 
 
@@ -266,7 +275,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
         energies = [math.exp(-(c - cmin) / temperature) for c in costs]
 
     # randomly choose a contraction based on energies
-    chosen, = random_choices(range(n), weights=energies)
+    (chosen,) = random_choices(range(n), weights=energies)
     cost, k1, k2, k12 = choices.pop(chosen)
 
     # put the other choice back in the heap
@@ -276,10 +285,13 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
     return cost, k1, k2, k12
 
 
-def ssa_path_compute_cost(ssa_path: PathType, inputs: List[ArrayIndexType], output: ArrayIndexType,
-                          size_dict: Dict[str, int]) -> Tuple[int, int]:
-    """Compute the flops and max size of an ssa path.
-    """
+def ssa_path_compute_cost(
+    ssa_path: PathType,
+    inputs: List[ArrayIndexType],
+    output: ArrayIndexType,
+    size_dict: Dict[str, int],
+) -> Tuple[int, int]:
+    """Compute the flops and max size of an ssa path."""
     inputs = list(map(frozenset, inputs))  # type: ignore
     output = frozenset(output)
     remaining = set(range(len(inputs)))
@@ -298,11 +310,15 @@ def ssa_path_compute_cost(ssa_path: PathType, inputs: List[ArrayIndexType], outp
     return total_cost, max_size
 
 
-def _trial_greedy_ssa_path_and_cost(r: int, inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str,
-                                                                                                                  int],
-                                    choose_fn: Any, cost_fn: Any) -> Tuple[PathType, int, int]:
-    """A single, repeatable, greedy trial run. **Returns:** ``ssa_path`` and cost.
-    """
+def _trial_greedy_ssa_path_and_cost(
+    r: int,
+    inputs: List[ArrayIndexType],
+    output: ArrayIndexType,
+    size_dict: Dict[str, int],
+    choose_fn: Any,
+    cost_fn: Any,
+) -> Tuple[PathType, int, int]:
+    """A single, repeatable, greedy trial run. **Returns:** ``ssa_path`` and cost."""
     if r == 0:
         # always start with the standard greedy approach
         choose_fn = None
@@ -337,12 +353,15 @@ class RandomGreedy(RandomOptimizer):
     - **nbranch** - *(int, optional)* How many potential paths to calculate probability for and choose from at each step.
     - **kwargs** - Supplied to RandomOptimizer.
     """
-    def __init__(self,
-                 cost_fn: str = 'memory-removed-jitter',
-                 temperature: float = 1.0,
-                 rel_temperature: bool = True,
-                 nbranch: int = 8,
-                 **kwargs: Any):
+
+    def __init__(
+        self,
+        cost_fn: str = "memory-removed-jitter",
+        temperature: float = 1.0,
+        rel_temperature: bool = True,
+        nbranch: int = 8,
+        **kwargs: Any,
+    ):
         self.cost_fn = cost_fn
         self.temperature = temperature
         self.rel_temperature = rel_temperature
@@ -358,25 +377,32 @@ class RandomGreedy(RandomOptimizer):
         if self.nbranch == 1:
             return None
 
-        return functools.partial(thermal_chooser,
-                                 temperature=self.temperature,
-                                 nbranch=self.nbranch,
-                                 rel_temperature=self.rel_temperature)
+        return functools.partial(
+            thermal_chooser,
+            temperature=self.temperature,
+            nbranch=self.nbranch,
+            rel_temperature=self.rel_temperature,
+        )
 
-    def setup(self, inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str,
-                                                                                          int]) -> Tuple[Any, Any]:
+    def setup(
+        self,
+        inputs: List[ArrayIndexType],
+        output: ArrayIndexType,
+        size_dict: Dict[str, int],
+    ) -> Tuple[Any, Any]:
         fn = _trial_greedy_ssa_path_and_cost
         args = (inputs, output, size_dict, self.choose_fn, self.cost_fn)
         return fn, args
 
 
-def random_greedy(inputs: List[ArrayIndexType],
-                  output: ArrayIndexType,
-                  idx_dict: Dict[str, int],
-                  memory_limit: Optional[int] = None,
-                  **optimizer_kwargs: Any) -> ArrayType:
-    """
-    """
+def random_greedy(
+    inputs: List[ArrayIndexType],
+    output: ArrayIndexType,
+    idx_dict: Dict[str, int],
+    memory_limit: Optional[int] = None,
+    **optimizer_kwargs: Any,
+) -> ArrayType:
+    """ """
     optimizer = RandomGreedy(**optimizer_kwargs)
     return optimizer(inputs, output, idx_dict, memory_limit)
 

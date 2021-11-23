@@ -20,22 +20,25 @@ CacheKeyType = Union[Tuple[str, str, int, Tuple[int, ...]], Tuple[str, int]]
 CacheType = Dict[CacheKeyType, ArrayType]
 
 __all__ = [
-    "currently_sharing", "get_sharing_cache", "shared_intermediates", "count_cached_ops", "transpose_cache_wrap",
-    "einsum_cache_wrap", "to_backend_cache_wrap"
+    "currently_sharing",
+    "get_sharing_cache",
+    "shared_intermediates",
+    "count_cached_ops",
+    "transpose_cache_wrap",
+    "einsum_cache_wrap",
+    "to_backend_cache_wrap",
 ]
 
 _SHARING_STACK: Dict[int, List[CacheType]] = defaultdict(list)
 
 
 def currently_sharing() -> bool:
-    """Check if we are currently sharing a cache -- thread specific.
-    """
+    """Check if we are currently sharing a cache -- thread specific."""
     return threading.get_ident() in _SHARING_STACK
 
 
 def get_sharing_cache() -> CacheType:
-    """Return the most recent sharing cache -- thread specific.
-    """
+    """Return the most recent sharing cache -- thread specific."""
     return _SHARING_STACK[threading.get_ident()][-1]
 
 
@@ -51,7 +54,9 @@ def _remove_sharing_cache() -> None:
 
 
 @contextlib.contextmanager
-def shared_intermediates(cache: Optional[CacheType] = None) -> Generator[CacheType, None, None]:
+def shared_intermediates(
+    cache: Optional[CacheType] = None,
+) -> Generator[CacheType, None, None]:
     """Context in which contract intermediate results are shared.
 
     Note that intermediate computations will not be garbage collected until
@@ -91,7 +96,7 @@ def _save_tensors(*tensors: ArrayType) -> None:
     """
     cache = get_sharing_cache()
     for tensor in tensors:
-        cache['tensor', id(tensor)] = tensor
+        cache["tensor", id(tensor)] = tensor
 
 
 def _memoize(key: CacheKeyType, fn: Any, *args: Any, **kwargs: Any) -> ArrayType:
@@ -111,15 +116,16 @@ def transpose_cache_wrap(transpose: Any) -> Any:
     """Decorates a ``transpose()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
+
     @functools.wraps(transpose)
-    def cached_transpose(a, axes, backend='numpy'):
+    def cached_transpose(a, axes, backend="numpy"):
         if not currently_sharing():
             return transpose(a, axes, backend=backend)
 
         # hash by axes
         _save_tensors(a)
         axes = tuple(axes)
-        key = 'transpose', backend, id(a), axes
+        key = "transpose", backend, id(a), axes
         return _memoize(key, transpose, a, axes, backend=backend)
 
     return cached_transpose
@@ -129,17 +135,21 @@ def tensordot_cache_wrap(tensordot: Any) -> Any:
     """Decorates a ``tensordot()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
+
     @functools.wraps(tensordot)
-    def cached_tensordot(x, y, axes=2, backend='numpy'):
+    def cached_tensordot(x, y, axes=2, backend="numpy"):
         if not currently_sharing():
             return tensordot(x, y, axes, backend=backend)
 
         # hash based on the (axes_x,axes_y) form of axes
         _save_tensors(x, y)
         if isinstance(axes, numbers.Number):
-            axes = list(range(len(x.shape)))[len(x.shape) - axes:], list(range(len(y.shape)))[:axes]
+            axes = (
+                list(range(len(x.shape)))[len(x.shape) - axes :],
+                list(range(len(y.shape)))[:axes],
+            )
         axes = tuple(axes[0]), tuple(axes[1])
-        key = 'tensordot', backend, id(x), id(y), axes
+        key = "tensordot", backend, id(x), id(y), axes
         return _memoize(key, tensordot, x, y, axes, backend=backend)
 
     return cached_tensordot
@@ -149,26 +159,27 @@ def einsum_cache_wrap(einsum: Any) -> Any:
     """Decorates an ``einsum()`` implementation to be memoized inside a
     :func:`shared_intermediates` context.
     """
+
     @functools.wraps(einsum)
     def cached_einsum(*args, **kwargs):
         if not currently_sharing():
             return einsum(*args, **kwargs)
 
         # hash modulo commutativity by computing a canonical ordering and names
-        backend = kwargs.pop('backend', 'numpy')
+        backend = kwargs.pop("backend", "numpy")
         equation = args[0]
         inputs, output, operands = parse_einsum_input(args)
-        inputs = inputs.split(',')
+        inputs = inputs.split(",")
 
         _save_tensors(*operands)
 
         # Build canonical key
         canonical = sorted(zip(inputs, map(id, operands)), key=lambda x: x[1])
         canonical_ids = tuple(id_ for _, id_ in canonical)
-        canonical_inputs = ','.join(input_ for input_, _ in canonical)
+        canonical_inputs = ",".join(input_ for input_, _ in canonical)
         canonical_equation = alpha_canonicalize(canonical_inputs + "->" + output)
 
-        key = 'einsum', backend, canonical_equation, canonical_ids
+        key = "einsum", backend, canonical_equation, canonical_ids
         return _memoize(key, einsum, equation, *operands, backend=backend)
 
     return cached_einsum

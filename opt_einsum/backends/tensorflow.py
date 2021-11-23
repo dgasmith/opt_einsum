@@ -27,7 +27,7 @@ def _get_tensorflow_and_device():
 
         device = tf.test.gpu_device_name()
         if not device:
-            device = 'cpu'
+            device = "cpu"
 
         _CACHED_TF_DEVICE = tf, device, eager
 
@@ -36,8 +36,7 @@ def _get_tensorflow_and_device():
 
 @to_backend_cache_wrap(constants=True)
 def to_tensorflow(array, constant=False):
-    """Convert a numpy array to a ``tensorflow.placeholder`` instance.
-    """
+    """Convert a numpy array to a ``tensorflow.placeholder`` instance."""
     tf, device, eager = _get_tensorflow_and_device()
 
     if eager:
@@ -60,17 +59,16 @@ def to_tensorflow(array, constant=False):
 
 
 def build_expression_graph(arrays, expr):
-    """Build a tensorflow function based on ``arrays`` and ``expr``.
-    """
+    """Build a tensorflow function based on ``arrays`` and ``expr``."""
     tf, _, _ = _get_tensorflow_and_device()
 
     placeholders = [to_tensorflow(array) for array in arrays]
-    graph = expr._contract(placeholders, backend='tensorflow')
+    graph = expr._contract(placeholders, backend="tensorflow")
 
     def tensorflow_contract(*arrays):
         session = tf.get_default_session()
         # only want to feed placeholders - constant tensors already have values
-        feed_dict = {p: a for p, a in zip(placeholders, arrays) if p.op.type == 'Placeholder'}
+        feed_dict = {p: a for p, a in zip(placeholders, arrays) if p.op.type == "Placeholder"}
         return session.run(graph, feed_dict=feed_dict)
 
     return tensorflow_contract
@@ -84,7 +82,7 @@ def evaluate_constants_graph(const_arrays, expr):
 
     # compute the partial graph of new inputs
     const_arrays = [to_tensorflow(x, constant=True) for x in const_arrays]
-    new_ops, new_contraction_list = expr(*const_arrays, backend='tensorflow', evaluate_constants=True)
+    new_ops, new_contraction_list = expr(*const_arrays, backend="tensorflow", evaluate_constants=True)
 
     # evaluate the new inputs and convert back to tensorflow, maintaining None as non-consts
     session = tf.get_default_session()
@@ -98,10 +96,10 @@ def evaluate_constants_graph(const_arrays, expr):
 
 
 def build_expression_eager(_, expr):
-    """Build a eager tensorflow function based on ``arrays`` and ``expr``.
-    """
+    """Build a eager tensorflow function based on ``arrays`` and ``expr``."""
+
     def tensorflow_eager_contract(*arrays):
-        return expr._contract([to_tensorflow(x) for x in arrays], backend='tensorflow').numpy()
+        return expr._contract([to_tensorflow(x) for x in arrays], backend="tensorflow").numpy()
 
     return tensorflow_eager_contract
 
@@ -110,7 +108,7 @@ def evaluate_constants_eager(const_arrays, expr):
     """Convert constant arguments to tensorflow_eager arrays, and perform any
     possible constant contractions.
     """
-    return expr(*[to_tensorflow(x) for x in const_arrays], backend='tensorflow', evaluate_constants=True)
+    return expr(*[to_tensorflow(x) for x in const_arrays], backend="tensorflow", evaluate_constants=True)
 
 
 # Dispatch to eager or graph mode

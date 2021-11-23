@@ -12,12 +12,19 @@ import numpy as np
 from .typing import ArrayType, TensorShapeType
 
 __all__ = [
-    "is_valid_einsum_char", "has_valid_einsum_chars_only", "get_symbol", "gen_unused_symbols",
-    "convert_to_valid_einsum_chars", "alpha_canonicalize", "find_output_str", "find_output_shape",
-    "possibly_convert_to_numpy", "parse_einsum_input"
+    "is_valid_einsum_char",
+    "has_valid_einsum_chars_only",
+    "get_symbol",
+    "gen_unused_symbols",
+    "convert_to_valid_einsum_chars",
+    "alpha_canonicalize",
+    "find_output_str",
+    "find_output_shape",
+    "possibly_convert_to_numpy",
+    "parse_einsum_input",
 ]
 
-_einsum_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+_einsum_symbols_base = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 def is_valid_einsum_char(x: str) -> bool:
@@ -33,7 +40,7 @@ def is_valid_einsum_char(x: str) -> bool:
     #> False
     ```
     """
-    return (x in _einsum_symbols_base) or (x in ',->.')
+    return (x in _einsum_symbols_base) or (x in ",->.")
 
 
 def has_valid_einsum_chars_only(einsum_str: str) -> bool:
@@ -103,7 +110,7 @@ def convert_to_valid_einsum_chars(einsum_str: str) -> str:
     >>> oe.parser.convert_to_valid_einsum_chars("Ĥěļļö")
     'cbdda'
     """
-    symbols = sorted(set(einsum_str) - set(',->'))
+    symbols = sorted(set(einsum_str) - set(",->"))
     replacer = {x: get_symbol(i) for i, x in enumerate(symbols)}
     return "".join(replacer.get(x, x) for x in einsum_str)
 
@@ -121,11 +128,11 @@ def alpha_canonicalize(equation: str) -> str:
     """
     rename: Dict[str, str] = {}
     for name in equation:
-        if name in '.,->':
+        if name in ".,->":
             continue
         if name not in rename:
             rename[name] = get_symbol(len(rename))
-    return ''.join(rename.get(x, x) for x in equation)
+    return "".join(rename.get(x, x) for x in equation)
 
 
 def find_output_str(subscripts: str) -> str:
@@ -161,8 +168,7 @@ def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: 
     >>> oe.parser.find_output_shape(["a", "a"], [(4, ), (1, )], "a")
     (4,)
     """
-    return tuple(
-        max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
+    return tuple(max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
 
 
 def possibly_convert_to_numpy(x: Any) -> Any:
@@ -190,7 +196,7 @@ def possibly_convert_to_numpy(x: Any) -> Any:
     <__main__.Shape object at 0x10f850710>
     """
 
-    if not hasattr(x, 'shape'):
+    if not hasattr(x, "shape"):
         return np.asanyarray(x)
     else:
         return x
@@ -217,8 +223,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
 
 
 def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
-    """Convert 'interleaved' input to standard einsum input.
-    """
+    """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
     subscript_list = []
@@ -242,10 +247,12 @@ def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
         symbol_map = {symbol: get_symbol(idx) for idx, symbol in enumerate(sorted(symbol_set))}
 
     except TypeError:  # unhashable or uncomparable object
-        raise TypeError("For this input type lists must contain either Ellipsis "
-                        "or hashable and comparable object (e.g. int, str).")
+        raise TypeError(
+            "For this input type lists must contain either Ellipsis "
+            "or hashable and comparable object (e.g. int, str)."
+        )
 
-    subscripts = ','.join(convert_subscripts(sub, symbol_map) for sub in subscript_list)
+    subscripts = ",".join(convert_subscripts(sub, symbol_map) for sub in subscript_list)
     if output_list is not None:
         subscripts += "->"
         subscripts += convert_subscripts(output_list, symbol_map)
@@ -307,7 +314,7 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
             split_subscripts = input_tmp.split(",")
             out_sub = True
         else:
-            split_subscripts = subscripts.split(',')
+            split_subscripts = subscripts.split(",")
             out_sub = False
 
         for num, sub in enumerate(split_subscripts):
@@ -327,9 +334,9 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
                 if ellipse_count < 0:
                     raise ValueError("Ellipses lengths do not match.")
                 elif ellipse_count == 0:
-                    split_subscripts[num] = sub.replace('...', '')
+                    split_subscripts[num] = sub.replace("...", "")
                 else:
-                    split_subscripts[num] = sub.replace('...', ellipse_inds[-ellipse_count:])
+                    split_subscripts[num] = sub.replace("...", ellipse_inds[-ellipse_count:])
 
         subscripts = ",".join(split_subscripts)
 
@@ -344,7 +351,7 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
         else:
             # Special care for outputless ellipses
             output_subscript = find_output_str(subscripts)
-            normal_inds = ''.join(sorted(set(output_subscript) - set(out_ellipse)))
+            normal_inds = "".join(sorted(set(output_subscript) - set(out_ellipse)))
 
             subscripts += "->" + out_ellipse + normal_inds
 
@@ -360,7 +367,7 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
             raise ValueError("Output character '{}' did not appear in the input".format(char))
 
     # Make sure number operands is equivalent to the number of terms
-    if len(input_subscripts.split(',')) != len(operands):
+    if len(input_subscripts.split(",")) != len(operands):
         raise ValueError("Number of einsum subscripts must be equal to the " "number of operands.")
 
     return input_subscripts, output_subscript, operands
