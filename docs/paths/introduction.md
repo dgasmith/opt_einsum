@@ -28,7 +28,7 @@ For large and complex contractions, there is the `'random-greedy'` approach,
 which samples many (by default 32) greedy paths and can be customized to
 explicitly spend a maximum amount of time searching. Another preset,
 `'random-greedy-128'`, uses 128 paths for a more exhaustive search.
-See [`RandomGreedyPath`](paths/random_greedy_path.md) page for more details on configuring these.
+See [`RandomGreedyPath`](./random_greedy_path.md) page for more details on configuring these.
 
 Finally, there is the `'auto-hq'` preset which targets a much larger search
 time (~1sec) in return for finding very high quality paths, dispatching to the
@@ -185,7 +185,7 @@ One can see that the hierarchy of path qualities is:
 
 !!! note
     The performance of the `'random=greedy'` approach (which is never used
-    automatically) can be found separately in [`RandomGreedyPath`](paths/random_greedy_path.md) section.
+    automatically) can be found separately in [`RandomGreedyPath`](./random_greedy_path.md) section.
 
 There are a few important caveats to note with this graph. Firstly, the
 benefits of more advanced path finding are very dependent on the complexity of

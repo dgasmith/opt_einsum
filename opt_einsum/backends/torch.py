@@ -7,12 +7,19 @@ import numpy as np
 from ..parser import convert_to_valid_einsum_chars
 from ..sharing import to_backend_cache_wrap
 
-__all__ = ["transpose", "einsum", "tensordot", "to_torch", "build_expression", "evaluate_constants"]
+__all__ = [
+    "transpose",
+    "einsum",
+    "tensordot",
+    "to_torch",
+    "build_expression",
+    "evaluate_constants",
+]
 
 _TORCH_DEVICE = None
 _TORCH_HAS_TENSORDOT = None
 
-_torch_symbols_base = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+_torch_symbols_base = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 def _get_torch_and_device():
@@ -21,22 +28,21 @@ def _get_torch_and_device():
 
     if _TORCH_DEVICE is None:
         import torch
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         _TORCH_DEVICE = torch, device
-        _TORCH_HAS_TENSORDOT = hasattr(torch, 'tensordot')
+        _TORCH_HAS_TENSORDOT = hasattr(torch, "tensordot")
 
     return _TORCH_DEVICE
 
 
 def transpose(a, axes):
-    """Normal torch transpose is only valid for 2D matrices.
-    """
+    """Normal torch transpose is only valid for 2D matrices."""
     return a.permute(*axes)
 
 
 def einsum(equation, *operands):
-    """Variadic version of torch.einsum to match numpy api.
-    """
+    """Variadic version of torch.einsum to match numpy api."""
     # rename symbols to support PyTorch 0.4.1 and earlier,
     # which allow only symbols a-z.
     equation = convert_to_valid_einsum_chars(equation)
@@ -46,8 +52,7 @@ def einsum(equation, *operands):
 
 
 def tensordot(x, y, axes=2):
-    """Simple translation of tensordot syntax to einsum.
-    """
+    """Simple translation of tensordot syntax to einsum."""
     torch, _ = _get_torch_and_device()
 
     if _TORCH_HAS_TENSORDOT:
@@ -62,9 +67,9 @@ def tensordot(x, y, axes=2):
 
     # convert (int, int) to (list[int], list[int])
     if isinstance(axes[0], int):
-        axes = (axes[0], ), axes[1]
+        axes = (axes[0],), axes[1]
     if isinstance(axes[1], int):
-        axes = axes[0], (axes[1], )
+        axes = axes[0], (axes[1],)
 
     # initialize empty indices
     x_ix = [None] * xnd
@@ -106,13 +111,13 @@ def to_torch(array):
 
 
 def build_expression(_, expr):  # pragma: no cover
-    """Build a torch function based on ``arrays`` and ``expr``.
-    """
+    """Build a torch function based on ``arrays`` and ``expr``."""
+
     def torch_contract(*arrays):
         torch_arrays = [to_torch(x) for x in arrays]
-        torch_out = expr._contract(torch_arrays, backend='torch')
+        torch_out = expr._contract(torch_arrays, backend="torch")
 
-        if torch_out.device.type == 'cpu':
+        if torch_out.device.type == "cpu":
             return torch_out.numpy()
 
         return torch_out.cpu().numpy()
@@ -125,4 +130,4 @@ def evaluate_constants(const_arrays, expr):
     contractions.
     """
     const_arrays = [to_torch(x) for x in const_arrays]
-    return expr(*const_arrays, backend='torch', evaluate_constants=True)
+    return expr(*const_arrays, backend="torch", evaluate_constants=True)

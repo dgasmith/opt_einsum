@@ -48,7 +48,7 @@ def test_contract_expression_checks():
 
     # should only be able to specify out
     with pytest.raises(ValueError) as err:
-        expr(np.random.rand(2, 3), np.random.rand(3, 4), order='F')
+        expr(np.random.rand(2, 3), np.random.rand(3, 4), order="F")
     assert "only valid keyword arguments to a `ContractExpression`" in str(err.value)
 
 
@@ -59,14 +59,14 @@ def test_broadcasting_contraction():
     c = np.random.rand(5, 6)
     d = np.random.rand(10)
 
-    ein_scalar = contract('ijk,kl,jl', a, b, c, optimize=False)
-    opt_scalar = contract('ijk,kl,jl', a, b, c, optimize=True)
+    ein_scalar = contract("ijk,kl,jl", a, b, c, optimize=False)
+    opt_scalar = contract("ijk,kl,jl", a, b, c, optimize=True)
     assert np.allclose(ein_scalar, opt_scalar)
 
     result = ein_scalar * d
 
-    ein = contract('ijk,kl,jl,i->i', a, b, c, d, optimize=False)
-    opt = contract('ijk,kl,jl,i->i', a, b, c, d, optimize=True)
+    ein = contract("ijk,kl,jl,i->i", a, b, c, d, optimize=False)
+    opt = contract("ijk,kl,jl,i->i", a, b, c, d, optimize=True)
 
     assert np.allclose(ein, result)
     assert np.allclose(opt, result)
@@ -79,14 +79,14 @@ def test_broadcasting_contraction2():
     c = np.random.rand(5, 6)
     d = np.random.rand(7, 7)
 
-    ein_scalar = contract('abjk,kl,jl', a, b, c, optimize=False)
-    opt_scalar = contract('abjk,kl,jl', a, b, c, optimize=True)
+    ein_scalar = contract("abjk,kl,jl", a, b, c, optimize=False)
+    opt_scalar = contract("abjk,kl,jl", a, b, c, optimize=True)
     assert np.allclose(ein_scalar, opt_scalar)
 
     result = ein_scalar * d
 
-    ein = contract('abjk,kl,jl,ab->ab', a, b, c, d, optimize=False)
-    opt = contract('abjk,kl,jl,ab->ab', a, b, c, d, optimize=True)
+    ein = contract("abjk,kl,jl,ab->ab", a, b, c, d, optimize=False)
+    opt = contract("abjk,kl,jl,ab->ab", a, b, c, d, optimize=True)
 
     assert np.allclose(ein, result)
     assert np.allclose(opt, result)
@@ -99,8 +99,8 @@ def test_broadcasting_contraction3():
     c = np.random.rand(5, 6)
     d = np.random.rand(7, 7)
 
-    ein = contract('ajk,kbl,jl,ab->ab', a, b, c, d, optimize=False)
-    opt = contract('ajk,kbl,jl,ab->ab', a, b, c, d, optimize=True)
+    ein = contract("ajk,kbl,jl,ab->ab", a, b, c, d, optimize=False)
+    opt = contract("ajk,kbl,jl,ab->ab", a, b, c, d, optimize=True)
 
     assert np.allclose(ein, opt)
 
@@ -108,8 +108,8 @@ def test_broadcasting_contraction3():
 def test_broadcasting_contraction4():
 
     a = np.arange(64).reshape(2, 4, 8)
-    ein = contract('obk,ijk->ioj', a, a, optimize=False)
-    opt = contract('obk,ijk->ioj', a, a, optimize=True)
+    ein = contract("obk,ijk->ioj", a, a, optimize=False)
+    opt = contract("obk,ijk->ioj", a, a, optimize=True)
 
     assert np.allclose(ein, opt)
 
@@ -118,8 +118,8 @@ def test_can_blas_on_healed_broadcast_dimensions():
 
     expr = contract_expression("ab,bc,bd->acd", (5, 4), (1, 5), (4, 20))
     # first contraction involves broadcasting
-    assert expr.contraction_list[0][2] == 'bc,ab->bca'
+    assert expr.contraction_list[0][2] == "bc,ab->bca"
     assert expr.contraction_list[0][-1] is False
     # but then is healed GEMM is usable
-    assert expr.contraction_list[1][2] == 'bca,bd->acd'
-    assert expr.contraction_list[1][-1] == 'GEMM'
+    assert expr.contraction_list[1][2] == "bca,bd->acd"
+    assert expr.contraction_list[1][-1] == "GEMM"

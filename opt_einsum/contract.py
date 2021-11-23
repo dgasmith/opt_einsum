@@ -4,12 +4,18 @@ Contains the primary optimization and contraction routines.
 
 from collections import namedtuple
 from decimal import Decimal
-from typing import Any, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from . import backends, blas, helpers, parser, paths, sharing
-from .typing import PathType
+from .typing import ArrayIndexType, ArrayType, Collection, ContractionListType, PathType
 
-__all__ = ["contract_path", "contract", "format_const_einsum_str", "ContractExpression", "shape_only"]
+__all__ = [
+    "contract_path",
+    "contract",
+    "format_const_einsum_str",
+    "ContractExpression",
+    "shape_only",
+]
 
 
 class PathInfo:
@@ -21,8 +27,20 @@ class PathInfo:
     - **opt_cost** - *(int)* The estimate FLOP cost of this optimized contraction path.
     - **largest_intermediate** - *(int)* The number of elements in the largest intermediate array that will be produced during the contraction.
     """
-    def __init__(self, contraction_list, input_subscripts, output_subscript, indices, path, scale_list, naive_cost,
-                 opt_cost, size_list, size_dict):
+
+    def __init__(
+        self,
+        contraction_list: ContractionListType,
+        input_subscripts: str,
+        output_subscript: str,
+        indices: ArrayIndexType,
+        path: PathType,
+        scale_list: Sequence[int],
+        naive_cost: int,
+        opt_cost: int,
+        size_list: Sequence[int],
+        size_dict: Dict[str, int],
+    ):
         self.contraction_list = contraction_list
         self.input_subscripts = input_subscripts
         self.output_subscript = output_subscript
@@ -35,7 +53,7 @@ class PathInfo:
         self.size_list = size_list
         self.size_dict = size_dict
 
-        self.shapes = [tuple(size_dict[k] for k in ks) for ks in input_subscripts.split(',')]
+        self.shapes = [tuple(size_dict[k] for k in ks) for ks in input_subscripts.split(",")]
         self.eq = "{}->{}".format(input_subscripts, output_subscript)
         self.largest_intermediate = Decimal(max(size_list))
 
@@ -44,12 +62,16 @@ class PathInfo:
         header = ("scaling", "BLAS", "current", "remaining")
 
         path_print = [
-            "  Complete contraction:  {}\n".format(self.eq), "         Naive scaling:  {}\n".format(len(self.indices)),
-            "     Optimized scaling:  {}\n".format(max(self.scale_list)), "      Naive FLOP count:  {:.3e}\n".format(
-                self.naive_cost), "  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
+            "  Complete contraction:  {}\n".format(self.eq),
+            "         Naive scaling:  {}\n".format(len(self.indices)),
+            "     Optimized scaling:  {}\n".format(max(self.scale_list)),
+            "      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
+            "  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
             "   Theoretical speedup:  {:.3e}\n".format(self.speedup),
-            "  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate), "-" * 80 + "\n",
-            "{:>6} {:>11} {:>22} {:>37}\n".format(*header), "-" * 80
+            "  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate),
+            "-" * 80 + "\n",
+            "{:>6} {:>11} {:>22} {:>37}\n".format(*header),
+            "-" * 80,
         ]
 
         for n, contraction in enumerate(self.contraction_list):
@@ -61,14 +83,20 @@ class PathInfo:
                 remaining_str = "..."
             size_remaining = max(0, 56 - max(22, len(einsum_str)))
 
-            path_run = (self.scale_list[n], do_blas, einsum_str, remaining_str, size_remaining)
+            path_run = (
+                self.scale_list[n],
+                do_blas,
+                einsum_str,
+                remaining_str,
+                size_remaining,
+            )
             path_print.append("\n{:>4} {:>14} {:>22}    {:>{}}".format(*path_run))
 
         return "".join(path_print)
 
 
 def _choose_memory_arg(memory_limit: int, size_list: List[int]) -> Optional[int]:
-    if memory_limit == 'max_input':
+    if memory_limit == "max_input":
         return max(size_list)
 
     if memory_limit is None:
@@ -83,17 +111,24 @@ def _choose_memory_arg(memory_limit: int, size_list: List[int]) -> Optional[int]
     return int(memory_limit)
 
 
-_VALID_CONTRACT_KWARGS = {'optimize', 'path', 'memory_limit', 'einsum_call', 'use_blas', 'shapes'}
+_VALID_CONTRACT_KWARGS = {
+    "optimize",
+    "path",
+    "memory_limit",
+    "einsum_call",
+    "use_blas",
+    "shapes",
+}
 
 
-def contract_path(*operands, **kwargs):
+def contract_path(*operands_: Any, **kwargs: Any) -> Tuple[PathType, PathInfo]:
     """
     Find a contraction order `path`, without performing the contraction.
 
     **Parameters:**
 
     - **subscripts** - *(str)* Specifies the subscripts for summation.
-    - **\*operands** - *(list of array_like)* hese are the arrays for the operation.
+    - **\\*operands** - *(list of array_like)* hese are the arrays for the operation.
     - **use_blas** - *(bool)* Do you use BLAS for valid operations, may use extra memory for more intermediates.
     - **optimize** - *(str, list or bool, optional (default: `auto`))* Choose the type of path.
 
@@ -205,36 +240,38 @@ def contract_path(*operands, **kwargs):
     if len(unknown_kwargs):
         raise TypeError("einsum_path: Did not understand the following kwargs: {}".format(unknown_kwargs))
 
-    path_type = kwargs.pop('optimize', 'auto')
+    path_type = kwargs.pop("optimize", "auto")
 
-    memory_limit = kwargs.pop('memory_limit', None)
-    shapes = kwargs.pop('shapes', False)
+    memory_limit = kwargs.pop("memory_limit", None)
+    shapes = kwargs.pop("shapes", False)
 
     # Hidden option, only einsum should call this
     einsum_call_arg = kwargs.pop("einsum_call", False)
-    use_blas = kwargs.pop('use_blas', True)
+    use_blas = kwargs.pop("use_blas", True)
 
     # Python side parsing
-    input_subscripts, output_subscript, operands = parser.parse_einsum_input(operands)
+    input_subscripts, output_subscript, operands = parser.parse_einsum_input(operands_)
 
     # Build a few useful list and sets
-    input_list = input_subscripts.split(',')
-    input_sets = [set(x) for x in input_list]
+    input_list = input_subscripts.split(",")
+    input_sets = [frozenset(x) for x in input_list]
     if shapes:
-        input_shps = operands
+        input_shapes = operands
     else:
-        input_shps = [x.shape for x in operands]
-    output_set = set(output_subscript)
-    indices = set(input_subscripts.replace(',', ''))
+        input_shapes = [x.shape for x in operands]
+    output_set = frozenset(output_subscript)
+    indices = frozenset(input_subscripts.replace(",", ""))
 
     # Get length of each unique dimension and ensure all dimensions are correct
-    size_dict = {}
+    size_dict: Dict[str, int] = {}
     for tnum, term in enumerate(input_list):
-        sh = input_shps[tnum]
+        sh = input_shapes[tnum]
 
         if len(sh) != len(term):
-            raise ValueError("Einstein sum subscript '{}' does not contain the "
-                             "correct number of indices for operand {}.".format(input_list[tnum], tnum))
+            raise ValueError(
+                "Einstein sum subscript '{}' does not contain the "
+                "correct number of indices for operand {}.".format(input_list[tnum], tnum)
+            )
         for cnum, char in enumerate(term):
             dim = int(sh[cnum])
 
@@ -243,8 +280,10 @@ def contract_path(*operands, **kwargs):
                 if size_dict[char] == 1:
                     size_dict[char] = dim
                 elif dim not in (1, size_dict[char]):
-                    raise ValueError("Size of label '{}' for operand {} ({}) does not match previous "
-                                     "terms ({}).".format(char, tnum, size_dict[char], dim))
+                    raise ValueError(
+                        "Size of label '{}' for operand {} ({}) does not match previous "
+                        "terms ({}).".format(char, tnum, size_dict[char], dim)
+                    )
             else:
                 size_dict[char] = dim
 
@@ -289,16 +328,16 @@ def contract_path(*operands, **kwargs):
         out_inds, input_sets, idx_removed, idx_contract = contract_tuple
 
         # Compute cost, scale, and size
-        cost = helpers.flop_count(idx_contract, idx_removed, len(contract_inds), size_dict)
+        cost = helpers.flop_count(idx_contract, bool(idx_removed), len(contract_inds), size_dict)
         cost_list.append(cost)
         scale_list.append(len(idx_contract))
         size_list.append(helpers.compute_size_by_dict(out_inds, size_dict))
 
         tmp_inputs = [input_list.pop(x) for x in contract_inds]
-        tmp_shapes = [input_shps.pop(x) for x in contract_inds]
+        tmp_shapes = [input_shapes.pop(x) for x in contract_inds]
 
         if use_blas:
-            do_blas = blas.can_blas(tmp_inputs, out_inds, idx_removed, tmp_shapes)
+            do_blas = blas.can_blas(tmp_inputs, "".join(out_inds), idx_removed, tmp_shapes)
         else:
             do_blas = False
 
@@ -313,14 +352,14 @@ def contract_path(*operands, **kwargs):
         shp_result = parser.find_output_shape(tmp_inputs, tmp_shapes, idx_result)
 
         input_list.append(idx_result)
-        input_shps.append(shp_result)
+        input_shapes.append(shp_result)
 
         einsum_str = ",".join(tmp_inputs) + "->" + idx_result
 
         # for large expressions saving the remaining terms at each step can
         # incur a large memory footprint - and also be messy to print
         if len(input_list) <= 20:
-            remaining = tuple(input_list)
+            remaining: Optional[Tuple[str, ...]] = tuple(input_list)
         else:
             remaining = None
 
@@ -330,19 +369,28 @@ def contract_path(*operands, **kwargs):
     opt_cost = sum(cost_list)
 
     if einsum_call_arg:
-        return operands, contraction_list
+        return operands, contraction_list  # type: ignore
 
-    path_print = PathInfo(contraction_list, input_subscripts, output_subscript, indices, path, scale_list, naive_cost,
-                          opt_cost, size_list, size_dict)
+    path_print = PathInfo(
+        contraction_list,
+        input_subscripts,
+        output_subscript,
+        indices,
+        path,
+        scale_list,
+        naive_cost,
+        opt_cost,
+        size_list,
+        size_dict,
+    )
 
     return path, path_print
 
 
 @sharing.einsum_cache_wrap
 def _einsum(*operands, **kwargs):
-    """Base einsum, but with pre-parse for valid characters if a string is given.
-    """
-    fn = backends.get_func('einsum', kwargs.pop('backend', 'numpy'))
+    """Base einsum, but with pre-parse for valid characters if a string is given."""
+    fn = backends.get_func("einsum", kwargs.pop("backend", "numpy"))
 
     if not isinstance(operands[0], str):
         return fn(*operands, **kwargs)
@@ -353,40 +401,36 @@ def _einsum(*operands, **kwargs):
     if not parser.has_valid_einsum_chars_only(einsum_str):
 
         # Explicitly find output str first so as to maintain order
-        if '->' not in einsum_str:
-            einsum_str += '->' + parser.find_output_str(einsum_str)
+        if "->" not in einsum_str:
+            einsum_str += "->" + parser.find_output_str(einsum_str)
 
         einsum_str = parser.convert_to_valid_einsum_chars(einsum_str)
 
     return fn(einsum_str, *operands, **kwargs)
 
 
-def _default_transpose(x, axes):
+def _default_transpose(x: ArrayType, axes: Tuple[int, ...]) -> ArrayType:
     #  most libraries implement a method version
     return x.transpose(axes)
 
 
 @sharing.transpose_cache_wrap
-def _transpose(x, axes, backend='numpy'):
-    """Base transpose.
-    """
-    fn = backends.get_func('transpose', backend, _default_transpose)
+def _transpose(x: ArrayType, axes: Tuple[int, ...], backend: str = "numpy") -> ArrayType:
+    """Base transpose."""
+    fn = backends.get_func("transpose", backend, _default_transpose)
     return fn(x, axes)
 
 
 @sharing.tensordot_cache_wrap
-def _tensordot(x, y, axes, backend='numpy'):
-    """Base tensordot.
-    """
-    fn = backends.get_func('tensordot', backend)
+def _tensordot(x: ArrayType, y: ArrayType, axes: Tuple[int, ...], backend: str = "numpy") -> ArrayType:
+    """Base tensordot."""
+    fn = backends.get_func("tensordot", backend)
     return fn(x, y, axes=axes)
 
 
 # Rewrite einsum to handle different cases
-def contract(*operands, **kwargs):
+def contract(*operands_: Any, **kwargs: Any) -> ArrayType:
     """
-    contract(subscripts, \*operands, out=None, dtype=None, order='K', casting='safe', use_blas=True, optimize=True, memory_limit=None, backend='numpy')
-
     Evaluates the Einstein summation convention on the operands. A drop in
     replacement for NumPy's einsum function that optimizes the order of contraction
     to reduce overall scaling at the cost of several intermediate arrays.
@@ -394,7 +438,7 @@ def contract(*operands, **kwargs):
     **Parameters:**
 
     - **subscripts** - *(str)* Specifies the subscripts for summation.
-    - **\*operands** - *(list of array_like)* hese are the arrays for the operation.
+    - **\\*operands** - *(list of array_like)* hese are the arrays for the operation.
     - **out** - *(array_like)* A output array in which set the sresulting output.
     - **dtype** - *(str)* The dtype of the given contraction, see np.einsum.
     - **order** - *(str)* The order of the resulting contraction, see np.einsum.
@@ -458,23 +502,23 @@ def contract(*operands, **kwargs):
     performed optimally. When NumPy is linked to a threaded BLAS, potential
     speedups are on the order of 20-100 for a six core machine.
     """
-    optimize_arg = kwargs.pop('optimize', True)
+    optimize_arg = kwargs.pop("optimize", True)
     if optimize_arg is True:
-        optimize_arg = 'auto'
+        optimize_arg = "auto"
 
-    valid_einsum_kwargs = ['out', 'dtype', 'order', 'casting']
+    valid_einsum_kwargs = ["out", "dtype", "order", "casting"]
     einsum_kwargs = {k: v for (k, v) in kwargs.items() if k in valid_einsum_kwargs}
 
     # If no optimization, run pure einsum
     if optimize_arg is False:
-        return _einsum(*operands, **einsum_kwargs)
+        return _einsum(*operands_, **einsum_kwargs)
 
     # Grab non-einsum kwargs
-    use_blas = kwargs.pop('use_blas', True)
-    memory_limit = kwargs.pop('memory_limit', None)
-    backend = kwargs.pop('backend', 'auto')
-    gen_expression = kwargs.pop('_gen_expression', False)
-    constants_dict = kwargs.pop('_constants_dict', {})
+    use_blas = kwargs.pop("use_blas", True)
+    memory_limit = kwargs.pop("memory_limit", None)
+    backend = kwargs.pop("backend", "auto")
+    gen_expression = kwargs.pop("_gen_expression", False)
+    constants_dict = kwargs.pop("_constants_dict", {})
 
     # Make sure remaining keywords are valid for einsum
     unknown_kwargs = [k for (k, v) in kwargs.items() if k not in valid_einsum_kwargs]
@@ -482,14 +526,14 @@ def contract(*operands, **kwargs):
         raise TypeError("Did not understand the following kwargs: {}".format(unknown_kwargs))
 
     if gen_expression:
-        full_str = operands[0]
+        full_str = operands_[0]
 
     # Build the contraction list and operand
-    operands, contraction_list = contract_path(*operands,
-                                               optimize=optimize_arg,
-                                               memory_limit=memory_limit,
-                                               einsum_call=True,
-                                               use_blas=use_blas)
+    operands: Sequence[ArrayType]
+    contraction_list: ContractionListType
+    operands, contraction_list = contract_path(  # type: ignore
+        *operands_, optimize=optimize_arg, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas
+    )
 
     # check if performing contraction or just building expression
     if gen_expression:
@@ -499,33 +543,41 @@ def contract(*operands, **kwargs):
 
 
 def infer_backend(x: Any) -> str:
-    return x.__class__.__module__.split('.')[0]
+    return x.__class__.__module__.split(".")[0]
 
 
-def parse_backend(arrays, backend):
+def parse_backend(arrays: Sequence[ArrayType], backend: str) -> str:
     """Find out what backend we should use, dipatching based on the first
     array if ``backend='auto'`` is specified.
     """
-    if backend != 'auto':
+    if backend != "auto":
         return backend
     backend = infer_backend(arrays[0])
 
     # some arrays will be defined in modules that don't implement tensordot
     # etc. so instead default to numpy
     if not backends.has_tensordot(backend):
-        return 'numpy'
+        return "numpy"
 
     return backend
 
 
-def _core_contract(operands, contraction_list, backend='auto', evaluate_constants=False, **einsum_kwargs):
+def _core_contract(
+    operands_: Sequence[ArrayType],
+    contraction_list: ContractionListType,
+    backend: str = "auto",
+    evaluate_constants: bool = False,
+    **einsum_kwargs: Any,
+) -> ArrayType:
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
 
     # Special handling if out is specified
-    out_array = einsum_kwargs.pop('out', None)
+    out_array = einsum_kwargs.pop("out", None)
     specified_out = out_array is not None
+
+    operands = list(operands_)
     backend = parse_backend(operands, backend)
 
     # try and do as much as possible without einsum if not available
@@ -546,11 +598,11 @@ def _core_contract(operands, contraction_list, backend='auto', evaluate_constant
         handle_out = specified_out and ((num + 1) == len(contraction_list))
 
         # Call tensordot (check if should prefer einsum, but only if available)
-        if blas_flag and ('EINSUM' not in blas_flag or no_einsum):
+        if blas_flag and ("EINSUM" not in blas_flag or no_einsum):  # type: ignore
 
             # Checks have already been handled
-            input_str, results_index = einsum_str.split('->')
-            input_left, input_right = input_str.split(',')
+            input_str, results_index = einsum_str.split("->")
+            input_left, input_right = input_str.split(",")
 
             tensor_result = "".join(s for s in input_left + input_right if s not in idx_rm)
 
@@ -598,7 +650,7 @@ def _core_contract(operands, contraction_list, backend='auto', evaluate_constant
         return operands[0]
 
 
-def format_const_einsum_str(einsum_str: str, constants: List[int]) -> str:
+def format_const_einsum_str(einsum_str: str, constants: Iterable[int]) -> str:
     """Add brackets to the constant terms in ``einsum_str``. For example:
 
         >>> format_const_einsum_str('ab,bc,cd->ad', [0, 2])
@@ -610,17 +662,17 @@ def format_const_einsum_str(einsum_str: str, constants: List[int]) -> str:
         return einsum_str
 
     if "->" in einsum_str:
-        lhs, rhs = einsum_str.split('->')
+        lhs, rhs = einsum_str.split("->")
         arrow = "->"
     else:
         lhs, rhs, arrow = einsum_str, "", ""
 
-    wrapped_terms = ["[{}]".format(t) if i in constants else t for i, t in enumerate(lhs.split(','))]
+    wrapped_terms = ["[{}]".format(t) if i in constants else t for i, t in enumerate(lhs.split(","))]
 
-    formatted_einsum_str = "{}{}{}".format(','.join(wrapped_terms), arrow, rhs)
+    formatted_einsum_str = "{}{}{}".format(",".join(wrapped_terms), arrow, rhs)
 
     # merge adjacent constants
-    formatted_einsum_str = formatted_einsum_str.replace("],[", ',')
+    formatted_einsum_str = formatted_einsum_str.replace("],[", ",")
     return formatted_einsum_str
 
 
@@ -628,23 +680,30 @@ class ContractExpression:
     """Helper class for storing an explicit ``contraction_list`` which can
     then be repeatedly called solely with the array arguments.
     """
-    def __init__(self, contraction, contraction_list, constants_dict, **einsum_kwargs):
+
+    def __init__(
+        self,
+        contraction: str,
+        contraction_list: ContractionListType,
+        constants_dict: Dict[int, ArrayType],
+        **einsum_kwargs: Any,
+    ):
         self.contraction_list = contraction_list
         self.einsum_kwargs = einsum_kwargs
         self.contraction = format_const_einsum_str(contraction, constants_dict.keys())
 
         # need to know _full_num_args to parse constants with, and num_args to call with
-        self._full_num_args = contraction.count(',') + 1
+        self._full_num_args = contraction.count(",") + 1
         self.num_args = self._full_num_args - len(constants_dict)
 
         # likewise need to know full contraction list
         self._full_contraction_list = contraction_list
 
         self._constants_dict = constants_dict
-        self._evaluated_constants = {}
-        self._backend_expressions = {}
+        self._evaluated_constants: Dict[str, Any] = {}
+        self._backend_expressions: Dict[str, Any] = {}
 
-    def evaluate_constants(self, backend='auto'):
+    def evaluate_constants(self, backend: str = "auto") -> None:
         """Convert any constant operands to the correct backend form, and
         perform as many contractions as possible to create a new list of
         operands, stored in ``self._evaluated_constants[backend]``. This also
@@ -664,7 +723,7 @@ class ContractExpression:
         self._evaluated_constants[backend] = new_ops
         self.contraction_list = new_contraction_list
 
-    def _get_evaluated_constants(self, backend):
+    def _get_evaluated_constants(self, backend: str) -> List[Optional[ArrayType]]:
         """Retrieve or generate the cached list of constant operators (mixed
         in with None representing non-consts) and the remaining contraction
         list.
@@ -675,7 +734,7 @@ class ContractExpression:
             self.evaluate_constants(backend)
             return self._evaluated_constants[backend]
 
-    def _get_backend_expression(self, arrays, backend):
+    def _get_backend_expression(self, arrays: Sequence[ArrayType], backend: str) -> Any:
         try:
             return self._backend_expressions[backend]
         except KeyError:
@@ -683,19 +742,32 @@ class ContractExpression:
             self._backend_expressions[backend] = fn
             return fn
 
-    def _contract(self, arrays, out=None, backend='auto', evaluate_constants=False):
-        """The normal, core contraction.
-        """
+    def _contract(
+        self,
+        arrays: Sequence[ArrayType],
+        out: Optional[ArrayType] = None,
+        backend: str = "auto",
+        evaluate_constants: bool = False,
+    ) -> ArrayType:
+        """The normal, core contraction."""
         contraction_list = self._full_contraction_list if evaluate_constants else self.contraction_list
 
-        return _core_contract(list(arrays),
-                              contraction_list,
-                              out=out,
-                              backend=backend,
-                              evaluate_constants=evaluate_constants,
-                              **self.einsum_kwargs)
+        return _core_contract(
+            list(arrays),
+            contraction_list,
+            out=out,
+            backend=backend,
+            evaluate_constants=evaluate_constants,
+            **self.einsum_kwargs,
+        )
 
-    def _contract_with_conversion(self, arrays, out, backend, evaluate_constants=False):
+    def _contract_with_conversion(
+        self,
+        arrays: Sequence[ArrayType],
+        out: Optional[ArrayType],
+        backend: str,
+        evaluate_constants: bool = False,
+    ) -> ArrayType:
         """Special contraction, i.e., contraction with a different backend
         but converting to and from that backend. Retrieves or generates a
         cached expression using ``arrays`` as templates, then calls it
@@ -716,7 +788,7 @@ class ContractExpression:
 
         return result
 
-    def __call__(self, *arrays, **kwargs):
+    def __call__(self, *arrays: ArrayType, **kwargs: Any) -> ArrayType:
         """Evaluate this expression with a set of arrays.
 
         Parameters
@@ -730,52 +802,57 @@ class ContractExpression:
             are supplied then try to convert them to and from the correct
             backend array type.
         """
-        out = kwargs.pop('out', None)
-        backend = kwargs.pop('backend', 'auto')
-        backend = parse_backend(arrays, backend)
-        evaluate_constants = kwargs.pop('evaluate_constants', False)
+        out = kwargs.pop("out", None)
+        backend = parse_backend(arrays, kwargs.pop("backend", "auto"))
+        evaluate_constants = kwargs.pop("evaluate_constants", False)
 
         if kwargs:
-            raise ValueError("The only valid keyword arguments to a `ContractExpression` "
-                             "call are `out=` or `backend=`. Got: {}.".format(kwargs))
+            raise ValueError(
+                "The only valid keyword arguments to a `ContractExpression` "
+                "call are `out=` or `backend=`. Got: {}.".format(kwargs)
+            )
 
         correct_num_args = self._full_num_args if evaluate_constants else self.num_args
 
         if len(arrays) != correct_num_args:
-            raise ValueError("This `ContractExpression` takes exactly {} array arguments "
-                             "but received {}.".format(self.num_args, len(arrays)))
+            raise ValueError(
+                "This `ContractExpression` takes exactly {} array arguments "
+                "but received {}.".format(self.num_args, len(arrays))
+            )
 
         if self._constants_dict and not evaluate_constants:
             # fill in the missing non-constant terms with newly supplied arrays
             ops_var, ops_const = iter(arrays), self._get_evaluated_constants(backend)
-            ops = [next(ops_var) if op is None else op for op in ops_const]
+            ops: Sequence[ArrayType] = [next(ops_var) if op is None else op for op in ops_const]
         else:
             ops = arrays
 
         try:
             # Check if the backend requires special preparation / calling
             #   but also ignore non-numpy arrays -> assume user wants same type back
-            if backends.has_backend(backend) and all(infer_backend(x) == 'numpy' for x in arrays):
+            if backends.has_backend(backend) and all(infer_backend(x) == "numpy" for x in arrays):
                 return self._contract_with_conversion(ops, out, backend, evaluate_constants=evaluate_constants)
 
             return self._contract(ops, out, backend, evaluate_constants=evaluate_constants)
 
         except ValueError as err:
             original_msg = str(err.args) if err.args else ""
-            msg = ("Internal error while evaluating `ContractExpression`. Note that few checks are performed"
-                   " - the number and rank of the array arguments must match the original expression. "
-                   "The internal error was: '{}'".format(original_msg), )
+            msg = (
+                "Internal error while evaluating `ContractExpression`. Note that few checks are performed"
+                " - the number and rank of the array arguments must match the original expression. "
+                "The internal error was: '{}'".format(original_msg),
+            )
             err.args = msg
             raise
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self._constants_dict:
             constants_repr = ", constants={}".format(sorted(self._constants_dict))
         else:
             constants_repr = ""
         return "<ContractExpression('{}'{})>".format(self.contraction, constants_repr)
 
-    def __str__(self):
+    def __str__(self) -> str:
         s = [self.__repr__()]
         for i, c in enumerate(self.contraction_list):
             s.append("\n  {}.  ".format(i + 1))
@@ -785,10 +862,10 @@ class ContractExpression:
         return "".join(s)
 
 
-Shaped = namedtuple('Shaped', ['shape'])
+Shaped = namedtuple("Shaped", ["shape"])
 
 
-def shape_only(shape):
+def shape_only(shape: Collection[Tuple[int, ...]]) -> Shaped:
     """Dummy ``numpy.ndarray`` which has a shape only - for generating
     contract expressions.
     """
@@ -853,23 +930,25 @@ def contract_expression(subscripts: str, *shapes: PathType, **kwargs: Any) -> An
     ```
 
     """
-    if not kwargs.get('optimize', True):
+    if not kwargs.get("optimize", True):
         raise ValueError("Can only generate expressions for optimized contractions.")
 
-    for arg in ('out', 'backend'):
+    for arg in ("out", "backend"):
         if kwargs.get(arg, None) is not None:
-            raise ValueError("'{}' should only be specified when calling a "
-                             "`ContractExpression`, not when building it.".format(arg))
+            raise ValueError(
+                "'{}' should only be specified when calling a "
+                "`ContractExpression`, not when building it.".format(arg)
+            )
 
     if not isinstance(subscripts, str):
-        subscripts, shapes = parser.convert_interleaved_input((subscripts, ) + shapes)
+        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)
 
-    kwargs['_gen_expression'] = True
+    kwargs["_gen_expression"] = True
 
     # build dict of constant indices mapped to arrays
-    constants = kwargs.pop('constants', ())
+    constants = kwargs.pop("constants", ())
     constants_dict = {i: shapes[i] for i in constants}
-    kwargs['_constants_dict'] = constants_dict
+    kwargs["_constants_dict"] = constants_dict
 
     # apart from constant arguments, make dummy arrays
     dummy_arrays = [s if i in constants else shape_only(s) for i, s in enumerate(shapes)]

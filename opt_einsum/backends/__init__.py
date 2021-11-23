@@ -10,14 +10,14 @@ from .theano import to_theano
 from .torch import to_torch
 
 __all__ = [
-    'get_func',
-    'has_einsum',
-    'has_tensordot',
-    'build_expression',
-    'evaluate_constants',
-    'has_backend',
-    'to_tensorflow',
-    'to_theano',
-    'to_cupy',
-    'to_torch',
+    "get_func",
+    "has_einsum",
+    "has_tensordot",
+    "build_expression",
+    "evaluate_constants",
+    "has_backend",
+    "to_tensorflow",
+    "to_theano",
+    "to_cupy",
+    "to_torch",
 ]

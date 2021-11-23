@@ -13,9 +13,9 @@ from .sharing import shared_intermediates
 from ._version import get_versions  # isort:skip
 
 versions = get_versions()
-__version__ = versions['version']
-__git_revision__ = versions['full-revisionid']
+__version__ = versions["version"]
+__git_revision__ = versions["full-revisionid"]
 del get_versions, versions
 
-paths.register_path_fn('random-greedy', path_random.random_greedy)
-paths.register_path_fn('random-greedy-128', path_random.random_greedy_128)
+paths.register_path_fn("random-greedy", path_random.random_greedy)
+paths.register_path_fn("random-greedy-128", path_random.random_greedy_128)

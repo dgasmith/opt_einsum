@@ -6,6 +6,7 @@ from opt_einsum.contract import Shaped, infer_backend, parse_backend
 
 try:
     import cupy
+
     found_cupy = True
 except ImportError:
     found_cupy = False
@@ -26,40 +27,45 @@ except ImportError:
 
 try:
     import os
-    os.environ['MKL_THREADING_LAYER'] = 'GNU'
+
+    os.environ["MKL_THREADING_LAYER"] = "GNU"
     import theano
+
     found_theano = True
 except ImportError:
     found_theano = False
 
 try:
     import torch
+
     found_torch = True
 except ImportError:
     found_torch = False
 
 try:
     import jax
+
     found_jax = True
 except ImportError:
     found_jax = False
 
 try:
     import autograd
+
     found_autograd = True
 except ImportError:
     found_autograd = False
 
 tests = [
-    'ab,bc->ca',
-    'abc,bcd,dea',
-    'abc,def->fedcba',
-    'abc,bcd,df->fa',
+    "ab,bc->ca",
+    "abc,bcd,dea",
+    "abc,def->fedcba",
+    "abc,bcd,df->fa",
     # test 'prefer einsum' ops
-    'ijk,ikj',
-    'i,j->ij',
-    'ijk,k->ij',
-    'AB,BC->CA',
+    "ijk,ikj",
+    "i,j->ij",
+    "ijk,k->ij",
+    "AB,BC->CA",
 ]
 
 
@@ -75,7 +81,7 @@ def test_tensorflow(string):
 
     sess = tf.Session(config=_TF_CONFIG)
     with sess.as_default():
-        expr(*views, backend='tensorflow', out=opt)
+        expr(*views, backend="tensorflow", out=opt)
     sess.close()
 
     assert np.allclose(ein, opt)
@@ -88,9 +94,9 @@ def test_tensorflow(string):
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_tensorflow_with_constants(constants):
-    eq = 'ij,jk,kl->li'
+    eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
-    non_const, = {0, 1, 2} - constants
+    (non_const,) = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
     var = np.random.rand(*shapes[non_const])
     res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
@@ -99,13 +105,14 @@ def test_tensorflow_with_constants(constants):
 
     # check tensorflow
     with tf.Session(config=_TF_CONFIG).as_default():
-        res_got = expr(var, backend='tensorflow')
-    assert all(array is None or infer_backend(array) == 'tensorflow'
-               for array in expr._evaluated_constants['tensorflow'])
+        res_got = expr(var, backend="tensorflow")
+    assert all(
+        array is None or infer_backend(array) == "tensorflow" for array in expr._evaluated_constants["tensorflow"]
+    )
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
-    res_got2 = expr(var, backend='numpy')
+    res_got2 = expr(var, backend="numpy")
     assert np.allclose(res_exp, res_got2)
 
     # check tensorflow call returns tensorflow still
@@ -125,11 +132,11 @@ def test_tensorflow_with_sharing(string):
     sess = tf.Session(config=_TF_CONFIG)
 
     with sess.as_default(), sharing.shared_intermediates() as cache:
-        tfl1 = expr(*views, backend='tensorflow')
+        tfl1 = expr(*views, backend="tensorflow")
         assert sharing.get_sharing_cache() is cache
         cache_sz = len(cache)
         assert cache_sz > 0
-        tfl2 = expr(*views, backend='tensorflow')
+        tfl2 = expr(*views, backend="tensorflow")
         assert len(cache) == cache_sz
 
     assert all(isinstance(t, tf.Tensor) for t in cache.values())
@@ -147,7 +154,7 @@ def test_theano(string):
 
     expr = contract_expression(string, *shps, optimize=True)
 
-    opt = expr(*views, backend='theano')
+    opt = expr(*views, backend="theano")
     assert np.allclose(ein, opt)
 
     # test non-conversion mode
@@ -159,9 +166,9 @@ def test_theano(string):
 @pytest.mark.skipif(not found_theano, reason="theano not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_theano_with_constants(constants):
-    eq = 'ij,jk,kl->li'
+    eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
-    non_const, = {0, 1, 2} - constants
+    (non_const,) = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
     var = np.random.rand(*shapes[non_const])
     res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
@@ -169,12 +176,12 @@ def test_theano_with_constants(constants):
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check theano
-    res_got = expr(var, backend='theano')
-    assert all(array is None or infer_backend(array) == 'theano' for array in expr._evaluated_constants['theano'])
+    res_got = expr(var, backend="theano")
+    assert all(array is None or infer_backend(array) == "theano" for array in expr._evaluated_constants["theano"])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
-    res_got2 = expr(var, backend='numpy')
+    res_got2 = expr(var, backend="numpy")
     assert np.allclose(res_exp, res_got2)
 
     # check theano call returns theano still
@@ -192,11 +199,11 @@ def test_theano_with_sharing(string):
     expr = contract_expression(string, *shps, optimize=True)
 
     with sharing.shared_intermediates() as cache:
-        thn1 = expr(*views, backend='theano')
+        thn1 = expr(*views, backend="theano")
         assert sharing.get_sharing_cache() is cache
         cache_sz = len(cache)
         assert cache_sz > 0
-        thn2 = expr(*views, backend='theano')
+        thn2 = expr(*views, backend="theano")
         assert len(cache) == cache_sz
 
     assert all(isinstance(t, theano.tensor.TensorVariable) for t in cache.values())
@@ -214,7 +221,7 @@ def test_cupy(string):  # pragma: no cover
 
     expr = contract_expression(string, *shps, optimize=True)
 
-    opt = expr(*views, backend='cupy')
+    opt = expr(*views, backend="cupy")
     assert np.allclose(ein, opt)
 
     # test non-conversion mode
@@ -227,9 +234,9 @@ def test_cupy(string):  # pragma: no cover
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_cupy_with_constants(constants):  # pragma: no cover
-    eq = 'ij,jk,kl->li'
+    eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
-    non_const, = {0, 1, 2} - constants
+    (non_const,) = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
     var = np.random.rand(*shapes[non_const])
     res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
@@ -237,13 +244,13 @@ def test_cupy_with_constants(constants):  # pragma: no cover
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check cupy
-    res_got = expr(var, backend='cupy')
+    res_got = expr(var, backend="cupy")
     # check cupy versions of constants exist
-    assert all(array is None or infer_backend(array) == 'cupy' for array in expr._evaluated_constants['cupy'])
+    assert all(array is None or infer_backend(array) == "cupy" for array in expr._evaluated_constants["cupy"])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
-    res_got2 = expr(var, backend='numpy')
+    res_got2 = expr(var, backend="numpy")
     assert np.allclose(res_exp, res_got2)
 
     # check cupy call returns cupy still
@@ -261,7 +268,7 @@ def test_jax(string):  # pragma: no cover
 
     expr = contract_expression(string, *shps, optimize=True)
 
-    opt = expr(*views, backend='jax')
+    opt = expr(*views, backend="jax")
     assert np.allclose(ein, opt)
     assert isinstance(opt, np.ndarray)
 
@@ -269,9 +276,9 @@ def test_jax(string):  # pragma: no cover
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_jax_with_constants(constants):  # pragma: no cover
-    eq = 'ij,jk,kl->li'
+    eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
-    non_const, = {0, 1, 2} - constants
+    (non_const,) = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
     var = np.random.rand(*shapes[non_const])
     res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
@@ -279,16 +286,16 @@ def test_jax_with_constants(constants):  # pragma: no cover
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check jax
-    res_got = expr(var, backend='jax')
+    res_got = expr(var, backend="jax")
     # check jax versions of constants exist
-    assert all(array is None or infer_backend(array).startswith('jax') for array in expr._evaluated_constants['jax'])
+    assert all(array is None or infer_backend(array).startswith("jax") for array in expr._evaluated_constants["jax"])
 
     assert np.allclose(res_exp, res_got)
 
 
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 def test_jax_jit_gradient():
-    eq = 'ij,jk,kl->'
+    eq = "ij,jk,kl->"
     shapes = (2, 3), (3, 4), (4, 2)
     views = [np.random.randn(*s) for s in shapes]
     expr = contract_expression(eq, *shapes)
@@ -311,7 +318,7 @@ def test_jax_jit_gradient():
 
 @pytest.mark.skipif(not found_autograd, reason="autograd not installed.")
 def test_autograd_gradient():
-    eq = 'ij,jk,kl->'
+    eq = "ij,jk,kl->"
     shapes = (2, 3), (3, 4), (4, 2)
     views = [np.random.randn(*s) for s in shapes]
     expr = contract_expression(eq, *shapes)
@@ -393,7 +400,7 @@ def test_torch(string):
 
     expr = contract_expression(string, *shps, optimize=True)
 
-    opt = expr(*views, backend='torch')
+    opt = expr(*views, backend="torch")
     assert np.allclose(ein, opt)
 
     # test non-conversion mode
@@ -406,9 +413,9 @@ def test_torch(string):
 @pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_torch_with_constants(constants):
-    eq = 'ij,jk,kl->li'
+    eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
-    non_const, = {0, 1, 2} - constants
+    (non_const,) = {0, 1, 2} - constants
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
     var = np.random.rand(*shapes[non_const])
     res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
@@ -416,26 +423,26 @@ def test_torch_with_constants(constants):
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check torch
-    res_got = expr(var, backend='torch')
-    assert all(array is None or infer_backend(array) == 'torch' for array in expr._evaluated_constants['torch'])
+    res_got = expr(var, backend="torch")
+    assert all(array is None or infer_backend(array) == "torch" for array in expr._evaluated_constants["torch"])
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
-    res_got2 = expr(var, backend='numpy')
+    res_got2 = expr(var, backend="numpy")
     assert np.allclose(res_exp, res_got2)
 
     # check torch call returns torch still
     res_got3 = expr(backends.to_torch(var))
     assert isinstance(res_got3, torch.Tensor)
-    res_got3 = res_got3.numpy() if res_got3.device.type == 'cpu' else res_got3.cpu().numpy()
+    res_got3 = res_got3.numpy() if res_got3.device.type == "cpu" else res_got3.cpu().numpy()
     assert np.allclose(res_exp, res_got3)
 
 
 def test_auto_backend_custom_array_no_tensordot():
     x = Shaped((1, 2, 3))
     # Shaped is an array-like object defined by opt_einsum - which has no TDOT
-    assert infer_backend(x) == 'opt_einsum'
-    assert parse_backend([x], 'auto') == 'numpy'
+    assert infer_backend(x) == "opt_einsum"
+    assert parse_backend([x], "auto") == "numpy"
 
 
 @pytest.mark.parametrize("string", tests)
@@ -450,11 +457,11 @@ def test_object_arrays_backend(string):
     obj_views = [view.astype(object) for view in views]
 
     # try raw contract
-    obj_opt = contract(string, *obj_views, backend='object')
+    obj_opt = contract(string, *obj_views, backend="object")
     assert obj_opt.dtype == object
     assert np.allclose(ein, obj_opt.astype(float))
 
     # test expression
-    obj_opt = expr(*obj_views, backend='object')
+    obj_opt = expr(*obj_views, backend="object")
     assert obj_opt.dtype == object
     assert np.allclose(ein, obj_opt.astype(float))

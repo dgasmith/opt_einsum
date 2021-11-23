@@ -2,12 +2,12 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-from typing import Collection, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Optional, Tuple, Union, overload
 
 import numpy as np
 
 from .parser import get_symbol
-from .typing import PathType, TensorIndexType
+from .typing import ArrayIndexType, PathType
 
 __all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
 
@@ -44,14 +44,24 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
         dimension_dict = _default_dim_dict
 
     views = []
-    terms = string.split('->')[0].split(',')
+    terms = string.split("->")[0].split(",")
     for term in terms:
         dims = [dimension_dict[x] for x in term]
         views.append(np.random.rand(*dims))
     return views
 
 
+@overload
+def compute_size_by_dict(indices: Iterable[int], idx_dict: List[int]) -> int:
+    ...
+
+
+@overload
 def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> int:
+    ...
+
+
+def compute_size_by_dict(indices: Any, idx_dict: Any) -> int:
     """
     Computes the product of the elements in indices based on the dictionary
     idx_dict.
@@ -81,8 +91,10 @@ def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> 
 
 
 def find_contraction(
-        positions: Collection[int], input_sets: List[TensorIndexType],
-        output_set: TensorIndexType) -> Tuple[Set[str], List[TensorIndexType], TensorIndexType, TensorIndexType]:
+    positions: Collection[int],
+    input_sets: List[ArrayIndexType],
+    output_set: ArrayIndexType,
+) -> Tuple[FrozenSet[str], List[ArrayIndexType], ArrayIndexType, ArrayIndexType]:
     """
     Finds the contraction for a given set of input and output sets.
 
@@ -127,17 +139,22 @@ def find_contraction(
 
     remaining = list(input_sets)
     inputs = (remaining.pop(i) for i in sorted(positions, reverse=True))
-    idx_contract = set.union(*inputs)
+    idx_contract = frozenset.union(*inputs)
     idx_remain = output_set.union(*remaining)
 
     new_result = idx_remain & idx_contract
-    idx_removed = (idx_contract - new_result)
+    idx_removed = idx_contract - new_result
     remaining.append(new_result)
 
     return new_result, remaining, idx_removed, idx_contract
 
 
-def flop_count(idx_contraction: Collection[str], inner: bool, num_terms: int, size_dictionary: Dict[str, int]) -> int:
+def flop_count(
+    idx_contraction: Collection[str],
+    inner: bool,
+    num_terms: int,
+    size_dictionary: Dict[str, int],
+) -> int:
     """
     Computes the number of FLOPS in the contraction.
 
@@ -176,14 +193,16 @@ def flop_count(idx_contraction: Collection[str], inner: bool, num_terms: int, si
     return overall_size * op_factor
 
 
-def rand_equation(n: int,
-                  reg: int,
-                  n_out: int = 0,
-                  d_min: int = 2,
-                  d_max: int = 9,
-                  seed: Optional[int] = None,
-                  global_dim: bool = False,
-                  return_size_dict: bool = False) -> Union[Tuple[str, PathType, Dict[str, int]], Tuple[str, PathType]]:
+def rand_equation(
+    n: int,
+    reg: int,
+    n_out: int = 0,
+    d_min: int = 2,
+    d_max: int = 9,
+    seed: Optional[int] = None,
+    global_dim: bool = False,
+    return_size_dict: bool = False,
+) -> Union[Tuple[str, PathType, Dict[str, int]], Tuple[str, PathType]]:
     """Generate a random contraction and shapes.
 
     Parameters
@@ -288,6 +307,6 @@ def rand_equation(n: int,
     ret = (eq, shapes)
 
     if return_size_dict:
-        return ret + (size_dict, )
+        return ret + (size_dict,)
     else:
         return ret
