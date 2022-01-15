@@ -12,16 +12,8 @@ import pytest
 import opt_einsum as oe
 
 explicit_path_tests = {
-    "GEMM1": (
-        [set("abd"), set("ac"), set("bdc")],
-        set(""),
-        {"a": 1, "b": 2, "c": 3, "d": 4},
-    ),
-    "Inner1": (
-        [set("abcd"), set("abc"), set("bc")],
-        set(""),
-        {"a": 5, "b": 2, "c": 3, "d": 4},
-    ),
+    "GEMM1": ([set("abd"), set("ac"), set("bdc")], set(""), {"a": 1, "b": 2, "c": 3, "d": 4},),
+    "Inner1": ([set("abcd"), set("abc"), set("bc")], set(""), {"a": 5, "b": 2, "c": 3, "d": 4},),
 }
 
 # note that these tests have no unique solution due to the chosen dimensions
@@ -51,10 +43,7 @@ path_edge_tests = [
 
 # note that these tests have no unique solution due to the chosen dimensions
 path_scalar_tests = [
-    [
-        "a,->a",
-        1,
-    ],
+    ["a,->a", 1,],
     ["ab,->ab", 1],
     [",a,->a", 2],
     [",,a,->a", 3],
@@ -270,15 +259,18 @@ def test_custom_dp_can_set_cost_cap():
     assert info1.opt_cost == info2.opt_cost == info3.opt_cost
 
 
-@pytest.mark.parametrize('minimize,cost,width', [
-    ('flops', 663054, 18900),
-    ('size', 1114440, 2016),
-    ('write', 983790, 2016),
-    ('combo', 973518, 2016),
-    ('limit', 983832, 2016),
-    ('combo-256', 983790, 2016),
-    ('limit-256', 983832, 2016),
-])
+@pytest.mark.parametrize(
+    "minimize,cost,width",
+    [
+        ("flops", 663054, 18900),
+        ("size", 1114440, 2016),
+        ("write", 983790, 2016),
+        ("combo", 973518, 2016),
+        ("limit", 983832, 2016),
+        ("combo-256", 983790, 2016),
+        ("limit-256", 983832, 2016),
+    ],
+)
 def test_custom_dp_can_set_minimize(minimize, cost, width):
     eq, shapes = oe.helpers.rand_equation(10, 4, seed=43)
     opt = oe.DynamicProgramming(minimize=minimize)

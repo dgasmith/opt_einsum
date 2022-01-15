@@ -60,10 +60,7 @@ class PathOptimizer:
     """
 
     def _check_args_against_first_call(
-        self,
-        inputs: List[ArrayIndexType],
-        output: ArrayIndexType,
-        size_dict: Dict[str, int],
+        self, inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int],
     ) -> None:
         """Utility that stateful optimizers can use to ensure they are not
         called with different contractions across separate runs.
@@ -169,10 +166,7 @@ def calc_k12_flops(
 
 
 def _compute_oversize_flops(
-    inputs: Tuple[FrozenSet[str]],
-    remaining: List[ArrayIndexType],
-    output: ArrayIndexType,
-    size_dict: Dict[str, int],
+    inputs: Tuple[FrozenSet[str]], remaining: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int],
 ) -> int:
     """
     Compute the flop count for a contraction of all remaining arguments. This
@@ -185,10 +179,7 @@ def _compute_oversize_flops(
 
 
 def optimal(
-    inputs: List[ArrayIndexType],
-    output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int], memory_limit: Optional[int] = None,
 ) -> PathType:
     """
     Computes all possible pair contractions in a depth-first recursive manner,
@@ -346,11 +337,7 @@ class BranchBound(PathOptimizer):
     """
 
     def __init__(
-        self,
-        nbranch=None,
-        cutoff_flops_factor=4,
-        minimize="flops",
-        cost_fn="memory-removed",
+        self, nbranch=None, cutoff_flops_factor=4, minimize="flops", cost_fn="memory-removed",
     ):
         self.nbranch = nbranch
         self.cutoff_flops_factor = cutoff_flops_factor
@@ -528,14 +515,7 @@ def _get_candidate(
     two = k1 & k2
     one = either - two
     k12 = (either & output) | (two & dim_ref_counts[3]) | (one & dim_ref_counts[2])
-    cost = cost_fn(
-        compute_size_by_dict(k12, sizes),
-        footprints[k1],
-        footprints[k2],
-        k12,
-        k1,
-        k2,
-    )
+    cost = cost_fn(compute_size_by_dict(k12, sizes), footprints[k1], footprints[k2], k12, k1, k2,)
     id1 = remaining[k1]
     id2 = remaining[k2]
     if id1 > id2:
@@ -566,9 +546,7 @@ def _push_candidate(
 
 
 def _update_ref_counts(
-    dim_to_keys: Dict[str, Set[ArrayIndexType]],
-    dim_ref_counts: Dict[int, Set[str]],
-    dims: ArrayIndexType,
+    dim_to_keys: Dict[str, Set[ArrayIndexType]], dim_ref_counts: Dict[int, Set[str]], dims: ArrayIndexType,
 ) -> None:
     for dim in dims:
         count = len(dim_to_keys[dim])
@@ -659,16 +637,7 @@ def ssa_greedy_optimize(
         for i, k1 in enumerate(dim_keys_list[:-1]):
             k2s_guess = dim_keys_list[1 + i :]
             _push_candidate(
-                output,
-                sizes,
-                remaining,
-                footprints,
-                dim_ref_counts,
-                k1,
-                k2s_guess,
-                queue,
-                push_all,
-                cost_fn,
+                output, sizes, remaining, footprints, dim_ref_counts, k1, k2s_guess, queue, push_all, cost_fn,
             )
 
     # Greedily contract pairs of tensors.
@@ -701,22 +670,11 @@ def ssa_greedy_optimize(
         k2s.discard(k1)
         if k2s:
             _push_candidate(
-                output,
-                sizes,
-                remaining,
-                footprints,
-                dim_ref_counts,
-                k1,
-                list(k2s),
-                queue,
-                push_all,
-                cost_fn,
+                output, sizes, remaining, footprints, dim_ref_counts, k1, list(k2s), queue, push_all, cost_fn,
             )
 
     # Greedily compute pairwise outer products.
-    final_queue = [
-        (compute_size_by_dict(key & output, sizes), ssa_id, key) for key, ssa_id in remaining.items()
-    ]
+    final_queue = [(compute_size_by_dict(key & output, sizes), ssa_id, key) for key, ssa_id in remaining.items()]
     heapq.heapify(final_queue)
     _, ssa_id1, k1 = heapq.heappop(final_queue)
     while final_queue:
@@ -980,8 +938,23 @@ def _dp_compare_size(
                 xn[s] = (i, cost, (contract1, contract2))
 
 
-def _dp_compare_write(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
-                      i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
+def _dp_compare_write(
+    cost1,
+    cost2,
+    i1_union_i2,
+    size_dict,
+    cost_cap,
+    s1,
+    s2,
+    xn,
+    g,
+    all_tensors,
+    inputs,
+    i1_cut_i2_wo_output,
+    memory_limit,
+    cntrct1,
+    cntrct2,
+):
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on the total size of memory created, rather than the number of
     operations, and so calculates that first.
@@ -999,9 +972,25 @@ def _dp_compare_write(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn
 DEFAULT_COMBO_FACTOR = 64
 
 
-def _dp_compare_combo(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
-                      i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2,
-                      factor=DEFAULT_COMBO_FACTOR, combine=sum):
+def _dp_compare_combo(
+    cost1,
+    cost2,
+    i1_union_i2,
+    size_dict,
+    cost_cap,
+    s1,
+    s2,
+    xn,
+    g,
+    all_tensors,
+    inputs,
+    i1_cut_i2_wo_output,
+    memory_limit,
+    cntrct1,
+    cntrct2,
+    factor=DEFAULT_COMBO_FACTOR,
+    combine=sum,
+):
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on some combination of both the flops and size,
     """
@@ -1024,25 +1013,25 @@ def _parse_minimize(minimize):
     """This works out what local scoring function to use for the dp algorithm
     as well as a `naive_scale` to account for the memory_limit checks.
     """
-    if minimize == 'flops':
+    if minimize == "flops":
         return _dp_compare_flops, 1
-    if minimize == 'size':
+    if minimize == "size":
         return _dp_compare_size, 1
-    if minimize == 'write':
+    if minimize == "write":
         return _dp_compare_write, 1
 
     # default to naive_scale=inf as otherwise memory_limit check can cause problems
 
     if callable(minimize):
-        return minimize, float('inf')
+        return minimize, float("inf")
 
     # parse out a customized value for the combination factor
     minimize, factor = minimize_finder.fullmatch(minimize).groups()
     factor = float(factor) if factor else DEFAULT_COMBO_FACTOR
-    if minimize == 'combo':
-        return functools.partial(_dp_compare_combo, factor=factor, combine=sum), float('inf')
-    if minimize == 'limit':
-        return functools.partial(_dp_compare_combo, factor=factor, combine=max), float('inf')
+    if minimize == "combo":
+        return functools.partial(_dp_compare_combo, factor=factor, combine=sum), float("inf")
+    if minimize == "limit":
+        return functools.partial(_dp_compare_combo, factor=factor, combine=max), float("inf")
 
     raise ValueError(f"Couldn't parse `minimize` value: {minimize}.")
 
@@ -1287,10 +1276,7 @@ class DynamicProgramming(PathOptimizer):
         # outer products should be performed pairwise (to use BLAS functions)
         subgraph_contractions = [
             subgraph_contractions[j]
-            for j in sorted(
-                range(len(subgraph_contractions_size)),
-                key=subgraph_contractions_size.__getitem__,
-            )
+            for j in sorted(range(len(subgraph_contractions_size)), key=subgraph_contractions_size.__getitem__,)
         ]
 
         # build the final contraction tree
@@ -1321,10 +1307,7 @@ for i in range(9, 15):
 
 
 def auto(
-    inputs: List[ArrayIndexType],
-    output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int], memory_limit: Optional[int] = None,
 ) -> PathType:
     """Finds the contraction path by automatically choosing the method based on
     how many input arguments there are.
@@ -1341,10 +1324,7 @@ for i in range(6, 17):
 
 
 def auto_hq(
-    inputs: List[ArrayIndexType],
-    output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int], memory_limit: Optional[int] = None,
 ) -> PathType:
     """Finds the contraction path by automatically choosing the method based on
     how many input arguments there are, but targeting a more generous
