@@ -12,8 +12,16 @@ import pytest
 import opt_einsum as oe
 
 explicit_path_tests = {
-    "GEMM1": ([set("abd"), set("ac"), set("bdc")], set(""), {"a": 1, "b": 2, "c": 3, "d": 4},),
-    "Inner1": ([set("abcd"), set("abc"), set("bc")], set(""), {"a": 5, "b": 2, "c": 3, "d": 4},),
+    "GEMM1": (
+        [set("abd"), set("ac"), set("bdc")],
+        set(""),
+        {"a": 1, "b": 2, "c": 3, "d": 4},
+    ),
+    "Inner1": (
+        [set("abcd"), set("abc"), set("bc")],
+        set(""),
+        {"a": 5, "b": 2, "c": 3, "d": 4},
+    ),
 }
 
 # note that these tests have no unique solution due to the chosen dimensions
@@ -43,7 +51,10 @@ path_edge_tests = [
 
 # note that these tests have no unique solution due to the chosen dimensions
 path_scalar_tests = [
-    ["a,->a", 1,],
+    [
+        "a,->a",
+        1,
+    ],
     ["ab,->ab", 1],
     [",a,->a", 2],
     [",,a,->a", 3],
