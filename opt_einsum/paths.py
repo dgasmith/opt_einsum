@@ -7,6 +7,7 @@ import heapq
 import itertools
 import operator
 import random
+import re
 from collections import Counter, OrderedDict, defaultdict
 from typing import Any, Callable
 from typing import Counter as CounterType
@@ -14,7 +15,7 @@ from typing import Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tu
 
 import numpy as np
 
-from . import helpers
+from .helpers import compute_size_by_dict, flop_count
 from .typing import ArrayIndexType, PathType
 
 __all__ = [
@@ -162,7 +163,7 @@ def calc_k12_flops(
     keep = frozenset.union(output, *map(inputs.__getitem__, remaining - {i, j}))
 
     k12 = either & keep
-    cost = helpers.flop_count(either, bool(shared - keep), 2, size_dict)
+    cost = flop_count(either, bool(shared - keep), 2, size_dict)
 
     return k12, cost
 
@@ -180,7 +181,7 @@ def _compute_oversize_flops(
     idx_contraction = frozenset.union(*map(inputs.__getitem__, remaining))  # type: ignore
     inner = idx_contraction - output
     num_terms = len(remaining)
-    return helpers.flop_count(idx_contraction, bool(inner), num_terms, size_dict)
+    return flop_count(idx_contraction, bool(inner), num_terms, size_dict)
 
 
 def optimal(
@@ -252,7 +253,7 @@ def optimal(
                 try:
                     size12 = size_cache[k12]
                 except KeyError:
-                    size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
+                    size12 = size_cache[k12] = compute_size_by_dict(k12, size_dict)
 
                 # possibly terminate this path with an all-terms einsum
                 if size12 > memory_limit:
@@ -398,7 +399,7 @@ class BranchBound(PathOptimizer):
         inputs: Tuple[FrozenSet[str]] = tuple(map(frozenset, inputs_))  # type: ignore
         output: FrozenSet[str] = frozenset(output_)
 
-        size_cache = {k: helpers.compute_size_by_dict(k, size_dict) for k in inputs}
+        size_cache = {k: compute_size_by_dict(k, size_dict) for k in inputs}
         result_cache: Dict[Tuple[FrozenSet[str], FrozenSet[str]], Tuple[FrozenSet[str], int]] = {}
 
         def _branch_iterate(path, inputs, remaining, flops, size):
@@ -420,7 +421,7 @@ class BranchBound(PathOptimizer):
                 try:
                     size12 = size_cache[k12]
                 except KeyError:
-                    size12 = size_cache[k12] = helpers.compute_size_by_dict(k12, size_dict)
+                    size12 = size_cache[k12] = compute_size_by_dict(k12, size_dict)
 
                 new_flops = flops + flops12
                 new_size = max(size, size12)
@@ -528,7 +529,7 @@ def _get_candidate(
     one = either - two
     k12 = (either & output) | (two & dim_ref_counts[3]) | (one & dim_ref_counts[2])
     cost = cost_fn(
-        helpers.compute_size_by_dict(k12, sizes),
+        compute_size_by_dict(k12, sizes),
         footprints[k1],
         footprints[k2],
         k12,
@@ -649,7 +650,7 @@ def ssa_greedy_optimize(
     }
 
     # Compute separable part of the objective function for contractions.
-    footprints = {key: helpers.compute_size_by_dict(key, sizes) for key in remaining}
+    footprints = {key: compute_size_by_dict(key, sizes) for key in remaining}
 
     # Find initial candidate contractions.
     queue: List[GreedyContractionType] = []
@@ -692,7 +693,7 @@ def ssa_greedy_optimize(
                 dim_to_keys[dim].add(k12)
         remaining[k12] = next(ssa_ids)
         _update_ref_counts(dim_to_keys, dim_ref_counts, k1 | k2 - output)
-        footprints[k12] = helpers.compute_size_by_dict(k12, sizes)
+        footprints[k12] = compute_size_by_dict(k12, sizes)
 
         # Find new candidate contractions.
         k1 = k12
@@ -714,7 +715,7 @@ def ssa_greedy_optimize(
 
     # Greedily compute pairwise outer products.
     final_queue = [
-        (helpers.compute_size_by_dict(key & output, sizes), ssa_id, key) for key, ssa_id in remaining.items()
+        (compute_size_by_dict(key & output, sizes), ssa_id, key) for key, ssa_id in remaining.items()
     ]
     heapq.heapify(final_queue)
     _, ssa_id1, k1 = heapq.heappop(final_queue)
@@ -722,7 +723,7 @@ def ssa_greedy_optimize(
         _, ssa_id2, k2 = heapq.heappop(final_queue)
         ssa_path.append((min(ssa_id1, ssa_id2), max(ssa_id1, ssa_id2)))
         k12 = (k1 | k2) & output
-        cost = helpers.compute_size_by_dict(k12, sizes)
+        cost = compute_size_by_dict(k12, sizes)
         ssa_id12 = next(ssa_ids)
         _, ssa_id1, k1 = heapq.heappushpop(final_queue, (cost, ssa_id12, k12))
 
@@ -937,12 +938,12 @@ def _dp_compare_flops(
     """
 
     # TODO: Odd usage with an Iterable[int] to map a dict of type List[int]
-    cost = cost1 + cost2 + helpers.compute_size_by_dict(i1_union_i2, size_dict)
+    cost = cost1 + cost2 + compute_size_by_dict(i1_union_i2, size_dict)
     if cost <= cost_cap:
         s = s1 | s2
         if s not in xn or cost < xn[s][1]:
             i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
-            mem = helpers.compute_size_by_dict(i, size_dict)
+            mem = compute_size_by_dict(i, size_dict)
             if memory_limit is None or mem <= memory_limit:
                 xn[s] = (i, cost, (contract1, contract2))
 
@@ -971,12 +972,79 @@ def _dp_compare_size(
 
     s = s1 | s2
     i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
-    mem = helpers.compute_size_by_dict(i, size_dict)
+    mem = compute_size_by_dict(i, size_dict)
     cost = max(cost1, cost2, mem)
     if cost <= cost_cap:
         if s not in xn or cost < xn[s][1]:
             if memory_limit is None or mem <= memory_limit:
                 xn[s] = (i, cost, (contract1, contract2))
+
+
+def _dp_compare_write(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
+                      i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2):
+    """Like ``_dp_compare_flops`` but sieves the potential contraction based
+    on the total size of memory created, rather than the number of
+    operations, and so calculates that first.
+    """
+    s = s1 | s2
+    i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
+    mem = compute_size_by_dict(i, size_dict)
+    cost = cost1 + cost2 + mem
+    if cost <= cost_cap:
+        if s not in xn or cost < xn[s][1]:
+            if memory_limit is None or mem <= memory_limit:
+                xn[s] = (i, cost, (cntrct1, cntrct2))
+
+
+DEFAULT_COMBO_FACTOR = 64
+
+
+def _dp_compare_combo(cost1, cost2, i1_union_i2, size_dict, cost_cap, s1, s2, xn, g, all_tensors, inputs,
+                      i1_cut_i2_wo_output, memory_limit, cntrct1, cntrct2,
+                      factor=DEFAULT_COMBO_FACTOR, combine=sum):
+    """Like ``_dp_compare_flops`` but sieves the potential contraction based
+    on some combination of both the flops and size,
+    """
+    s = s1 | s2
+    i = _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2)
+    mem = compute_size_by_dict(i, size_dict)
+    f = compute_size_by_dict(i1_union_i2, size_dict)
+    cost = cost1 + cost2 + combine((f, factor * mem))
+    if cost <= cost_cap:
+        if s not in xn or cost < xn[s][1]:
+            if memory_limit is None or mem <= memory_limit:
+                xn[s] = (i, cost, (cntrct1, cntrct2))
+
+
+minimize_finder = re.compile("(flops|size|write|combo|limit)-*(\d*)")
+
+
+@functools.lru_cache(128)
+def _parse_minimize(minimize):
+    """This works out what local scoring function to use for the dp algorithm
+    as well as a `naive_scale` to account for the memory_limit checks.
+    """
+    if minimize == 'flops':
+        return _dp_compare_flops, 1
+    if minimize == 'size':
+        return _dp_compare_size, 1
+    if minimize == 'write':
+        return _dp_compare_write, 1
+
+    # default to naive_scale=inf as otherwise memory_limit check can cause problems
+
+    if callable(minimize):
+        return minimize, float('inf')
+
+    # parse out a customized value for the combination factor
+    minimize, factor = minimize_finder.fullmatch(minimize).groups()
+    factor = float(factor) if factor else DEFAULT_COMBO_FACTOR
+    if minimize == 'combo':
+        return functools.partial(_dp_compare_combo, factor=factor, combine=sum), float('inf')
+    if minimize == 'limit':
+        return functools.partial(_dp_compare_combo, factor=factor, combine=max), float('inf')
+
+    raise ValueError(f"Couldn't parse `minimize` value: {minimize}.")
 
 
 def simple_tree_tuple(seq: Sequence[Tuple[int, ...]]) -> Tuple[Any, ...]:
@@ -1035,8 +1103,17 @@ class DynamicProgramming(PathOptimizer):
 
     **Parameters:**
 
-    - **minimize** - *({'flops', 'size'}, optional)* Whether to find the contraction that minimizes the number of
-        operations or the size of the largest intermediate tensor.
+    - **minimize** - *({'flops', 'size', 'write', 'combo', 'limit', callable}, optional)* What to minimize:
+
+        - 'flops' - minimize the number of flops
+        - 'size' - minimize the size of the largest intermediate
+        - 'write' - minimize the size of all intermediate tensors
+        - 'combo' - minimize `flops + alpha * write` summed over intermediates, a default ratio of alpha=64
+          is used, or it can be customized with `f'combo-{alpha}'`
+        - 'limit' - minimize `max(flops, alpha * write)` summed over intermediate, a default ratio of alpha=64
+          is used, or it can be customized with `f'limit-{alpha}'`
+        - callable - a custom local cost function
+
     - **cost_cap** - *({True, False, int}, optional)* How to implement cost-capping:
 
         - True - iteratively increase the cost-cap
@@ -1049,21 +1126,8 @@ class DynamicProgramming(PathOptimizer):
     """
 
     def __init__(self, minimize: str = "flops", cost_cap: bool = True, search_outer: bool = False) -> None:
-
-        # set whether inner function minimizes against flops or size
         self.minimize = minimize
-        self._check_contraction = {
-            "flops": _dp_compare_flops,
-            "size": _dp_compare_size,
-        }[self.minimize]
-
-        # set whether inner function considers outer products
         self.search_outer = search_outer
-        self._check_outer = {
-            False: lambda x: x,
-            True: lambda x: True,
-        }[self.search_outer]
-
         self.cost_cap = cost_cap
 
     def __call__(
@@ -1106,6 +1170,9 @@ class DynamicProgramming(PathOptimizer):
         #> [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
         ```
         """
+        _check_contraction, naive_scale = _parse_minimize(self.minimize)
+        _check_outer = (lambda x: True) if self.search_outer else (lambda x: x)
+
         ind_counts = Counter(itertools.chain(*inputs_, output_))
         all_inds = tuple(ind_counts)
 
@@ -1115,7 +1182,7 @@ class DynamicProgramming(PathOptimizer):
         output = frozenset(symbol2int[c] for c in output_)
         size_dict_canonical = {symbol2int[c]: v for c, v in size_dict_.items() if c in symbol2int}
         size_dict = [size_dict_canonical[j] for j in range(len(size_dict_canonical))]
-        naive_cost = len(inputs) * functools.reduce(operator.mul, size_dict)
+        naive_cost = naive_scale * len(inputs) * functools.reduce(operator.mul, size_dict)
 
         inputs, inputs_done, inputs_contractions = _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts)
 
@@ -1158,7 +1225,7 @@ class DynamicProgramming(PathOptimizer):
             # output index dimensions as initial cost_cap
             subgraph_inds = frozenset.union(*_bitmap_select(bitmap_g, inputs))
             if self.cost_cap is True:
-                cost_cap = helpers.compute_size_by_dict(subgraph_inds & output, size_dict)
+                cost_cap = compute_size_by_dict(subgraph_inds & output, size_dict)
             elif self.cost_cap is False:
                 cost_cap = float("inf")  # type: ignore
             else:
@@ -1184,10 +1251,10 @@ class DynamicProgramming(PathOptimizer):
                                     i1_cut_i2_wo_output = (i1 & i2) - output
 
                                     # maybe ignore outer products:
-                                    if self._check_outer(i1_cut_i2_wo_output):
+                                    if _check_outer(i1_cut_i2_wo_output):
 
                                         i1_union_i2 = i1 | i2
-                                        self._check_contraction(
+                                        _check_contraction(
                                             cost1,
                                             cost2,
                                             i1_union_i2,
@@ -1213,7 +1280,7 @@ class DynamicProgramming(PathOptimizer):
 
             i, cost, contraction = list(x[-1].values())[0]
             subgraph_contractions.append(contraction)
-            subgraph_contractions_size.append(helpers.compute_size_by_dict(i, size_dict))
+            subgraph_contractions_size.append(compute_size_by_dict(i, size_dict))
 
         # sort the subgraph contractions by the size of the subgraphs in
         # ascending order (will give the cheapest contractions); note that

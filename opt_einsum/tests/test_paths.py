@@ -270,6 +270,23 @@ def test_custom_dp_can_set_cost_cap():
     assert info1.opt_cost == info2.opt_cost == info3.opt_cost
 
 
+@pytest.mark.parametrize('minimize,cost,width', [
+    ('flops', 663054, 18900),
+    ('size', 1114440, 2016),
+    ('write', 983790, 2016),
+    ('combo', 973518, 2016),
+    ('limit', 983832, 2016),
+    ('combo-256', 983790, 2016),
+    ('limit-256', 983832, 2016),
+])
+def test_custom_dp_can_set_minimize(minimize, cost, width):
+    eq, shapes = oe.helpers.rand_equation(10, 4, seed=43)
+    opt = oe.DynamicProgramming(minimize=minimize)
+    info = oe.contract_path(eq, *shapes, shapes=True, optimize=opt)[1]
+    assert info.opt_cost == cost
+    assert info.largest_intermediate == width
+
+
 def test_dp_errors_when_no_contractions_found():
     eq, shapes, size_dict = oe.helpers.rand_equation(10, 3, seed=42, return_size_dict=True)
 
