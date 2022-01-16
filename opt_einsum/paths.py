@@ -1069,8 +1069,8 @@ def _parse_minimize(minimize: Union[str, Callable]) -> Tuple[Callable, Union[int
     if match is None:
         raise ValueError(f"Couldn't parse `minimize` value: {minimize}.")
 
-    minimize, factor = match.groups()
-    factor = float(factor) if factor else DEFAULT_COMBO_FACTOR
+    minimize, custom_factor = match.groups()
+    factor = float(custom_factor) if custom_factor else DEFAULT_COMBO_FACTOR
     if minimize == "combo":
         return functools.partial(_dp_compare_combo, factor=factor, combine=sum), float("inf")
     elif minimize == "limit":
