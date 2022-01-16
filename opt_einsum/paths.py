@@ -979,21 +979,21 @@ def _dp_compare_size(
 
 
 def _dp_compare_write(
-    cost1,
-    cost2,
-    i1_union_i2,
-    size_dict,
-    cost_cap,
-    s1,
-    s2,
-    xn,
-    g,
-    all_tensors,
-    inputs,
-    i1_cut_i2_wo_output,
-    memory_limit,
-    cntrct1,
-    cntrct2,
+    cost1: int,
+    cost2: int,
+    i1_union_i2: Set[int],
+    size_dict: List[int],
+    cost_cap: int,
+    s1: int,
+    s2: int,
+    xn: Dict[int, Any],
+    g: int,
+    all_tensors: int,
+    inputs: List[FrozenSet[int]],
+    i1_cut_i2_wo_output: Set[int],
+    memory_limit: Optional[int],
+    contract1: Union[int, Tuple[int]],
+    contract2: Union[int, Tuple[int]],
 ):
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on the total size of memory created, rather than the number of
@@ -1006,30 +1006,30 @@ def _dp_compare_write(
     if cost <= cost_cap:
         if s not in xn or cost < xn[s][1]:
             if memory_limit is None or mem <= memory_limit:
-                xn[s] = (i, cost, (cntrct1, cntrct2))
+                xn[s] = (i, cost, (contract1, contract2))
 
 
 DEFAULT_COMBO_FACTOR = 64
 
 
 def _dp_compare_combo(
-    cost1,
-    cost2,
-    i1_union_i2,
-    size_dict,
-    cost_cap,
-    s1,
-    s2,
-    xn,
-    g,
-    all_tensors,
-    inputs,
-    i1_cut_i2_wo_output,
-    memory_limit,
-    cntrct1,
-    cntrct2,
-    factor=DEFAULT_COMBO_FACTOR,
-    combine=sum,
+    cost1: int,
+    cost2: int,
+    i1_union_i2: Set[int],
+    size_dict: List[int],
+    cost_cap: int,
+    s1: int,
+    s2: int,
+    xn: Dict[int, Any],
+    g: int,
+    all_tensors: int,
+    inputs: List[FrozenSet[int]],
+    i1_cut_i2_wo_output: Set[int],
+    memory_limit: Optional[int],
+    contract1: Union[int, Tuple[int]],
+    contract2: Union[int, Tuple[int]],
+    factor: Union[int, float]=DEFAULT_COMBO_FACTOR,
+    combine: Callable=sum,
 ):
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on some combination of both the flops and size,
@@ -1042,27 +1042,26 @@ def _dp_compare_combo(
     if cost <= cost_cap:
         if s not in xn or cost < xn[s][1]:
             if memory_limit is None or mem <= memory_limit:
-                xn[s] = (i, cost, (cntrct1, cntrct2))
+                xn[s] = (i, cost, (contract1, contract2))
 
 
-minimize_finder = re.compile("(flops|size|write|combo|limit)-*(\d*)")
+minimize_finder = re.compile(r"(flops|size|write|combo|limit)-*(\d*)")
 
 
 @functools.lru_cache(128)
-def _parse_minimize(minimize):
+def _parse_minimize(minimize: Union[str, Callable]):
     """This works out what local scoring function to use for the dp algorithm
     as well as a `naive_scale` to account for the memory_limit checks.
     """
     if minimize == "flops":
         return _dp_compare_flops, 1
-    if minimize == "size":
+    elif minimize == "size":
         return _dp_compare_size, 1
-    if minimize == "write":
+    elif minimize == "write":
         return _dp_compare_write, 1
-
-    # default to naive_scale=inf as otherwise memory_limit check can cause problems
-
-    if callable(minimize):
+    elif callable(minimize):
+        # default to naive_scale=inf for this and remaining options
+        # as otherwise memory_limit check can cause problems
         return minimize, float("inf")
 
     # parse out a customized value for the combination factor
@@ -1070,10 +1069,10 @@ def _parse_minimize(minimize):
     factor = float(factor) if factor else DEFAULT_COMBO_FACTOR
     if minimize == "combo":
         return functools.partial(_dp_compare_combo, factor=factor, combine=sum), float("inf")
-    if minimize == "limit":
+    elif minimize == "limit":
         return functools.partial(_dp_compare_combo, factor=factor, combine=max), float("inf")
-
-    raise ValueError(f"Couldn't parse `minimize` value: {minimize}.")
+    else:
+        raise ValueError(f"Couldn't parse `minimize` value: {minimize}.")
 
 
 def simple_tree_tuple(seq: Sequence[Tuple[int, ...]]) -> Tuple[Any, ...]:
