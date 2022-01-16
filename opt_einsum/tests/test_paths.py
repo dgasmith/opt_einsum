@@ -280,7 +280,7 @@ def test_custom_dp_can_set_cost_cap():
         ("limit", 983832, 2016, [(2, 7), (3, 4), (0, 4), (3, 6), (2, 5), (0, 4), (0, 3), (1, 2), (0, 1)]),
         ("combo-256", 983790, 2016, [(0, 8), (3, 4), (1, 4), (5, 6), (1, 5), (0, 4), (0, 3), (1, 2), (0, 1)]),
         ("limit-256", 983832, 2016, [(2, 7), (3, 4), (0, 4), (3, 6), (2, 5), (0, 4), (0, 3), (1, 2), (0, 1)]),
-    ]
+    ],
 )
 def test_custom_dp_can_set_minimize(minimize, cost, width, path):
     eq, shapes = oe.helpers.rand_equation(10, 4, seed=43)

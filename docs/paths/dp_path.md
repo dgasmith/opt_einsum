@@ -70,3 +70,23 @@ oe.contract(eq, *arrays, optimize=optimizer)
 !!! warning
     Note that searching outer products will most likely drastically slow down
     the optimizer on all but the smallest examples.
+
+
+The values that `minimize` can take are:
+
+- `'flops'`: minimize the total number of scalar operations.
+- `'size'`: minimize the size of the largest intermediate.
+- `'write'`: minimize the combined size of all intermediate tensors -
+   approximately speaking the amount of memory that will be written. This is
+   relevant if you were to automatically differentiate through the
+   contraction, which naively would require storing all intermediates.
+- `'combo'` - minimize `flops + alpha * write` summed over intermediates, a
+  default ratio of `alpha=64` is used, or it can be customized with
+  `f'combo-{alpha}'`.
+- `'limit'` - minimize `max(flops, alpha * write)` summed over intermediates, a
+  default ratio of `alpha=64` is used, or it can be customized with `f'limit-{alpha}'`.
+
+The last two take into account the fact that real contraction performance can
+be bound by memory speed, and so favor paths with higher arithmetic
+intensity. The default value of `alpha=64` is reasonable for both typical
+CPUs and GPUs.

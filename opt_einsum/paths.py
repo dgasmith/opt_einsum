@@ -1028,8 +1028,8 @@ def _dp_compare_combo(
     memory_limit: Optional[int],
     contract1: Union[int, Tuple[int]],
     contract2: Union[int, Tuple[int]],
-    factor: Union[int, float]=DEFAULT_COMBO_FACTOR,
-    combine: Callable=sum,
+    factor: Union[int, float] = DEFAULT_COMBO_FACTOR,
+    combine: Callable = sum,
 ):
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on some combination of both the flops and size,
@@ -1138,7 +1138,7 @@ class DynamicProgramming(PathOptimizer):
         - 'write' - minimize the size of all intermediate tensors
         - 'combo' - minimize `flops + alpha * write` summed over intermediates, a default ratio of alpha=64
           is used, or it can be customized with `f'combo-{alpha}'`
-        - 'limit' - minimize `max(flops, alpha * write)` summed over intermediate, a default ratio of alpha=64
+        - 'limit' - minimize `max(flops, alpha * write)` summed over intermediates, a default ratio of alpha=64
           is used, or it can be customized with `f'limit-{alpha}'`
         - callable - a custom local cost function
 
