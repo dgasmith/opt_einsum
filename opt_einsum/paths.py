@@ -994,7 +994,7 @@ def _dp_compare_write(
     memory_limit: Optional[int],
     contract1: Union[int, Tuple[int]],
     contract2: Union[int, Tuple[int]],
-):
+) -> None:
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on the total size of memory created, rather than the number of
     operations, and so calculates that first.
@@ -1030,7 +1030,7 @@ def _dp_compare_combo(
     contract2: Union[int, Tuple[int]],
     factor: Union[int, float] = DEFAULT_COMBO_FACTOR,
     combine: Callable = sum,
-):
+) -> None:
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on some combination of both the flops and size,
     """
@@ -1049,7 +1049,7 @@ minimize_finder = re.compile(r"(flops|size|write|combo|limit)-*(\d*)")
 
 
 @functools.lru_cache(128)
-def _parse_minimize(minimize: Union[str, Callable]):
+def _parse_minimize(minimize: Union[str, Callable]) -> Tuple[Callable, Union[int, float]]:
     """This works out what local scoring function to use for the dp algorithm
     as well as a `naive_scale` to account for the memory_limit checks.
     """
@@ -1065,7 +1065,11 @@ def _parse_minimize(minimize: Union[str, Callable]):
         return minimize, float("inf")
 
     # parse out a customized value for the combination factor
-    minimize, factor = minimize_finder.fullmatch(minimize).groups()
+    match = minimize_finder.fullmatch(minimize)
+    if match is None:
+        raise ValueError(f"Couldn't parse `minimize` value: {minimize}.")
+
+    minimize, factor = match.groups()
     factor = float(factor) if factor else DEFAULT_COMBO_FACTOR
     if minimize == "combo":
         return functools.partial(_dp_compare_combo, factor=factor, combine=sum), float("inf")
