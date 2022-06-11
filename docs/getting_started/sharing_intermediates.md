@@ -36,7 +36,7 @@ for output in 'abcdef':
 del cache  # garbage collect intermediates
 ```
 
-Note that sharing contexts can be nested, so it is safe to to use [`opt_einsum.shared_intermediates`](../api_reference.md#opt_einsumshared_intermediatese in library code without leaking intermediates into user caches.
+Note that sharing contexts can be nested, so it is safe to to use [`opt_einsum.shared_intermediates`](../api_reference.md#opt_einsumshared_intermediates) in library code without leaking intermediates into user caches.
 
 !!! note
     By default a cache is thread safe, to share intermediates between threads explicitly pass the same cache to each thread.
