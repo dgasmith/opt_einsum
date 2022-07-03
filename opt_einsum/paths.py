@@ -352,6 +352,9 @@ class BranchBound(PathOptimizer):
         minimize="flops",
         cost_fn="memory-removed",
     ):
+        if nbranch < 1:
+            raise ValueError(f"The number of branches must be at least one, `nbranch={nbranch}.")
+
         self.nbranch = nbranch
         self.cutoff_flops_factor = cutoff_flops_factor
         self.minimize = minimize
