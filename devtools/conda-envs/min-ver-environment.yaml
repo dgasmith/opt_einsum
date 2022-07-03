@@ -15,4 +15,4 @@ dependencies:
   - pytest
   - codecov
   - pytest-cov
-  - mypy ==0.812
+  - mypy
