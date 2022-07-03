@@ -33,7 +33,7 @@ max_doubles = 1e7
 alpha = list("abcdefghijklmnopqrstuvwyxz")
 alpha_dict = {num: x for num, x in enumerate(alpha)}
 
-print("Maximum term size is %d" % (max_size ** max_dims))
+print("Maximum term size is %d" % (max_size**max_dims))
 
 
 def make_term():
