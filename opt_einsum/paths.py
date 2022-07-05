@@ -1214,7 +1214,7 @@ class DynamicProgramming(PathOptimizer):
         output = frozenset(symbol2int[c] for c in output_)
         size_dict_canonical = {symbol2int[c]: v for c, v in size_dict_.items() if c in symbol2int}
         size_dict = [size_dict_canonical[j] for j in range(len(size_dict_canonical))]
-        naive_cost = naive_scale * len(inputs) * functools.reduce(operator.mul, size_dict)
+        naive_cost = naive_scale * len(inputs) * functools.reduce(operator.mul, size_dict, 1)
 
         inputs, inputs_done, inputs_contractions = _dp_parse_out_single_term_ops(inputs, all_inds, ind_counts)
 

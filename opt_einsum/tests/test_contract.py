@@ -13,6 +13,7 @@ tests = [
     "a,->a",
     "ab,->ab",
     ",ab,->ab",
+    ",,->",
     # Test hadamard-like products
     "a,ab,abc->abc",
     "a,b,ab->ab",
