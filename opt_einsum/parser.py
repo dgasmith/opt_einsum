@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """
 A functionally equivalent parser of the numpy.einsum input parser
 """
@@ -61,7 +59,7 @@ def has_valid_einsum_chars_only(einsum_str: str) -> bool:
 
 def get_symbol(i: int) -> str:
     """Get the symbol corresponding to int ``i`` - runs through the usual 52
-    letters before resorting to unicode characters, starting at ``chr(192)``.
+    letters before resorting to unicode characters, starting at ``chr(192)`` and skipping surrogates.
 
     **Examples:**
 
@@ -78,7 +76,11 @@ def get_symbol(i: int) -> str:
     """
     if i < 52:
         return _einsum_symbols_base[i]
-    return chr(i + 140)
+    elif i >= 55296:
+        # Skip chr(57343) - chr(55296) as surrogates
+        return chr(i + 2048)
+    else:
+        return chr(i + 140)
 
 
 def gen_unused_symbols(used: str, n: int) -> Iterator[str]:

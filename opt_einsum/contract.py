@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from . import backends, blas, helpers, parser, paths, sharing
-from .typing import ArrayIndexType, ArrayType, Collection, ContractionListType, PathType
+from .typing import ArrayIndexType, ArrayType, ContractionListType, PathType
 
 __all__ = [
     "contract_path",
@@ -75,7 +75,7 @@ class PathInfo:
         ]
 
         for n, contraction in enumerate(self.contraction_list):
-            inds, idx_rm, einsum_str, remaining, do_blas = contraction
+            _, _, einsum_str, remaining, do_blas = contraction
 
             if remaining is not None:
                 remaining_str = ",".join(remaining) + "->" + self.output_subscript
@@ -865,7 +865,7 @@ class ContractExpression:
 Shaped = namedtuple("Shaped", ["shape"])
 
 
-def shape_only(shape: Collection[Tuple[int, ...]]) -> Shaped:
+def shape_only(shape: PathType) -> Shaped:
     """Dummy ``numpy.ndarray`` which has a shape only - for generating
     contract expressions.
     """

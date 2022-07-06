@@ -352,6 +352,9 @@ class BranchBound(PathOptimizer):
         minimize="flops",
         cost_fn="memory-removed",
     ):
+        if (nbranch is not None) and nbranch < 1:
+            raise ValueError(f"The number of branches must be at least one, `nbranch={nbranch}`.")
+
         self.nbranch = nbranch
         self.cutoff_flops_factor = cutoff_flops_factor
         self.minimize = minimize
@@ -827,9 +830,9 @@ def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
             s[0] += (sum(1 for q in t if q < i),)
             t.insert(s[0][-1], i)
 
-        for i in [i for i in j if type(i) != int]:
+        for i_tup in [i_tup for i_tup in j if type(i_tup) != int]:
             s[0] += (len(t) + len(c),)
-            c.append(i)
+            c.append(i_tup)
 
     return s
 
