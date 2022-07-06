@@ -394,6 +394,11 @@ def test_custom_branchbound():
         path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
 
 
+def test_branchbound_validation():
+    with pytest.raises(ValueError):
+        oe.BranchBound(nbranch=0)
+
+
 @pytest.mark.skipif(sys.version_info < (3, 2), reason="requires python3.2 or higher")
 def test_parallel_random_greedy():
     from concurrent.futures import ProcessPoolExecutor
