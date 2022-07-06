@@ -550,7 +550,7 @@ def parse_backend(arrays: Sequence[ArrayType], backend: str) -> str:
     """Find out what backend we should use, dipatching based on the first
     array if ``backend='auto'`` is specified.
     """
-    if backend != "auto":
+    if backend not in ("auto", None):
         return backend
     backend = infer_backend(arrays[0])
 
