@@ -4,6 +4,7 @@ Contains the primary optimization and contraction routines.
 
 from collections import namedtuple
 from decimal import Decimal
+from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from . import backends, blas, helpers, parser, paths, sharing
@@ -542,8 +543,13 @@ def contract(*operands_: Any, **kwargs: Any) -> ArrayType:
     return _core_contract(operands, contraction_list, backend=backend, **einsum_kwargs)
 
 
+@lru_cache(None)
+def _infer_backend_class_cached(cls: type) -> str:
+    return cls.__module__.split(".")[0]
+
+
 def infer_backend(x: Any) -> str:
-    return x.__class__.__module__.split(".")[0]
+    return _infer_backend_class_cached(x.__class__)
 
 
 def parse_backend(arrays: Sequence[ArrayType], backend: Optional[str]) -> str:
