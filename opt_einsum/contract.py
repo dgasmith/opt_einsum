@@ -546,7 +546,7 @@ def infer_backend(x: Any) -> str:
     return x.__class__.__module__.split(".")[0]
 
 
-def parse_backend(arrays: Sequence[ArrayType], backend: str) -> str:
+def parse_backend(arrays: Sequence[ArrayType], backend: Optional[str]) -> str:
     """Find out what backend we should use, dipatching based on the first
     array if ``backend='auto'`` is specified.
     """
@@ -565,7 +565,7 @@ def parse_backend(arrays: Sequence[ArrayType], backend: str) -> str:
 def _core_contract(
     operands_: Sequence[ArrayType],
     contraction_list: ContractionListType,
-    backend: str = "auto",
+    backend: Optional[str] = "auto",
     evaluate_constants: bool = False,
     **einsum_kwargs: Any,
 ) -> ArrayType:
@@ -703,7 +703,7 @@ class ContractExpression:
         self._evaluated_constants: Dict[str, Any] = {}
         self._backend_expressions: Dict[str, Any] = {}
 
-    def evaluate_constants(self, backend: str = "auto") -> None:
+    def evaluate_constants(self, backend: Optional[str] = "auto") -> None:
         """Convert any constant operands to the correct backend form, and
         perform as many contractions as possible to create a new list of
         operands, stored in ``self._evaluated_constants[backend]``. This also
@@ -746,7 +746,7 @@ class ContractExpression:
         self,
         arrays: Sequence[ArrayType],
         out: Optional[ArrayType] = None,
-        backend: str = "auto",
+        backend: Optional[str] = "auto",
         evaluate_constants: bool = False,
     ) -> ArrayType:
         """The normal, core contraction."""
