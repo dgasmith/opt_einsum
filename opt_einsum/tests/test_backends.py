@@ -495,29 +495,39 @@ def test_array_api(array_api: ModuleType, string):  # pragma: no cover
     assert np.allclose(ein, np.asarray(array_api_opt))
 
 
-# @pytest.mark.parametrize("array_api", array_apis)
-# @pytest.mark.parametrize("string", tests)
-# def test_array_api_with_constants(constants: importlib.metadata.EntryPoint):  # pragma: no cover
-#     eq = "ij,jk,kl->li"
-#     shapes = (2, 3), (3, 4), (4, 5)
-#     (non_const,) = {0, 1, 2} - constants
-#     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
-#     var = np.random.rand(*shapes[non_const])
-#     res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
+@pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
+def test_array_api_with_constants(array_api: ModuleType, constants):  # pragma: no cover
+    array_api_qname: str = array_api.__name__
 
-#     expr = contract_expression(eq, *ops, constants=constants)
+    eq = "ij,jk,kl->li"
+    shapes = (2, 3), (3, 4), (4, 5)
+    (non_const,) = {0, 1, 2} - constants
+    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = np.random.rand(*shapes[non_const])
+    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
 
-#     # check cupy
-#     res_got = expr(var, backend="cupy")
-#     # check cupy versions of constants exist
-#     assert all(array is None or infer_backend(array) == "cupy" for array in expr._evaluated_constants["cupy"])
-#     assert np.allclose(res_exp, res_got)
+    expr = contract_expression(eq, *ops, constants=constants)
 
-#     # check can call with numpy still
-#     res_got2 = expr(var, backend="numpy")
-#     assert np.allclose(res_exp, res_got2)
+    # check array API
+    res_got = expr(var, backend=array_api_qname)
+    # check array API versions of constants exist
+    assert all(array is None or infer_backend(array) == array_api_qname for array in expr._evaluated_constants[array_api_qname])
+    assert np.allclose(res_exp, res_got)
 
-#     # check cupy call returns cupy still
-#     res_got3 = expr(cupy.asarray(var))
-#     assert isinstance(res_got3, cupy.ndarray)
-#     assert np.allclose(res_exp, res_got3.get())
+    # check can call with numpy still
+    res_got2 = expr(var, backend="numpy")
+    assert np.allclose(res_exp, res_got2)
+
+    # check array API call returns an array object belonging to the same backend
+    # NOTE: the array API standard does not require that the returned array is the same type as the input array,
+    #       only that the returned array also obeys the array API standard. Indeed, the standard does not stipulate
+    #       even a *name* for the array type.
+    # 
+    #       For this reason, we won't check the type of the returned array, but only that it is has an 
+    #       ``__array_namespace__`` attribute and hence claims to comply with standard.
+    #       
+    #       In future versions, if einexpr uses newer array API features, we will also need to check that the
+    #       returned array complies with the appropriate version of the standard.
+    res_got3 = expr(array_api.asarray(var))
+    assert hasattr(res_got3, "__array_namespace__")
+    assert np.allclose(res_exp, res_got3)
