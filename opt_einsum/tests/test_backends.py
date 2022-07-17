@@ -1,4 +1,8 @@
+from types import ModuleType
+import sys
+import importlib
 import numpy as np
+from pkg_resources import EntryPoint
 import pytest
 
 from opt_einsum import backends, contract, contract_expression, helpers, sharing
@@ -55,6 +59,12 @@ try:
     found_autograd = True
 except ImportError:
     found_autograd = False
+
+
+@pytest.fixture(params=backends.discover_array_api_eps())
+def array_api_ep(request) -> importlib.metadata.EntryPoint:
+    return request.param
+
 
 tests = [
     "ab,bc->ca",
@@ -465,3 +475,51 @@ def test_object_arrays_backend(string):
     obj_opt = expr(*obj_views, backend="object")
     assert obj_opt.dtype == object
     assert np.allclose(ein, obj_opt.astype(float))
+
+@pytest.mark.parametrize("string", tests)
+def test_array_api(array_api_ep: EntryPoint, string):  # pragma: no cover
+    array_api: ModuleType = array_api_ep.load()
+    array_api_qname: str = array_api_ep.value
+    
+    views = helpers.build_views(string)
+    ein = contract(string, *views, optimize=False, use_blas=False)
+    shps = [v.shape for v in views]
+
+    expr = contract_expression(string, *shps, optimize=True)
+
+    opt = expr(*views, backend=array_api.__name__)
+    assert np.allclose(ein, opt)
+
+    # test non-conversion mode
+    array_api_views = [backends.to_array_api[array_api_qname](view) for view in views]
+    array_api_opt = expr(*array_api_views)
+    assert all(type(array_api_opt) is type(view) for view in array_api_views)
+    assert np.allclose(ein, np.asarray(array_api_opt))
+
+
+# @pytest.mark.parametrize("array_api", array_apis)
+# @pytest.mark.parametrize("string", tests)
+# def test_array_api_with_constants(constants: importlib.metadata.EntryPoint):  # pragma: no cover
+#     eq = "ij,jk,kl->li"
+#     shapes = (2, 3), (3, 4), (4, 5)
+#     (non_const,) = {0, 1, 2} - constants
+#     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+#     var = np.random.rand(*shapes[non_const])
+#     res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
+
+#     expr = contract_expression(eq, *ops, constants=constants)
+
+#     # check cupy
+#     res_got = expr(var, backend="cupy")
+#     # check cupy versions of constants exist
+#     assert all(array is None or infer_backend(array) == "cupy" for array in expr._evaluated_constants["cupy"])
+#     assert np.allclose(res_exp, res_got)
+
+#     # check can call with numpy still
+#     res_got2 = expr(var, backend="numpy")
+#     assert np.allclose(res_exp, res_got2)
+
+#     # check cupy call returns cupy still
+#     res_got3 = expr(cupy.asarray(var))
+#     assert isinstance(res_got3, cupy.ndarray)
+#     assert np.allclose(res_exp, res_got3.get())
