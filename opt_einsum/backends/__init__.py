@@ -8,7 +8,7 @@ from .dispatch import build_expression, evaluate_constants, get_func, has_backen
 from .tensorflow import to_tensorflow
 from .theano import to_theano
 from .torch import to_torch
-from .array_api import to_array_api, discover_array_api_eps
+from .array_api import to_array_api, discover_array_apis
 
 __all__ = [
     "get_func",
@@ -22,5 +22,5 @@ __all__ = [
     "to_cupy",
     "to_torch",
     "to_array_api",
-    "discover_array_api_eps",
+    "discover_array_apis",
 ]

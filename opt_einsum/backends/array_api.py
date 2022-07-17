@@ -11,13 +11,14 @@ import numpy as np
 from ..sharing import to_backend_cache_wrap
 
 
-def discover_array_api_eps():
-    """Discover array API backends and return their entry points."""
+def discover_array_apis():
+    """Discover array API backends."""
     if sys.version_info >= (3, 10):
-        return entry_points(group='array_api')
+        eps = entry_points(group='array_api')
     else:
         # Deprecated - will raise warning in Python versions >= 3.10
-        return entry_points().get('array_api', [])
+        eps = entry_points().get('array_api', [])
+    return [ep.load() for ep in eps]
 
 def make_to_array(array_api: ModuleType) -> Callable:
     """Make a ``to_[array_api]`` function for the given array API."""
@@ -39,23 +40,21 @@ def make_build_expression(array_api: ModuleType) -> Callable:
 
 def make_evaluate_constants(array_api: ModuleType) -> Callable:
     def evaluate_constants(const_arrays, expr):  # pragma: no cover
-        """Convert constant arguments to cupy arrays, and perform any possible constant contractions.
-        """
-        return expr(*[make_to_array(array_api)(x) for x in const_arrays], backend="cupy", evaluate_constants=True)
+        """Convert constant arguments to cupy arrays, and perform any possible constant contractions."""
+        return expr(
+            *[make_to_array(array_api)(x) for x in const_arrays],
+            backend=array_api.__name__, 
+            evaluate_constants=True
+        )
     return evaluate_constants
 
-to_array_api = {}
-build_expression = {}
-evaluate_constants = {}
-
-for ep in discover_array_api_eps():
-    _array_api = ep.load()
-    to_array_api[ep.value] = make_to_array(_array_api)
-    build_expression[ep.value] = make_build_expression(_array_api)
-    evaluate_constants[ep.value] = make_evaluate_constants(_array_api)
+_array_apis = discover_array_apis()
+to_array_api = {api.__name__: make_to_array(api) for api in _array_apis}
+build_expression = {api.__name__: make_build_expression(api) for api in _array_apis}
+evaluate_constants = {api.__name__: make_evaluate_constants(api) for api in _array_apis}
 
 __all__ = [
-    'discover_array_api_eps',
+    'discover_array_apis',
     "to_array_api",
     "build_expression",
     "evaluate_constants"

@@ -1,6 +1,4 @@
 from types import ModuleType
-import sys
-import importlib
 import numpy as np
 from pkg_resources import EntryPoint
 import pytest
@@ -61,8 +59,8 @@ except ImportError:
     found_autograd = False
 
 
-@pytest.fixture(params=backends.discover_array_api_eps())
-def array_api_ep(request) -> importlib.metadata.EntryPoint:
+@pytest.fixture(params=backends.discover_array_apis())
+def array_api(request) -> ModuleType:
     return request.param
 
 
@@ -476,10 +474,10 @@ def test_object_arrays_backend(string):
     assert obj_opt.dtype == object
     assert np.allclose(ein, obj_opt.astype(float))
 
+
 @pytest.mark.parametrize("string", tests)
-def test_array_api(array_api_ep: EntryPoint, string):  # pragma: no cover
-    array_api: ModuleType = array_api_ep.load()
-    array_api_qname: str = array_api_ep.value
+def test_array_api(array_api: ModuleType, string):  # pragma: no cover
+    array_api_qname: str = array_api.__name__
     
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
