@@ -15,6 +15,7 @@ from . import object_arrays
 from . import tensorflow as _tensorflow
 from . import theano as _theano
 from . import torch as _torch
+from . import array_api as _array_api
 
 __all__ = [
     "get_func",
@@ -122,6 +123,7 @@ CONVERT_BACKENDS = {
     "cupy": _cupy.build_expression,
     "torch": _torch.build_expression,
     "jax": _jax.build_expression,
+    **_array_api.build_expression,
 }
 
 EVAL_CONSTS_BACKENDS = {
@@ -130,8 +132,8 @@ EVAL_CONSTS_BACKENDS = {
     "cupy": _cupy.evaluate_constants,
     "torch": _torch.evaluate_constants,
     "jax": _jax.evaluate_constants,
+    **_array_api.evaluate_constants,
 }
-
 
 def build_expression(backend, arrays, expr):
     """Build an expression, based on ``expr`` and initial arrays ``arrays``,

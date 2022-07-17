@@ -410,8 +410,13 @@ def _einsum(*operands, **kwargs):
 
 
 def _default_transpose(x: ArrayType, axes: Tuple[int, ...]) -> ArrayType:
-    #  most libraries implement a method version
-    return x.transpose(axes)
+    #  Many libraries implement a method version, but the array API-conforming arrys do not (as of 2021.12).
+    if hasattr(x, "transpose"):
+        return x.transpose(axes)
+    elif hasattr(x, '__array_namespace__'):
+        return x.__array_namespace__().permute_dims(x, axes)
+    else:
+        raise NotImplementedError(f"No implementation for transpose or equivalent found for {x}")
 
 
 @sharing.transpose_cache_wrap
@@ -543,7 +548,12 @@ def contract(*operands_: Any, **kwargs: Any) -> ArrayType:
 
 
 def infer_backend(x: Any) -> str:
-    return x.__class__.__module__.split(".")[0]
+    if hasattr(x, "__array_namespace__"):
+        # Having an ``__array_namespace__`` is a 'guarantee' from the developers of the given array's module that
+        # it conforms to the Python array API. Use this as a backend, if available.
+        return x.__array_namespace__().__name__
+    else:
+        return x.__class__.__module__.split(".")[0]
 
 
 def parse_backend(arrays: Sequence[ArrayType], backend: str) -> str:
