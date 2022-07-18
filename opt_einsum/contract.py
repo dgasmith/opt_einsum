@@ -414,7 +414,7 @@ def _default_transpose(x: ArrayType, axes: Tuple[int, ...]) -> ArrayType:
     #  Many libraries implement a method version, but the array API-conforming arrys do not (as of 2021.12).
     if hasattr(x, "transpose"):
         return x.transpose(axes)
-    elif hasattr(x, '__array_namespace__'):
+    elif hasattr(x, "__array_namespace__"):
         return x.__array_namespace__().permute_dims(x, axes)
     else:
         raise NotImplementedError(f"No implementation for transpose or equivalent found for {x}")

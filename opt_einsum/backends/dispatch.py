@@ -135,6 +135,7 @@ EVAL_CONSTS_BACKENDS = {
     **_array_api.evaluate_constants,
 }
 
+
 def build_expression(backend, arrays, expr):
     """Build an expression, based on ``expr`` and initial arrays ``arrays``,
     that evaluates using backend ``backend``.

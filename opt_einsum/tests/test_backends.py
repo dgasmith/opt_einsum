@@ -479,7 +479,7 @@ def test_object_arrays_backend(string):
 @pytest.mark.parametrize("string", tests)
 def test_array_api(array_api: ModuleType, string):  # pragma: no cover
     array_api_qname: str = array_api.__name__
-    
+
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -512,7 +512,9 @@ def test_array_api_with_constants(array_api: ModuleType, constants):  # pragma: 
     # check array API
     res_got = expr(var, backend=array_api_qname)
     # check array API versions of constants exist
-    assert all(array is None or infer_backend(array) == array_api_qname for array in expr._evaluated_constants[array_api_qname])
+    assert all(
+        array is None or infer_backend(array) == array_api_qname for array in expr._evaluated_constants[array_api_qname]
+    )
     assert np.allclose(res_exp, res_got)
 
     # check can call with numpy still
@@ -523,10 +525,10 @@ def test_array_api_with_constants(array_api: ModuleType, constants):  # pragma: 
     # NOTE: the array API standard does not require that the returned array is the same type as the input array,
     #       only that the returned array also obeys the array API standard. Indeed, the standard does not stipulate
     #       even a *name* for the array type.
-    # 
-    #       For this reason, we won't check the type of the returned array, but only that it is has an 
+    #
+    #       For this reason, we won't check the type of the returned array, but only that it is has an
     #       ``__array_namespace__`` attribute and hence claims to comply with standard.
-    #       
+    #
     #       In future versions, if einexpr uses newer array API features, we will also need to check that the
     #       returned array complies with the appropriate version of the standard.
     res_got3 = expr(array_api.asarray(var))
