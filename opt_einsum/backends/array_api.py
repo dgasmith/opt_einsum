@@ -40,12 +40,13 @@ def make_to_array_function(array_api: ModuleType) -> Callable:
 
 def make_build_expression_function(array_api: ModuleType) -> Callable:
     """Make a ``build_expression`` function for the given array API."""
+    _to_array_api = to_array_api[array_api.__name__]
 
     def build_expression(_, expr):  # pragma: no cover
         """Build an array API function based on ``arrays`` and ``expr``."""
 
         def array_api_contract(*arrays):
-            return expr._contract([make_to_array_function(array_api)(x) for x in arrays], backend=array_api.__name__)
+            return expr._contract([_to_array_api(x) for x in arrays], backend=array_api.__name__)
 
         return array_api_contract
 
@@ -53,10 +54,12 @@ def make_build_expression_function(array_api: ModuleType) -> Callable:
 
 
 def make_evaluate_constants_function(array_api: ModuleType) -> Callable:
+    _to_array_api = to_array_api[array_api.__name__]
+
     def evaluate_constants(const_arrays, expr):  # pragma: no cover
         """Convert constant arguments to cupy arrays, and perform any possible constant contractions."""
         return expr(
-            *[make_to_array_function(array_api)(x) for x in const_arrays],
+            *[_to_array_api(x) for x in const_arrays],
             backend=array_api.__name__,
             evaluate_constants=True,
         )
