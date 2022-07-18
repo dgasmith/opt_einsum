@@ -2,7 +2,6 @@
 Required functions for optimized contractions of arrays using array API-compliant backends.
 """
 import sys
-from importlib.metadata import entry_points
 from typing import Callable
 from types import ModuleType
 
@@ -13,12 +12,19 @@ from ..sharing import to_backend_cache_wrap
 
 def discover_array_apis():
     """Discover array API backends."""
-    if sys.version_info >= (3, 10):
-        eps = entry_points(group='array_api')
+    if sys.version_info >= (3, 8):
+        from importlib.metadata import entry_points
+
+        if sys.version_info >= (3, 10):
+            eps = entry_points(group="array_api")
+        else:
+            # Deprecated - will raise warning in Python versions >= 3.10
+            eps = entry_points().get("array_api", [])
+        return [ep.load() for ep in eps]
     else:
-        # Deprecated - will raise warning in Python versions >= 3.10
-        eps = entry_points().get('array_api', [])
-    return [ep.load() for ep in eps]
+        # importlib.metadata was introduced in Python 3.8, so it isn't available here. Unable to discover any array APIs.
+        return []
+
 
 def make_to_array(array_api: ModuleType) -> Callable:
     """Make a ``to_[array_api]`` function for the given array API."""
