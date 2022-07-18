@@ -4,6 +4,7 @@ Contains the primary optimization and contraction routines.
 
 from collections import namedtuple
 from decimal import Decimal
+from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from . import backends, blas, helpers, parser, paths, sharing
@@ -547,20 +548,25 @@ def contract(*operands_: Any, **kwargs: Any) -> ArrayType:
     return _core_contract(operands, contraction_list, backend=backend, **einsum_kwargs)
 
 
+@lru_cache(None)
+def _infer_backend_class_cached(cls: type) -> str:
+    return cls.__module__.split(".")[0]
+
+
 def infer_backend(x: Any) -> str:
     if hasattr(x, "__array_namespace__"):
         # Having an ``__array_namespace__`` is a 'guarantee' from the developers of the given array's module that
         # it conforms to the Python array API. Use this as a backend, if available.
         return x.__array_namespace__().__name__
     else:
-        return x.__class__.__module__.split(".")[0]
+        return _infer_backend_class_cached(x.__class__)
 
 
-def parse_backend(arrays: Sequence[ArrayType], backend: str) -> str:
+def parse_backend(arrays: Sequence[ArrayType], backend: Optional[str]) -> str:
     """Find out what backend we should use, dipatching based on the first
     array if ``backend='auto'`` is specified.
     """
-    if backend != "auto":
+    if (backend != "auto") and (backend is not None):
         return backend
     backend = infer_backend(arrays[0])
 
@@ -575,7 +581,7 @@ def parse_backend(arrays: Sequence[ArrayType], backend: str) -> str:
 def _core_contract(
     operands_: Sequence[ArrayType],
     contraction_list: ContractionListType,
-    backend: str = "auto",
+    backend: Optional[str] = "auto",
     evaluate_constants: bool = False,
     **einsum_kwargs: Any,
 ) -> ArrayType:
@@ -713,7 +719,7 @@ class ContractExpression:
         self._evaluated_constants: Dict[str, Any] = {}
         self._backend_expressions: Dict[str, Any] = {}
 
-    def evaluate_constants(self, backend: str = "auto") -> None:
+    def evaluate_constants(self, backend: Optional[str] = "auto") -> None:
         """Convert any constant operands to the correct backend form, and
         perform as many contractions as possible to create a new list of
         operands, stored in ``self._evaluated_constants[backend]``. This also
@@ -756,7 +762,7 @@ class ContractExpression:
         self,
         arrays: Sequence[ArrayType],
         out: Optional[ArrayType] = None,
-        backend: str = "auto",
+        backend: Optional[str] = "auto",
         evaluate_constants: bool = False,
     ) -> ArrayType:
         """The normal, core contraction."""
