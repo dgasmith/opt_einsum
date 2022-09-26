@@ -387,7 +387,9 @@ def parse_einsum_input(operands: Any, **kwargs: Any) -> Tuple[str, str, List[Arr
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(",")) != len(operands):
-        raise ValueError(f"Number of einsum subscripts, {len(input_subscripts.split(','))}, must be equal to the "
-                         f"number of operands, {len(operands)}.")
+        raise ValueError(
+            f"Number of einsum subscripts, {len(input_subscripts.split(','))}, must be equal to the "
+            f"number of operands, {len(operands)}."
+        )
 
     return input_subscripts, output_subscript, operands
