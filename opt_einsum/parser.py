@@ -306,8 +306,7 @@ def parse_einsum_input(operands: Any, **kwargs: Any) -> Tuple[str, str, List[Arr
 
     if isinstance(operands[0], str):
         subscripts = operands[0].replace(" ", "")
-        if not shapes:
-            operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
+        operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
     else:
         subscripts, operands = convert_interleaved_input(operands)
 
@@ -388,6 +387,7 @@ def parse_einsum_input(operands: Any, **kwargs: Any) -> Tuple[str, str, List[Arr
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(",")) != len(operands):
-        raise ValueError("Number of einsum subscripts must be equal to the " "number of operands.")
+        raise ValueError(f"Number of einsum subscripts, {len(input_subscripts.split(','))}, must be equal to the "
+                         f"number of operands, {len(operands)}.")
 
     return input_subscripts, output_subscript, operands
