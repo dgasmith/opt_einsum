@@ -262,9 +262,15 @@ def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
     return subscripts, operands
 
 
-def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
+def parse_einsum_input(operands: Any, **kwargs: Any) -> Tuple[str, str, List[ArrayType]]:
     """
     A reproduction of einsum c side einsum parsing in python.
+
+    **Parameters:**
+    Intakes the same inputs as `contract_path`, but NOT the keyword args. The only
+    supported keyword argument is:
+    - **shapes** - *(bool, optional)* Whether ``parse_einsum_input`` should assume arrays (the default) or
+        array shapes have been supplied.
 
     Returns
     -------
@@ -288,15 +294,27 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
     ('za,xza', 'xz', [a, b])
     """
 
+    # Make sure all keywords are valid
+    unknown_kwargs = set(kwargs) - {"shapes"}
+    if len(unknown_kwargs):
+        raise TypeError("parse_einsum_input: Did not understand the following kwargs: {}".format(unknown_kwargs))
+
+    shapes = kwargs.pop("shapes", False)
+
     if len(operands) == 0:
         raise ValueError("No input operands")
 
     if isinstance(operands[0], str):
         subscripts = operands[0].replace(" ", "")
-        operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
-
+        if not shapes:
+            operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
     else:
         subscripts, operands = convert_interleaved_input(operands)
+
+    if shapes:
+        operand_shapes = operands
+    else:
+        operand_shapes = [o.shape for o in operands]
 
     # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):
@@ -307,7 +325,7 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
     # Parse ellipses
     if "." in subscripts:
         used = subscripts.replace(".", "").replace(",", "").replace("->", "")
-        ellipse_inds = "".join(gen_unused_symbols(used, max(len(x.shape) for x in operands)))
+        ellipse_inds = "".join(gen_unused_symbols(used, max(len(x) for x in operand_shapes)))
         longest = 0
 
         # Do we have an output to account for?
@@ -325,10 +343,10 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
                     raise ValueError("Invalid Ellipses.")
 
                 # Take into account numerical values
-                if operands[num].shape == ():
+                if operand_shapes[num] == ():
                     ellipse_count = 0
                 else:
-                    ellipse_count = max(len(operands[num].shape), 1) - (len(sub) - 3)
+                    ellipse_count = max(len(operand_shapes[num]), 1) - (len(sub) - 3)
 
                 if ellipse_count > longest:
                     longest = ellipse_count
