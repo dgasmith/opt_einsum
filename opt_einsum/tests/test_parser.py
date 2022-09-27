@@ -18,7 +18,7 @@ def test_get_symbol():
 def test_parse_einsum_input():
     eq = "ab,bc,cd"
     ops = [np.random.rand(2, 3), np.random.rand(3, 4), np.random.rand(4, 5)]
-    input_subscripts, output_subscript, operands = parse_einsum_input(eq, *ops, shapes=True)
+    input_subscripts, output_subscript, operands = parse_einsum_input([eq, *ops], shapes=True)
     assert input_subscripts == eq
     assert output_subscript == "ad"
     assert operands == ops
@@ -27,7 +27,7 @@ def test_parse_einsum_input():
 def test_parse_einsum_input_shapes():
     eq = "ab,bc,cd"
     shps = [(2, 3), (3, 4), (4, 5)]
-    input_subscripts, output_subscript, operands = parse_einsum_input(eq, *shps, shapes=True)
+    input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shps], shapes=True)
     assert input_subscripts == eq
     assert output_subscript == "ad"
     assert np.allclose([possibly_convert_to_numpy(shp) for shp in shps], operands)
