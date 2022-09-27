@@ -262,7 +262,7 @@ def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
     return subscripts, operands
 
 
-def parse_einsum_input(operands: Any, **kwargs: Any) -> Tuple[str, str, List[ArrayType]]:
+def parse_einsum_input(*operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
     """
     A reproduction of einsum c side einsum parsing in python.
 
@@ -293,13 +293,6 @@ def parse_einsum_input(operands: Any, **kwargs: Any) -> Tuple[str, str, List[Arr
     >>> parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
     ('za,xza', 'xz', [a, b])
     """
-
-    # Make sure all keywords are valid
-    unknown_kwargs = set(kwargs) - {"shapes"}
-    if len(unknown_kwargs):
-        raise TypeError("parse_einsum_input: Did not understand the following kwargs: {}".format(unknown_kwargs))
-
-    shapes = kwargs.pop("shapes", False)
 
     if len(operands) == 0:
         raise ValueError("No input operands")

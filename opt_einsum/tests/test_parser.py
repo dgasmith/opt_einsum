@@ -2,7 +2,8 @@
 Directly tests various parser utility functions.
 """
 
-from opt_einsum.parser import get_symbol
+import numpy as np
+from opt_einsum.parser import get_symbol, parse_einsum_input, possibly_convert_to_numpy
 
 
 def test_get_symbol():
@@ -12,3 +13,21 @@ def test_get_symbol():
     assert get_symbol(55295) == "\ud88b"
     assert get_symbol(55296) == "\ue000"
     assert get_symbol(57343) == "\ue7ff"
+
+
+def test_parse_einsum_input():
+    eq = "ab,bc,cd"
+    ops = [np.random.rand(2, 3), np.random.rand(3, 4), np.random.rand(4, 5)]
+    input_subscripts, output_subscript, operands = parse_einsum_input(eq, *ops, shapes=True)
+    assert input_subscripts == eq
+    assert output_subscript == "ad"
+    assert operands == ops
+
+
+def test_parse_einsum_input_shapes():
+    eq = "ab,bc,cd"
+    shps = [(2, 3), (3, 4), (4, 5)]
+    input_subscripts, output_subscript, operands = parse_einsum_input(eq, *shps, shapes=True)
+    assert input_subscripts == eq
+    assert output_subscript == "ad"
+    assert np.allclose([possibly_convert_to_numpy(shp) for shp in shps], operands)
