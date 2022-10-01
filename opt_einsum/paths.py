@@ -1248,7 +1248,7 @@ class DynamicProgramming(PathOptimizer):
             # the set of n tensors is represented by a bitmap: if bit j is 1,
             # tensor j is in the set, e.g. 0b100101 = {0,2,5}; set unions
             # (intersections) can then be computed by bitwise or (and);
-            x: List[Any] = [None] * 2 + [dict() for j in range(len(g) - 1)]  # type: ignore
+            x: List[Any] = [None] * 2 + [dict() for j in range(len(g) - 1)]
             x[1] = OrderedDict((1 << j, (inputs[j], 0, inputs_contractions[j])) for j in g)
 
             # convert set of tensors g to a bitmap set:
