@@ -28,7 +28,7 @@ information.
 
 ## Example usage
 
-The [`opt_einsum.contract`](https://dgasmith.github.io/opt_einsum/api_reference.html#opt_einsumcontract)
+The [`opt_einsum.contract`](https://dgasmith.github.io/opt_einsum/api_reference#opt_einsumcontract)
 function can often act as a drop-in replacement for `einsum`
 functions without further changes to the code while providing superior performance.
 Here, a tensor contraction is performed with and without optimization:
@@ -50,7 +50,7 @@ I = np.random.rand(N, N, N, N)
 
 In this particular example, we see a ~3000x performance improvement which is
 not uncommon when compared against unoptimized contractions. See the [backend
-examples](https://dgasmith.github.io/opt_einsum/getting_started/backends.html)
+examples](https://dgasmith.github.io/opt_einsum/getting_started/backends)
 for more information on using other backends.
 
 ## Features
@@ -63,19 +63,19 @@ this repository often has more up to date algorithms for complex contractions.
 
 The following capabilities are enabled by `opt_einsum`:
 
-* Inspect [detailed information](https://dgasmith.github.io/opt_einsum/paths/introduction.html) about the path chosen.
-* Perform contractions with [numerous backends](https://dgasmith.github.io/opt_einsum/getting_started/backends.html), including on the GPU and with libraries such as [TensorFlow](https://www.tensorflow.org) and [PyTorch](https://pytorch.org).
-* Generate [reusable expressions](https://dgasmith.github.io/opt_einsum/getting_started/reusing_paths.html), potentially with [constant tensors](https://dgasmith.github.io/opt_einsum/getting_started/reusing_paths.html#specifying-constants), that can be compiled for greater performance.
-* Use an arbitrary number of indices to find contractions for [hundreds or even thousands of tensors](https://dgasmith.github.io/opt_einsum/examples/large_expr_with_greedy.html).
-* Share [intermediate computations](https://dgasmith.github.io/opt_einsum/getting_started/sharing_intermediates.html) among multiple contractions.
+* Inspect [detailed information](https://dgasmith.github.io/opt_einsum/paths/introduction) about the path chosen.
+* Perform contractions with [numerous backends](https://dgasmith.github.io/opt_einsum/getting_started/backends), including on the GPU and with libraries such as [TensorFlow](https://www.tensorflow.org) and [PyTorch](https://pytorch.org).
+* Generate [reusable expressions](https://dgasmith.github.io/opt_einsum/getting_started/reusing_paths), potentially with [constant tensors](https://dgasmith.github.io/opt_einsum/getting_started/reusing_paths#specifying-constants), that can be compiled for greater performance.
+* Use an arbitrary number of indices to find contractions for [hundreds or even thousands of tensors](https://dgasmith.github.io/opt_einsum/examples/large_expr_with_greedy).
+* Share [intermediate computations](https://dgasmith.github.io/opt_einsum/getting_started/sharing_intermediates) among multiple contractions.
 * Compute gradients of tensor contractions using [autograd](https://github.com/HIPS/autograd) or [jax](https://github.com/google/jax)
 
-Please see the [documentation](https://dgasmith.github.io/opt_einsum/index.html) for more features!
+Please see the [documentation](https://dgasmith.github.io/opt_einsum/index) for more features!
 
 ## Installation
 
 `opt_einsum` can either be installed via `pip install opt_einsum` or from conda `conda install opt_einsum -c conda-forge`.
-See the installation [documentation](https://dgasmith.github.io/opt_einsum/getting_started/install.html) for further methods.
+See the installation [documentation](https://dgasmith.github.io/opt_einsum/getting_started/install) for further methods.
 
 ## Citation
 
