@@ -299,6 +299,12 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
 
     if isinstance(operands[0], str):
         subscripts = operands[0].replace(" ", "")
+        if shapes:
+            if any([hasattr(o, "shape") for o in operands[1:]]):
+                raise ValueError(
+                    "shapes is set to True but given at least one operand looks like an array"
+                    " (at least one operand has a shape attribute). "
+                )
         operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
     else:
         subscripts, operands = convert_interleaved_input(operands)

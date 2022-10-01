@@ -24,6 +24,19 @@ def test_parse_einsum_input():
     assert operands == ops
 
 
+def test_parse_einsum_input_shapes_error():
+    eq = "ab,bc,cd"
+    ops = [np.random.rand(2, 3), np.random.rand(3, 4), np.random.rand(4, 5)]
+
+    try:
+        _ = parse_einsum_input([eq, *ops], shapes=True)
+    except ValueError:
+        return
+
+    # raise error when shapes is True but the operands still look like arrays
+    assert False
+
+
 def test_parse_einsum_input_shapes():
     eq = "ab,bc,cd"
     shps = [(2, 3), (3, 4), (4, 5)]
