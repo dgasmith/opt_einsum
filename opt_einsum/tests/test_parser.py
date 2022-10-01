@@ -2,7 +2,9 @@
 Directly tests various parser utility functions.
 """
 
+from multiprocessing.sharedctypes import Value
 import numpy as np
+import pytest
 from opt_einsum.parser import get_symbol, parse_einsum_input, possibly_convert_to_numpy
 
 
@@ -28,13 +30,8 @@ def test_parse_einsum_input_shapes_error():
     eq = "ab,bc,cd"
     ops = [np.random.rand(2, 3), np.random.rand(3, 4), np.random.rand(4, 5)]
 
-    try:
+    with pytest.raises(ValueError):
         _ = parse_einsum_input([eq, *ops], shapes=True)
-    except ValueError:
-        return
-
-    # raise error when shapes is True but the operands still look like arrays
-    assert False
 
 
 def test_parse_einsum_input_shapes():
