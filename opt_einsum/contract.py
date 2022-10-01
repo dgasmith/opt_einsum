@@ -129,7 +129,7 @@ def contract_path(*operands_: Any, **kwargs: Any) -> Tuple[PathType, PathInfo]:
     **Parameters:**
 
     - **subscripts** - *(str)* Specifies the subscripts for summation.
-    - **\\*operands** - *(list of array_like)* hese are the arrays for the operation.
+    - **\\*operands** - *(list of array_like)* these are the arrays for the operation.
     - **use_blas** - *(bool)* Do you use BLAS for valid operations, may use extra memory for more intermediates.
     - **optimize** - *(str, list or bool, optional (default: `auto`))* Choose the type of path.
 
@@ -251,7 +251,7 @@ def contract_path(*operands_: Any, **kwargs: Any) -> Tuple[PathType, PathInfo]:
     use_blas = kwargs.pop("use_blas", True)
 
     # Python side parsing
-    input_subscripts, output_subscript, operands = parser.parse_einsum_input(operands_)
+    input_subscripts, output_subscript, operands = parser.parse_einsum_input(operands_, shapes=shapes)
 
     # Build a few useful list and sets
     input_list = input_subscripts.split(",")

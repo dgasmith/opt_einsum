@@ -3,7 +3,7 @@ A functionally equivalent parser of the numpy.einsum input parser
 """
 
 import itertools
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import numpy as np
 
@@ -224,7 +224,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
+def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, List[Any]]:
     """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
@@ -262,9 +262,15 @@ def convert_interleaved_input(operands: List[Any]) -> Tuple[str, List[Any]]:
     return subscripts, operands
 
 
-def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
+def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
     """
     A reproduction of einsum c side einsum parsing in python.
+
+    **Parameters:**
+    Intakes the same inputs as `contract_path`, but NOT the keyword args. The only
+    supported keyword argument is:
+    - **shapes** - *(bool, optional)* Whether ``parse_einsum_input`` should assume arrays (the default) or
+        array shapes have been supplied.
 
     Returns
     -------
@@ -293,10 +299,20 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
 
     if isinstance(operands[0], str):
         subscripts = operands[0].replace(" ", "")
+        if shapes:
+            if any([hasattr(o, "shape") for o in operands[1:]]):
+                raise ValueError(
+                    "shapes is set to True but given at least one operand looks like an array"
+                    " (at least one operand has a shape attribute). "
+                )
         operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
-
     else:
         subscripts, operands = convert_interleaved_input(operands)
+
+    if shapes:
+        operand_shapes = operands
+    else:
+        operand_shapes = [o.shape for o in operands]
 
     # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):
@@ -307,7 +323,7 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
     # Parse ellipses
     if "." in subscripts:
         used = subscripts.replace(".", "").replace(",", "").replace("->", "")
-        ellipse_inds = "".join(gen_unused_symbols(used, max(len(x.shape) for x in operands)))
+        ellipse_inds = "".join(gen_unused_symbols(used, max(len(x) for x in operand_shapes)))
         longest = 0
 
         # Do we have an output to account for?
@@ -325,10 +341,10 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
                     raise ValueError("Invalid Ellipses.")
 
                 # Take into account numerical values
-                if operands[num].shape == ():
+                if operand_shapes[num] == ():
                     ellipse_count = 0
                 else:
-                    ellipse_count = max(len(operands[num].shape), 1) - (len(sub) - 3)
+                    ellipse_count = max(len(operand_shapes[num]), 1) - (len(sub) - 3)
 
                 if ellipse_count > longest:
                     longest = ellipse_count
@@ -370,6 +386,9 @@ def parse_einsum_input(operands: Any) -> Tuple[str, str, List[ArrayType]]:
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(",")) != len(operands):
-        raise ValueError("Number of einsum subscripts must be equal to the " "number of operands.")
+        raise ValueError(
+            f"Number of einsum subscripts, {len(input_subscripts.split(','))}, must be equal to the "
+            f"number of operands, {len(operands)}."
+        )
 
     return input_subscripts, output_subscript, operands
