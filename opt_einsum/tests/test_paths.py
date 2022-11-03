@@ -9,7 +9,7 @@ import sys
 import pytest
 
 import opt_einsum as oe
-from opt_einsum.testing import build_views, rand_equation, skip_if_not_numpy
+from opt_einsum.testing import build_views, import_numpy_or_skip, rand_equation
 
 explicit_path_tests = {
     "GEMM1": (
@@ -310,7 +310,7 @@ def test_dp_errors_when_no_contractions_found():
 
 @pytest.mark.parametrize("optimize", ["greedy", "branch-2", "branch-all", "optimal", "dp"])
 def test_can_optimize_outer_products(optimize):
-    np = skip_if_not_numpy()
+    np = import_numpy_or_skip()
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
     d = np.random.randn(10, 2)
     assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, optimize=optimize)[0] == [
@@ -332,7 +332,7 @@ def test_large_path(num_symbols):
 
 
 def test_custom_random_greedy():
-    np = skip_if_not_numpy()
+    np = import_numpy_or_skip()
     eq, shapes = rand_equation(10, 4, seed=42)
     views = list(map(np.ones, shapes))
 
@@ -371,7 +371,7 @@ def test_custom_random_greedy():
 
 
 def test_custom_branchbound():
-    np = skip_if_not_numpy()
+    np = import_numpy_or_skip()
     eq, shapes = rand_equation(8, 4, seed=42)
     views = list(map(np.ones, shapes))
     optimizer = oe.BranchBound(nbranch=2, cutoff_flops_factor=10, minimize="size")
@@ -405,7 +405,7 @@ def test_branchbound_validation():
 
 @pytest.mark.skipif(sys.version_info < (3, 2), reason="requires python3.2 or higher")
 def test_parallel_random_greedy():
-    np = skip_if_not_numpy()
+    np = import_numpy_or_skip()
     from concurrent.futures import ProcessPoolExecutor
 
     pool = ProcessPoolExecutor(2)
@@ -467,7 +467,7 @@ def test_custom_path_optimizer():
 
 
 def test_custom_random_optimizer():
-    np = skip_if_not_numpy()
+    np = import_numpy_or_skip()
 
     class NaiveRandomOptimizer(oe.path_random.RandomOptimizer):
         @staticmethod

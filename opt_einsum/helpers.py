@@ -151,7 +151,7 @@ def flop_count(
     return overall_size * op_factor
 
 
-def is_numpy_array(array: Any) -> Any:
+def has_array_interface(array: Any) -> Any:
     if hasattr(array, "__array_interface__"):
         return True
     else:

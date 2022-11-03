@@ -22,7 +22,7 @@ using_numpy = pytest.mark.skipif(
 )
 
 
-def skip_if_not_numpy() -> Any:
+def import_numpy_or_skip() -> Any:
     if not HAS_NUMPY:
         pytest.skip("Numpy not detected.")
     else:
@@ -52,8 +52,7 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
     (2, 3, 3, 5)
 
     """
-    skip_if_not_numpy()
-    import numpy as np
+    np = import_numpy_or_skip()
 
     if dimension_dict is None:
         dimension_dict = _default_dim_dict
@@ -127,9 +126,7 @@ def rand_equation(
      (9, 5, 3, 3, 9, 5)]
     """
 
-    skip_if_not_numpy()
-    import numpy as np
-
+    np = import_numpy_or_skip()
     if seed is not None:
         np.random.seed(seed)
 
@@ -189,6 +186,6 @@ def rand_equation(
 
 
 def build_arrays_from_tuples(path: PathType) -> List[Any]:
-    np = skip_if_not_numpy()
+    np = import_numpy_or_skip()
 
     return [np.random.rand(*x) for x in path]

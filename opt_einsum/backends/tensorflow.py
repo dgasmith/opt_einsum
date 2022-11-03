@@ -3,7 +3,7 @@ Required functions for optimized contractions of numpy arrays using tensorflow.
 """
 
 
-from ..helpers import is_numpy_array
+from ..helpers import has_array_interface
 from ..sharing import to_backend_cache_wrap
 
 __all__ = ["to_tensorflow", "build_expression", "evaluate_constants"]
@@ -40,13 +40,13 @@ def to_tensorflow(array, constant=False):
     tf, device, eager = _get_tensorflow_and_device()
 
     if eager:
-        if is_numpy_array(array):
+        if has_array_interface(array):
             with tf.device(device):
                 return tf.convert_to_tensor(array)
 
         return array
 
-    if is_numpy_array(array):
+    if has_array_interface(array):
         if constant:
             return tf.convert_to_tensor(array)
 

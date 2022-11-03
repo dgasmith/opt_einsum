@@ -2,7 +2,7 @@
 Required functions for optimized contractions of numpy arrays using theano.
 """
 
-from ..helpers import is_numpy_array
+from ..helpers import has_array_interface
 from ..sharing import to_backend_cache_wrap
 
 __all__ = ["to_theano", "build_expression", "evaluate_constants"]
@@ -13,7 +13,7 @@ def to_theano(array, constant=False):
     """Convert a numpy array to ``theano.tensor.TensorType`` instance."""
     import theano
 
-    if is_numpy_array(array):
+    if has_array_interface(array):
         if constant:
             return theano.tensor.constant(array)
 
