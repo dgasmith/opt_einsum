@@ -2,7 +2,6 @@
 Required functions for optimized contractions of numpy arrays using jax.
 """
 
-import numpy as np
 
 from ..sharing import to_backend_cache_wrap
 
@@ -33,6 +32,8 @@ def build_expression(_, expr):  # pragma: no cover
     jax_expr = jax.jit(expr._contract)
 
     def jax_contract(*arrays):
+        import numpy as np
+
         return np.asarray(jax_expr(arrays))
 
     return jax_contract

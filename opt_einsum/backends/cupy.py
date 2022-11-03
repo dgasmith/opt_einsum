@@ -2,8 +2,8 @@
 Required functions for optimized contractions of numpy arrays using cupy.
 """
 
-import numpy as np
 
+from ..helpers import is_numpy_array
 from ..sharing import to_backend_cache_wrap
 
 __all__ = ["to_cupy", "build_expression", "evaluate_constants"]
@@ -13,7 +13,7 @@ __all__ = ["to_cupy", "build_expression", "evaluate_constants"]
 def to_cupy(array):  # pragma: no cover
     import cupy
 
-    if isinstance(array, np.ndarray):
+    if is_numpy_array(array):
         return cupy.asarray(array)
 
     return array

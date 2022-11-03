@@ -7,8 +7,6 @@ constants.
 import importlib
 from typing import Any, Dict
 
-import numpy
-
 from . import cupy as _cupy
 from . import jax as _jax
 from . import object_arrays
@@ -57,14 +55,20 @@ def _import_func(func: str, backend: str, default: Any = None) -> Any:
 # manually cache functions as python2 doesn't support functools.lru_cache
 #     other libs will be added to this if needed, but pre-populate with numpy
 _cached_funcs = {
-    ("tensordot", "numpy"): numpy.tensordot,
-    ("transpose", "numpy"): numpy.transpose,
-    ("einsum", "numpy"): numpy.einsum,
-    # also pre-populate with the arbitrary object backend
-    ("tensordot", "object"): numpy.tensordot,
-    ("transpose", "object"): numpy.transpose,
     ("einsum", "object"): object_arrays.object_einsum,
 }
+
+try:
+    import numpy as np
+
+    _cached_funcs[("tensordot", "numpy")] = np.tensordot
+    _cached_funcs[("transpose", "numpy")] = np.transpose
+    _cached_funcs[("einsum", "numpy")] = np.einsum
+    # also pre-populate with the arbitrary object backend
+    _cached_funcs[("tensordot", "object")] = np.tensordot
+    _cached_funcs[("transpose", "object")] = np.transpose
+except ModuleNotFoundError:
+    pass
 
 
 def get_func(func: str, backend: str = "numpy", default: Any = None) -> Any:
