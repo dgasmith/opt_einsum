@@ -2,10 +2,10 @@
 Directly tests various parser utility functions.
 """
 
-import numpy as np
 import pytest
 
 from opt_einsum.parser import get_symbol, parse_einsum_input, possibly_convert_to_numpy
+from opt_einsum.testing import build_arrays_from_tuples, using_numpy
 
 
 def test_get_symbol():
@@ -19,7 +19,7 @@ def test_get_symbol():
 
 def test_parse_einsum_input():
     eq = "ab,bc,cd"
-    ops = [np.random.rand(2, 3), np.random.rand(3, 4), np.random.rand(4, 5)]
+    ops = build_arrays_from_tuples([(2, 3), (3, 4), (4, 5)])
     input_subscripts, output_subscript, operands = parse_einsum_input([eq, *ops])
     assert input_subscripts == eq
     assert output_subscript == "ad"
@@ -28,13 +28,16 @@ def test_parse_einsum_input():
 
 def test_parse_einsum_input_shapes_error():
     eq = "ab,bc,cd"
-    ops = [np.random.rand(2, 3), np.random.rand(3, 4), np.random.rand(4, 5)]
+    ops = build_arrays_from_tuples([(2, 3), (3, 4), (4, 5)])
 
     with pytest.raises(ValueError):
         _ = parse_einsum_input([eq, *ops], shapes=True)
 
 
+@using_numpy
 def test_parse_einsum_input_shapes():
+    import numpy as np
+
     eq = "ab,bc,cd"
     shps = [(2, 3), (3, 4), (4, 5)]
     input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shps], shapes=True)

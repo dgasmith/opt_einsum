@@ -5,8 +5,6 @@ A functionally equivalent parser of the numpy.einsum input parser
 import itertools
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
-import numpy as np
-
 from .typing import ArrayType, TensorShapeType
 
 __all__ = [
@@ -197,6 +195,7 @@ def possibly_convert_to_numpy(x: Any) -> Any:
     >>> oe.parser.possibly_convert_to_numpy(myshape)
     <__main__.Shape object at 0x10f850710>
     """
+    import numpy as np
 
     if not hasattr(x, "shape"):
         return np.asanyarray(x)

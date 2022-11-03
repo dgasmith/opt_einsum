@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 from opt_einsum import backends, contract, contract_expression, sharing

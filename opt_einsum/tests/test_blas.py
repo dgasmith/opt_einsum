@@ -2,10 +2,10 @@
 Tests the BLAS capability for the opt_einsum module.
 """
 
-import numpy as np
 import pytest
 
 from opt_einsum import blas, contract
+from opt_einsum.testing import using_numpy
 
 blas_tests = [
     # DOT
@@ -64,7 +64,10 @@ def test_can_blas(inp, benchmark):
     assert result == benchmark
 
 
+@using_numpy
 def test_blas_out():
+    import numpy as np
+
     a = np.random.rand(4, 4)
     b = np.random.rand(4, 4)
     c = np.random.rand(4, 4)
