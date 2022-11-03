@@ -7,6 +7,7 @@ import pytest
 
 from opt_einsum import contract, contract_expression, contract_path, helpers
 from opt_einsum.paths import _PATH_OPTIONS, linear_to_ssa, ssa_to_linear
+from opt_einsum.testing import build_views
 
 tests = [
     # Test scalar-like operations
@@ -96,7 +97,7 @@ tests = [
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare(optimize, string):
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract(string, *views, optimize=False, use_blas=False)
     opt = contract(string, *views, optimize=optimize, use_blas=False)
@@ -105,7 +106,7 @@ def test_compare(optimize, string):
 
 @pytest.mark.parametrize("string", tests)
 def test_drop_in_replacement(string):
-    views = helpers.build_views(string)
+    views = build_views(string)
     opt = contract(string, *views)
     assert np.allclose(opt, np.einsum(string, *views))
 
@@ -113,7 +114,7 @@ def test_drop_in_replacement(string):
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_greek(optimize, string):
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract(string, *views, optimize=False, use_blas=False)
 
@@ -127,7 +128,7 @@ def test_compare_greek(optimize, string):
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_blas(optimize, string):
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(string, *views, optimize=optimize)
@@ -137,7 +138,7 @@ def test_compare_blas(optimize, string):
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_blas_greek(optimize, string):
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract(string, *views, optimize=False)
 
@@ -159,7 +160,7 @@ def test_some_non_alphabet_maintains_order():
 
 def test_printing():
     string = "bbd,bda,fc,db->acf"
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract_path(string, *views)
     assert len(str(ein[1])) == 728
@@ -170,14 +171,14 @@ def test_printing():
 @pytest.mark.parametrize("use_blas", [False, True])
 @pytest.mark.parametrize("out_spec", [False, True])
 def test_contract_expressions(string, optimize, use_blas, out_spec):
-    views = helpers.build_views(string)
+    views = build_views(string)
     shapes = [view.shape if hasattr(view, "shape") else tuple() for view in views]
     expected = contract(string, *views, optimize=False, use_blas=False)
 
     expr = contract_expression(string, *shapes, optimize=optimize, use_blas=use_blas)
 
     if out_spec and ("->" in string) and (string[-2:] != "->"):
-        (out,) = helpers.build_views(string.split("->")[1])
+        (out,) = build_views(string.split("->")[1])
         expr(*views, out=out)
     else:
         out = expr(*views)
@@ -211,7 +212,7 @@ def test_contract_expression_interleaved_input():
     ],
 )
 def test_contract_expression_with_constants(string, constants):
-    views = helpers.build_views(string)
+    views = build_views(string)
     expected = contract(string, *views, optimize=False, use_blas=False)
 
     shapes = [view.shape if hasattr(view, "shape") else tuple() for view in views]
@@ -236,8 +237,8 @@ def test_contract_expression_with_constants(string, constants):
 @pytest.mark.parametrize("n_out", [0, 2, 4])
 @pytest.mark.parametrize("global_dim", [False, True])
 def test_rand_equation(optimize, n, reg, n_out, global_dim):
-    eq, _, size_dict = helpers.rand_equation(n, reg, n_out, d_min=2, d_max=5, seed=42, return_size_dict=True)
-    views = helpers.build_views(eq, size_dict)
+    eq, _, size_dict = helpers.build_viewsrand_equation(n, reg, n_out, d_min=2, d_max=5, seed=42, return_size_dict=True)
+    views = build_views(eq, size_dict)
 
     expected = contract(eq, *views, optimize=False)
     actual = contract(eq, *views, optimize=optimize)
@@ -247,7 +248,7 @@ def test_rand_equation(optimize, n, reg, n_out, global_dim):
 
 @pytest.mark.parametrize("equation", tests)
 def test_linear_vs_ssa(equation):
-    views = helpers.build_views(equation)
+    views = build_views(equation)
     linear_path, _ = contract_path(equation, *views)
     ssa_path = linear_to_ssa(linear_path)
     linear_path2 = ssa_to_linear(ssa_path)

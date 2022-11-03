@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-from opt_einsum import backends, contract, contract_expression, helpers, sharing
+from opt_einsum import backends, contract, contract_expression, sharing
 from opt_einsum.contract import Shaped, infer_backend, parse_backend
+from opt_einsum.testing import build_views
 
 try:
     import cupy
@@ -72,7 +73,7 @@ tests = [
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow(string):
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     opt = np.empty_like(ein)
 
@@ -123,7 +124,7 @@ def test_tensorflow_with_constants(constants):
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow_with_sharing(string):
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     shps = [v.shape for v in views]
@@ -148,7 +149,7 @@ def test_tensorflow_with_sharing(string):
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano(string):
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -192,7 +193,7 @@ def test_theano_with_constants(constants):
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano_with_sharing(string):
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     shps = [v.shape for v in views]
@@ -215,7 +216,7 @@ def test_theano_with_sharing(string):
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_cupy(string):  # pragma: no cover
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -262,7 +263,7 @@ def test_cupy_with_constants(constants):  # pragma: no cover
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_jax(string):  # pragma: no cover
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -339,7 +340,7 @@ def test_autograd_gradient():
 def test_dask(string):
     da = pytest.importorskip("dask.array")
 
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
     expr = contract_expression(string, *shps, optimize=True)
@@ -363,7 +364,7 @@ def test_dask(string):
 def test_sparse(string):
     sparse = pytest.importorskip("sparse")
 
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     # sparsify views so they don't become dense during contraction
     for view in views:
@@ -394,7 +395,7 @@ def test_sparse(string):
 @pytest.mark.parametrize("string", tests)
 def test_torch(string):
 
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -448,7 +449,7 @@ def test_auto_backend_custom_array_no_tensordot():
 
 @pytest.mark.parametrize("string", tests)
 def test_object_arrays_backend(string):
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     assert ein.dtype != object
 
