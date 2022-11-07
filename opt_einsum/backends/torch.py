@@ -48,6 +48,9 @@ def einsum(equation, *operands):
     equation = convert_to_valid_einsum_chars(equation)
 
     torch, _ = _get_torch_and_device()
+    # disable opt_einsum in torch so that it does not recompute any path
+    if hasattr(torch, "backends") and hasattr(torch.backends, "opt_einsum"):
+        torch.backends.opt_einsum.enabled = False
     return torch.einsum(equation, operands)
 
 
