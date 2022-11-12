@@ -6,8 +6,7 @@ from .parser import find_output_str
 
 
 def multiply(*xs):
-    """Functional version of ``x[0] * x[1] * ...``.
-    """
+    """Functional version of ``x[0] * x[1] * ...``."""
     return functools.reduce(operator.mul, xs)
 
 
