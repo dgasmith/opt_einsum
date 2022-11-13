@@ -1,8 +1,13 @@
 import operator
 import functools
+import collections
 
 from .backends import get_func
 from .parser import find_output_str
+
+
+def unique(it):
+    return dict.fromkeys(it).keys()
 
 
 def multiply(*xs):
@@ -21,6 +26,9 @@ class Lazy:
         self.args = args
 
     def compute(self):
+        """Compute the result of this lazy node, first computing all lazy
+        children.
+        """
         return self.f(
             *(
                 arg.compute() if isinstance(arg, Lazy) else arg
@@ -30,6 +38,27 @@ class Lazy:
 
     def __repr__(self):
         return f"Lazy('{self.inds}', {self.f}, {self.args})"
+
+
+class SimplifyExpression:
+
+    def __init__(self, lazy_inputs, lazy_outputs):
+        self.lazy_inputs = lazy_inputs
+        self.lazy_outputs = lazy_outputs
+
+    def __call__(self, arrays):
+        for a, lz in zip(arrays, self.lazy_inputs):
+            # inject arrays
+            lz.args = (a,)
+        # materialize the new terms
+        return tuple(lz.compute() for lz in self.lazy_outputs)
+
+    def __repr__(self):
+        return (
+            f"SimplifyExpression('"
+            f"{','.join(lz.inds for lz in self.lazy_inputs)}->"
+            f"{','.join(lz.inds for lz in self.lazy_outputs)}')"
+        )
 
 
 def make_simplifier(*args, backend="numpy"):
@@ -98,97 +127,109 @@ def make_simplifier(*args, backend="numpy"):
             output = find_output_str(inputs)
         terms = inputs.split(",")
 
+    # initial maps of where indices and whole terms appear
+    ind_appearances = collections.defaultdict(set)
+    term_appearances = collections.defaultdict(set)
+    queue = []
+    for t, term in enumerate(terms):
+        queue.append(t)
+        term_appearances[term].add(t)
+        for ix in term:
+            ind_appearances[ix].add(t)
+    for ix in output:
+        ind_appearances[ix].add(-1)
+
     # want to make everything lazy
     lazy_inputs = [Lazy(term, lambda x: x) for term in terms]
-    lazy_temps = lazy_inputs.copy()
+    lazy_temps = dict(enumerate(lazy_inputs))
 
-    # first work out which indices only appear on a single term
-    appears_once = set(output)  # ... and not the output
-    appears_many = set()
-    uterms = []
-    for term in terms:
-        uterm = []
-        for ind in term:
-            if ind not in uterm:
-                # also build the unique inds of each term
-                uterm.append(ind)
-            else:
-                # already check for this term
-                continue
-            if ind in appears_once:
-                # seeing for the second time
-                appears_once.remove(ind)
-                appears_many.add(ind)
-            elif ind not in appears_many:
-                # first time we've seen this index
-                appears_once.add(ind)
-            # else seen twice or more - nothing to do
-        uterms.append(uterm)
+    # flag to check if we should keep looping
+    should_run = True
+    while should_run:
+        should_run = False
 
-    # track post reduction indices
-    post_reduce_appearances = {}
+        # XXX: only iterate over t we need to check, not everything?
+        for t, lz in lazy_temps.items():
+            term = lz.inds
+            reduced = ""
+            # unique call takes care of tracing
+            for ix in unique(term):
+                if len(ind_appearances[ix]) == 1:
+                    # ind guaranteed only appears here - remove
+                    del ind_appearances[ix]
+                else:
+                    # keep after reduction
+                    reduced += ix
 
-    # first pass to perform single term reductions
-    for t, (term, uterm) in enumerate(zip(terms, uterms)):
-        new = "".join(ix for ix in uterm if ix not in appears_once)
-        if new != term:
-            # do reduction
-            f = functools.partial(
-                get_func("einsum", backend), f"{term}->{new}"
-            )
-            lazy_temps[t] = Lazy(new, f, lazy_inputs[t])
-
-        # collect duplicate terms
-        post_reduce_appearances.setdefault(new, []).append(t)
-
-    # second pass to perform multi term reductions
-    for term, where in post_reduce_appearances.items():
-        if len(term) == 0:
-            # all the scalars -> multiply into smallest other term
-            try:
-                _, first, lz = min(
-                    (len(lz.inds), t, lz)
-                    for t, lz in enumerate(lazy_temps)
-                    if (lz is not None) and (lz.inds != "")
+            if reduced != term:
+                # perform reduction (summing and/or tracing)
+                f = functools.partial(
+                    get_func("einsum", backend), f"{term}->{reduced}"
                 )
-                args = (lz, *(lazy_temps[t] for t in where))
-                rest = where
-                inds = lz.inds
-            except ValueError:
-                # which may not exist... (all inputs are scalars)
-                first, *rest = where
-                args = tuple(lazy_inputs[t] for t in where)
-                inds = ""
+                # replace with new reduce lazy node
+                lazy_temps[t] = Lazy(reduced, f, lz)
 
-            lazy_temps[first] = Lazy(inds, multiply, *args)
-            for t in rest:
-                lazy_temps[t] = None
+                # update maps
+                t_aps = term_appearances[term]
+                if len(t_aps) == 1:
+                    # entry would be empty set
+                    del term_appearances[term]
+                else:
+                    t_aps.remove(t)
+                term_appearances[reduced].add(t)
 
-        elif len(where) > 1:
-            args = [lazy_temps[t] for t in where]
-            first, *rest = where
-            lazy_temps[first] = Lazy(term, multiply, *args)
-            for t in rest:
-                lazy_temps[t] = None
+        # check multi term reductions
+        for term, where in tuple(term_appearances.items()):
+            if term == '':
+                # all the scalars
+                try:
+                    # try to multiply into smallest term
+                    _, first, lz = min(
+                        (len(lz.inds), t, lz)
+                        for t, lz in lazy_temps.items()
+                        if (lz is not None) and (lz.inds != "")
+                    )
+                    inds = lz.inds
+                    args = (lz, *map(lazy_temps.pop, where))
+                except ValueError:
+                    # which may not exist... (if all inputs are scalars)
+                    # multiply into a single scalar instead
+                    first = min(where)
+                    inds = ""
+                    args = map(lazy_temps.pop, where)
+                lazy_temps[first] = Lazy(inds, multiply, *args)
+                term_appearances.pop(term)
 
-    # finally filter out removed terms
+            elif len(where) > 1:
+                # hadamard deduplication
+                first = min(where)
+                args = []
+                rest = set()
+                for t in where:
+                    if t == first:
+                        # don't pop the first to maintain order
+                        args.append(lazy_temps[t])
+                    else:
+                        args.append(lazy_temps.pop(t))
+                        rest.add(t)
+                lazy_temps[first] = Lazy(term, multiply, *args)
+                term_appearances[term] = {first}
+                for ix in term:
+                    ind_appearances[ix] -= rest
+
+                # we only need to run again if we did hadamard deduplication
+                should_run = True
+
+    # get the final terms and lazy nodes
     new_terms = []
     lazy_outputs = []
-    for lz in lazy_temps:
-        if lz is not None:
-            new_terms.append(lz.inds)
-            lazy_outputs.append(lz)
-
-    def simplifier(arrays):
-        for a, lz in zip(arrays, lazy_inputs):
-            # inject arrays
-            lz.args = (a,)
-        # materialize the new terms
-        return [lz.compute() for lz in lazy_outputs]
+    for lz in lazy_temps.values():
+        new_terms.append(lz.inds)
+        lazy_outputs.append(lz)
 
     # return new equation in same specifcation, and the simplifier
     if format == 0:
-        new = terms, output
+        new = new_terms, output
     elif format == 1:
         new = ",".join(new_terms), output
     else:  # format == 2,3:
@@ -196,4 +237,4 @@ def make_simplifier(*args, backend="numpy"):
         # e.g. 'ab,ab' after simplification requires 'ab->' not 'ab'
         new = ",".join(new_terms) + "->" + output
 
-    return new, simplifier
+    return new, SimplifyExpression(lazy_inputs, lazy_outputs)
