@@ -7,6 +7,7 @@ from .parser import find_output_str
 
 
 def unique(it):
+    """Iterate over the unique, ordered elements of ``it``."""
     return dict.fromkeys(it).keys()
 
 
@@ -41,23 +42,26 @@ class Lazy:
 
 
 class SimplifyExpression:
+    """A callable object that transforms a list of arrays into a new simplified
+    list of arrays.
+    """
 
     def __init__(self, lazy_inputs, lazy_outputs):
-        self.lazy_inputs = lazy_inputs
-        self.lazy_outputs = lazy_outputs
+        self._lazy_inputs = lazy_inputs
+        self._lazy_outputs = lazy_outputs
 
     def __call__(self, arrays):
-        for a, lz in zip(arrays, self.lazy_inputs):
+        for a, lz in zip(arrays, self._lazy_inputs):
             # inject arrays
             lz.args = (a,)
-        # materialize the new terms
-        return tuple(lz.compute() for lz in self.lazy_outputs)
+        # recursively materialize the new terms
+        return tuple(lz.compute() for lz in self._lazy_outputs)
 
     def __repr__(self):
         return (
             f"SimplifyExpression('"
-            f"{','.join(lz.inds for lz in self.lazy_inputs)}->"
-            f"{','.join(lz.inds for lz in self.lazy_outputs)}')"
+            f"{','.join(lz.inds for lz in self._lazy_inputs)}->"
+            f"{','.join(lz.inds for lz in self._lazy_outputs)}')"
         )
 
 
@@ -180,7 +184,7 @@ def make_simplifier(*args, backend="numpy"):
 
         # check multi term reductions
         for term, where in tuple(term_appearances.items()):
-            if term == '':
+            if term == "":
                 # all the scalars
                 try:
                     # try to multiply into smallest term
