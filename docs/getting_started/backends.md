@@ -1,12 +1,12 @@
 # Backends & GPU Support
 
-`opt_einsum` is quite agnostic to the type of n-dimensional arrays (tensors)
+`opt_einsum` is largely agnostic to the type of n-dimensional arrays (tensors)
 it uses, since finding the contraction path only relies on getting the shape
 attribute of each array supplied.
 It can perform the underlying tensor contractions with various
 libraries. In fact, any library that provides a `numpy.tensordot` and
 `numpy.transpose` implementation can perform most normal contractions.
-While more special functionality such as axes reduction is reliant on a
+However, certain special functionalities such as axes reduction are reliant on a
 `numpy.einsum` implementation.
 The following is a brief overview of libraries which have been tested with
 `opt_einsum`:
@@ -26,20 +26,11 @@ The following is a brief overview of libraries which have been tested with
 - [jax](https://github.com/google/jax): compiled GPU tensor expressions
   including `autograd`-like functionality
 
-`opt_einsum` is agnostic to the type of n-dimensional arrays (tensors)
-it uses, since finding the contraction path only relies on getting the shape
-attribute of each array supplied.
-It can perform the underlying tensor contractions with various
-libraries. In fact, any library that provides a `numpy.tensordot` and
-`~numpy.transpose` implementation can perform most normal contractions.
-While more special functionality such as axes reduction is reliant on a
-`numpy.einsum` implementation.
-
 !!! note
     For a contraction to be possible without using a backend einsum, it must
     satisfy the following rule: in the full expression (*including* output
     indices) each index must appear twice. In other words, each dimension
-    must be contracted with one other dimension, or left alone.
+    must be either contracted with one other dimension or left alone.
 
 
 ## Backend agnostic contractions
