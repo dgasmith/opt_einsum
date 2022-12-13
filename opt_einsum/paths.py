@@ -13,8 +13,6 @@ from typing import Any, Callable
 from typing import Counter as CounterType
 from typing import Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tuple, Union
 
-import numpy as np
-
 from .helpers import compute_size_by_dict, flop_count
 from .typing import ArrayIndexType, PathType
 
@@ -98,12 +96,23 @@ def ssa_to_linear(ssa_path: PathType) -> PathType:
     #> [(0, 3), (1, 2), (0, 1)]
     ```
     """
-    ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)  # type: ignore
+    # ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)  # type: ignore
+    # path = []
+    # for ssa_ids in ssa_path:
+    #     path.append(tuple(int(ids[ssa_id]) for ssa_id in ssa_ids))
+    #     for ssa_id in ssa_ids:
+    #         ids[ssa_id:] -= 1
+    N = sum(map(len, ssa_path)) - len(ssa_path) + 1
+    ids = list(range(N))
     path = []
-    for ssa_ids in ssa_path:
-        path.append(tuple(int(ids[ssa_id]) for ssa_id in ssa_ids))
-        for ssa_id in ssa_ids:
-            ids[ssa_id:] -= 1
+    ssa = N
+    for scon in ssa_path:
+        con = sorted(map(ids.index, scon))
+        for j in reversed(con):
+            ids.pop(j)
+        ids.append(ssa)
+        path.append(con)
+        ssa += 1
     return path
 
 

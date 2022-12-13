@@ -5,11 +5,12 @@ from collections import Counter
 import numpy as np
 import pytest
 
-from opt_einsum import contract, contract_expression, contract_path, get_symbol, helpers, shared_intermediates
+from opt_einsum import contract, contract_expression, contract_path, get_symbol, shared_intermediates
 from opt_einsum.backends import to_cupy, to_torch
 from opt_einsum.contract import _einsum
 from opt_einsum.parser import parse_einsum_input
 from opt_einsum.sharing import count_cached_ops, currently_sharing, get_sharing_cache
+from opt_einsum.testing import build_views
 
 try:
     import cupy  # noqa
@@ -47,7 +48,7 @@ to_backend = {
 @pytest.mark.parametrize("eq", equations)
 @pytest.mark.parametrize("backend", backends)
 def test_sharing_value(eq, backend):
-    views = helpers.build_views(eq)
+    views = build_views(eq)
     shapes = [v.shape for v in views]
     expr = contract_expression(eq, *shapes)
 
@@ -61,7 +62,7 @@ def test_sharing_value(eq, backend):
 @pytest.mark.parametrize("backend", backends)
 def test_complete_sharing(backend):
     eq = "ab,bc,cd->"
-    views = helpers.build_views(eq)
+    views = build_views(eq)
     expr = contract_expression(eq, *(v.shape for v in views))
 
     print("-" * 40)
@@ -86,7 +87,7 @@ def test_complete_sharing(backend):
 @pytest.mark.parametrize("backend", backends)
 def test_sharing_reused_cache(backend):
     eq = "ab,bc,cd->"
-    views = helpers.build_views(eq)
+    views = build_views(eq)
     expr = contract_expression(eq, *(v.shape for v in views))
 
     print("-" * 40)
@@ -112,7 +113,7 @@ def test_sharing_reused_cache(backend):
 @pytest.mark.parametrize("backend", backends)
 def test_no_sharing_separate_cache(backend):
     eq = "ab,bc,cd->"
-    views = helpers.build_views(eq)
+    views = build_views(eq)
     expr = contract_expression(eq, *(v.shape for v in views))
 
     print("-" * 40)
@@ -140,7 +141,7 @@ def test_no_sharing_separate_cache(backend):
 @pytest.mark.parametrize("backend", backends)
 def test_sharing_nesting(backend):
     eqs = ["ab,bc,cd->a", "ab,bc,cd->b", "ab,bc,cd->c", "ab,bc,cd->c"]
-    views = helpers.build_views(eqs[0])
+    views = build_views(eqs[0])
     shapes = [v.shape for v in views]
     refs = weakref.WeakValueDictionary()
 
@@ -179,7 +180,7 @@ def test_sharing_nesting(backend):
 @pytest.mark.parametrize("eq", equations)
 @pytest.mark.parametrize("backend", backends)
 def test_sharing_modulo_commutativity(eq, backend):
-    ops = helpers.build_views(eq)
+    ops = build_views(eq)
     ops = [to_backend[backend](x) for x in ops]
     inputs, output, _ = parse_einsum_input([eq] + ops)
     inputs = inputs.split(",")
@@ -209,7 +210,7 @@ def test_sharing_modulo_commutativity(eq, backend):
 @pytest.mark.parametrize("backend", backends)
 def test_partial_sharing(backend):
     eq = "ab,bc,de->"
-    x, y, z1 = helpers.build_views(eq)
+    x, y, z1 = build_views(eq)
     z2 = 2.0 * z1 - 1.0
     expr = contract_expression(eq, x.shape, y.shape, z1.shape)
 
@@ -364,7 +365,7 @@ def test_multithreaded_sharing():
     from multiprocessing.pool import ThreadPool
 
     def fn():
-        X, Y, Z = helpers.build_views("ab,bc,cd")
+        X, Y, Z = build_views("ab,bc,cd")
 
         with shared_intermediates():
             contract("ab,bc,cd->a", X, Y, Z)
