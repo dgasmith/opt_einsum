@@ -1,5 +1,5 @@
 """
-Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
+Tests a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
 import numpy as np

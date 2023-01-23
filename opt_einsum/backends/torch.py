@@ -6,6 +6,7 @@ import numpy as np
 
 from ..parser import convert_to_valid_einsum_chars
 from ..sharing import to_backend_cache_wrap
+from functools import lru_cache
 
 __all__ = [
     "transpose",
@@ -40,18 +41,27 @@ def transpose(a, axes):
     """Normal torch transpose is only valid for 2D matrices."""
     return a.permute(*axes)
 
+@lru_cache(None)
+def get_einsum():
+    torch, _ = _get_torch_and_device()
+    if hasattr(torch, "_VF") and hasattr(torch._VF, "einsum"):
+        print("called")
+        return torch._VF.einsum
+
+    def einsum_no_opt(*args, **kwargs):
+        if hasattr(torch, "backends") and hasattr(torch.backends, "opt_einsum"):
+            with torch.backends.opt_einsum.flags(enabled=False):
+                return torch.einsum(*args, **kwargs)
+        return torch.einsum(*args, **kwargs)
+    return einsum_no_opt
+
 
 def einsum(equation, *operands):
     """Variadic version of torch.einsum to match numpy api."""
     # rename symbols to support PyTorch 0.4.1 and earlier,
     # which allow only symbols a-z.
     equation = convert_to_valid_einsum_chars(equation)
-
-    torch, _ = _get_torch_and_device()
-    # disable opt_einsum in torch so that it does not recompute any path
-    if hasattr(torch, "backends") and hasattr(torch.backends, "opt_einsum"):
-        torch.backends.opt_einsum.enabled = False
-    return torch.einsum(equation, operands)
+    return get_einsum()(equation, operands)
 
 
 def tensordot(x, y, axes=2):
