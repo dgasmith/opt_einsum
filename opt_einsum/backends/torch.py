@@ -41,18 +41,21 @@ def transpose(a, axes):
     """Normal torch transpose is only valid for 2D matrices."""
     return a.permute(*axes)
 
+
 @lru_cache(None)
 def get_einsum():
     torch, _ = _get_torch_and_device()
     if hasattr(torch, "_VF") and hasattr(torch._VF, "einsum"):
         print("called")
         return torch._VF.einsum
+    print("did not get called")
 
     def einsum_no_opt(*args, **kwargs):
         if hasattr(torch, "backends") and hasattr(torch.backends, "opt_einsum"):
             with torch.backends.opt_einsum.flags(enabled=False):
                 return torch.einsum(*args, **kwargs)
         return torch.einsum(*args, **kwargs)
+
     return einsum_no_opt
 
 
