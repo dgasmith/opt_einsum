@@ -46,16 +46,18 @@ def transpose(a, axes):
 def get_einsum():
     torch, _ = _get_torch_and_device()
     if hasattr(torch, "_VF") and hasattr(torch._VF, "einsum"):
-        print("called")
+        print("returning VF")
         return torch._VF.einsum
-    print("did not get called")
 
+    if not hasattr(torch, "backends") or not hasattr(torch.backends, "opt_einsum"):
+        print("returning normal torch")
+        return torch.einsum
+    
     def einsum_no_opt(*args, **kwargs):
-        if hasattr(torch, "backends") and hasattr(torch.backends, "opt_einsum"):
-            with torch.backends.opt_einsum.flags(enabled=False):
-                return torch.einsum(*args, **kwargs)
-        return torch.einsum(*args, **kwargs)
-
+        with torch.backends.opt_einsum.flags(enabled=False):
+            return torch.einsum(*args, **kwargs)
+    
+    print("returning normal torch with opt off")
     return einsum_no_opt
 
 
