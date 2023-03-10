@@ -66,7 +66,6 @@ def test_can_blas(inp, benchmark):
 
 @pytest.mark.parametrize("inp,benchmark", blas_tests)
 def test_tensor_blas(inp, benchmark):
-
     # Weed out non-blas cases
     if benchmark is False:
         return

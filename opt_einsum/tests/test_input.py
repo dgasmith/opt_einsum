@@ -161,7 +161,6 @@ def test_value_errors():
 
 
 def test_contract_inputs():
-
     with pytest.raises(TypeError):
         contract_path("i->i", [[0, 1], [0, 1]], bad_kwarg=True)
 
