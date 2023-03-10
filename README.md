@@ -21,7 +21,7 @@ operations to canonical BLAS, cuBLAS, or other specialized routines.
 
 Optimized
 einsum is agnostic to the backend and can handle NumPy, Dask, PyTorch,
-Tensorflow, CuPy, Sparse, Theano, JAX, and Autograd arrays as well as potentially
+Tensorflow, CuPy, Sparse, Theano, Aesara, JAX, and Autograd arrays as well as potentially
 any library which conforms to a standard API. See the
 [**documentation**](https://dgasmith.github.io/opt_einsum/) for more
 information.

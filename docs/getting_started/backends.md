@@ -15,6 +15,8 @@ The following is a brief overview of libraries which have been tested with
   that can run on GPU.
 - [theano](http://deeplearning.net/software/theano/): compiled tensor
   expressions that can run on GPU.
+- [aesara](https://github.com/aesara-devs/aesara): tensor expressions
+  that can compile to different backends (C, JAX, Numba).
 - [cupy](https://cupy.chainer.org/): numpy-like api for GPU tensors.
 - [dask](https://dask.pydata.org/): larger-than-memory tensor
   computations, distributed scheduling, and potential reuse of
@@ -183,18 +185,47 @@ Currently `opt_einsum` can handle this automatically for:
 
 - [tensorflow](https://www.tensorflow.org/)
 - [theano](http://deeplearning.net/software/theano/)
+- [aesara](https://github.com/aesara-devs/aesara)
 - [cupy](https://cupy.chainer.org/)
 - [pytorch](https://pytorch.org)
 - [jax](https://github.com/google/jax)
 
-all of which offer GPU support. Since `tensorflow` and `theano` both require
-compiling the expression, this functionality is encapsulated in generating a
-[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsumcontractcontractexpression) using
-[`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression), which can then be called using numpy
-arrays whilst specifying `backend='tensorflow'` etc.
-Additionally, if arrays are marked as `constant`
-(see [`constants-section`](./reusing_paths.md#specifying-constants)), then these arrays will be kept on the device
-for optimal performance.
+all of which offer GPU support. Since `tensorflow`, `aesara` and `theano` both
+require compiling the expression, this functionality is encapsulated in
+generating a
+[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsumcontractcontractexpression)
+using
+[`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression),
+which can then be called using numpy arrays whilst specifying
+`backend='tensorflow'` etc.  Additionally, if arrays are marked as `constant`
+(see [`constants-section`](./reusing_paths.md#specifying-constants)), then these
+arrays will be kept on the device for optimal performance.
+
+
+### Aesara
+
+If `aesara` is installed, using it as backend is as simple as specifying
+`backend='aesara'`:
+
+```python
+shapes = (3, 200), (200, 300), (300, 4)
+expr = oe.contract_expression("ab,bc,cd", *shapes)
+expr
+#> <ContractExpression('ab,bc,cd')>
+
+import numpy as np
+# GPU advantage mainly for low precision numbers
+xs = [np.random.randn(*shp).astype(np.float32) for shp in shapes]
+expr(*xs, backend='aesara')  # might see some fluff on first run
+#> array([[ 129.28352  , -128.00702  , -164.62917  , -335.11682  ],
+#>        [-462.52344  , -121.12657  ,  -67.847626 ,  624.5457   ],
+#>        [   5.2838974,   36.441578 ,   81.62851  ,  703.1576   ]],
+#>       dtype=float32)
+```
+
+Note that you can still supply `aesara.tensor.TensorType` directly to
+`opt_einsum` (with `backend='aesara'`), and it will return the
+relevant `aesara` type.
 
 
 ### Theano

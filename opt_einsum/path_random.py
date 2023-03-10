@@ -74,7 +74,6 @@ class RandomOptimizer(paths.PathOptimizer):
         parallel: bool = False,
         pre_dispatch: int = 128,
     ):
-
         if minimize not in ("flops", "size"):
             raise ValueError("`minimize` should be one of {'flops', 'size'}.")
 
@@ -188,7 +187,6 @@ class RandomOptimizer(paths.PathOptimizer):
 
         # assess the trials
         for ssa_path, cost, size in trials:
-
             # keep track of all costs and sizes
             self.costs.append(cost)
             self.sizes.append(size)

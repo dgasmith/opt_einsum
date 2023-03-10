@@ -3,6 +3,7 @@ Compute backends for opt_einsum.
 """
 
 # Backends
+from .aesara import to_aesara
 from .cupy import to_cupy
 from .dispatch import build_expression, evaluate_constants, get_func, has_backend, has_einsum, has_tensordot
 from .tensorflow import to_tensorflow

@@ -400,7 +400,6 @@ def _einsum(*operands, **kwargs):
 
     # Do we need to temporarily map indices into [a-z,A-Z] range?
     if not parser.has_valid_einsum_chars_only(einsum_str):
-
         # Explicitly find output str first so as to maintain order
         if "->" not in einsum_str:
             einsum_str += "->" + parser.find_output_str(einsum_str)
@@ -605,7 +604,6 @@ def _core_contract(
 
         # Call tensordot (check if should prefer einsum, but only if available)
         if blas_flag and ("EINSUM" not in blas_flag or no_einsum):  # type: ignore
-
             # Checks have already been handled
             input_str, results_index = einsum_str.split("->")
             input_left, input_right = input_str.split(",")
@@ -630,7 +628,6 @@ def _core_contract(
 
             # Build a new view if needed
             if (tensor_result != results_index) or handle_out:
-
                 transpose = tuple(map(tensor_result.index, results_index))
                 new_view = _transpose(new_view, axes=transpose, backend=backend)
 

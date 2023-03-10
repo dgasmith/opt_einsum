@@ -7,6 +7,7 @@
 32x32
 a4paper
 abap
+aesara
 allclose
 astype
 autodoc

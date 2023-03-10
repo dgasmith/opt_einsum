@@ -77,13 +77,11 @@ def check_path(test_output, benchmark, bypass=False):
 
 
 def assert_contract_order(func, test_data, max_size, benchmark):
-
     test_output = func(test_data[0], test_data[1], test_data[2], max_size)
     assert check_path(test_output, benchmark)
 
 
 def test_size_by_dict():
-
     sizes_dict = {}
     for ind, val in zip("abcdez", [2, 5, 9, 11, 13, 0]):
         sizes_dict[ind] = val
@@ -103,7 +101,6 @@ def test_size_by_dict():
 
 
 def test_flop_cost():
-
     size_dict = {v: 10 for v in "abcdef"}
 
     # Loop over an array
@@ -135,7 +132,6 @@ def test_explicit_path():
 
 
 def test_path_optimal():
-
     test_func = oe.paths.optimal
 
     test_data = explicit_path_tests["GEMM1"]
@@ -144,7 +140,6 @@ def test_path_optimal():
 
 
 def test_path_greedy():
-
     test_func = oe.paths.greedy
 
     test_data = explicit_path_tests["GEMM1"]
@@ -153,7 +148,6 @@ def test_path_greedy():
 
 
 def test_memory_paths():
-
     expression = "abc,bdef,fghj,cem,mhk,ljk->adgl"
 
     views = oe.helpers.build_views(expression)
@@ -194,7 +188,6 @@ def test_path_scalar_cases(alg, expression, order):
 
 
 def test_optimal_edge_cases():
-
     # Edge test5
     expression = "a,ac,ab,ad,cd,bd,bc->"
     edge_test4 = oe.helpers.build_views(expression, dimension_dict={"a": 20, "b": 20, "c": 20, "d": 20})
@@ -206,7 +199,6 @@ def test_optimal_edge_cases():
 
 
 def test_greedy_edge_cases():
-
     expression = "abc,cfd,dbe,efa"
     dim_dict = {k: 20 for k in expression.replace(",", "")}
     tensors = oe.helpers.build_views(expression, dimension_dict=dim_dict)

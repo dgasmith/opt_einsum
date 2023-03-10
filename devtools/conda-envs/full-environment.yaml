@@ -12,6 +12,7 @@ dependencies:
   - dask
   - sparse
   - theano
+  - aesara
   - pytorch-cpu
   - autograd
   - jax

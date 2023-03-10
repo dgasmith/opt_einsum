@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 import numpy
 
+from . import aesara as _aesara
 from . import cupy as _cupy
 from . import jax as _jax
 from . import object_arrays
@@ -29,6 +30,7 @@ __all__ = [
 _aliases = {
     "dask": "dask.array",
     "theano": "theano.tensor",
+    "aesara": "aesara.tensor",
     "torch": "opt_einsum.backends.torch",
     "jax": "jax.numpy",
     "autograd": "autograd.numpy",
@@ -119,6 +121,7 @@ def has_tensordot(backend: str) -> bool:
 CONVERT_BACKENDS = {
     "tensorflow": _tensorflow.build_expression,
     "theano": _theano.build_expression,
+    "aesara": _aesara.build_expression,
     "cupy": _cupy.build_expression,
     "torch": _torch.build_expression,
     "jax": _jax.build_expression,
@@ -127,6 +130,7 @@ CONVERT_BACKENDS = {
 EVAL_CONSTS_BACKENDS = {
     "tensorflow": _tensorflow.evaluate_constants,
     "theano": _theano.evaluate_constants,
+    "aesara": _aesara.evaluate_constants,
     "cupy": _cupy.evaluate_constants,
     "torch": _torch.evaluate_constants,
     "jax": _jax.evaluate_constants,

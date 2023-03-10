@@ -36,6 +36,16 @@ except ImportError:
     found_theano = False
 
 try:
+    import os
+
+    os.environ["MKL_THREADING_LAYER"] = "GNU"
+    import aesara
+
+    found_aesara = True
+except ImportError:
+    found_aesara = False
+
+try:
     import torch
 
     found_torch = True
@@ -207,6 +217,73 @@ def test_theano_with_sharing(string):
         assert len(cache) == cache_sz
 
     assert all(isinstance(t, theano.tensor.TensorVariable) for t in cache.values())
+
+    assert np.allclose(ein, thn1)
+    assert np.allclose(ein, thn2)
+
+
+@pytest.mark.skipif(not found_aesara, reason="Aesara not installed.")
+@pytest.mark.parametrize("string", tests)
+def test_aesara(string):
+    views = helpers.build_views(string)
+    ein = contract(string, *views, optimize=False, use_blas=False)
+    shps = [v.shape for v in views]
+
+    expr = contract_expression(string, *shps, optimize=True)
+
+    opt = expr(*views, backend="aesara")
+    assert np.allclose(ein, opt)
+
+    # test non-conversion mode
+    aesara_views = [backends.to_aesara(view) for view in views]
+    aesara_opt = expr(*aesara_views)
+    assert isinstance(aesara_opt, aesara.tensor.TensorVariable)
+
+
+@pytest.mark.skipif(not found_aesara, reason="Aesara not installed.")
+@pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
+def test_aesara_with_constants(constants):
+    eq = "ij,jk,kl->li"
+    shapes = (2, 3), (3, 4), (4, 5)
+    (non_const,) = {0, 1, 2} - constants
+    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = np.random.rand(*shapes[non_const])
+    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
+
+    expr = contract_expression(eq, *ops, constants=constants)
+
+    # check aesara
+    res_got = expr(var, backend="aesara")
+    assert all(array is None or infer_backend(array) == "aesara" for array in expr._evaluated_constants["aesara"])
+    assert np.allclose(res_exp, res_got)
+
+    # check can call with numpy still
+    res_got2 = expr(var, backend="numpy")
+    assert np.allclose(res_exp, res_got2)
+
+    # check aesara call returns aesara still
+    res_got3 = expr(backends.to_aesara(var))
+    assert isinstance(res_got3, aesara.tensor.TensorVariable)
+
+
+@pytest.mark.skipif(not found_aesara, reason="Aesara not installed.")
+@pytest.mark.parametrize("string", tests)
+def test_aesara_with_sharing(string):
+    views = helpers.build_views(string)
+    ein = contract(string, *views, optimize=False, use_blas=False)
+
+    shps = [v.shape for v in views]
+    expr = contract_expression(string, *shps, optimize=True)
+
+    with sharing.shared_intermediates() as cache:
+        thn1 = expr(*views, backend="aesara")
+        assert sharing.get_sharing_cache() is cache
+        cache_sz = len(cache)
+        assert cache_sz > 0
+        thn2 = expr(*views, backend="aesara")
+        assert len(cache) == cache_sz
+
+    assert all(isinstance(t, aesara.tensor.TensorVariable) for t in cache.values())
 
     assert np.allclose(ein, thn1)
     assert np.allclose(ein, thn2)
@@ -393,7 +470,6 @@ def test_sparse(string):
 @pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_torch(string):
-
     views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
