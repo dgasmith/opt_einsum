@@ -5,11 +5,18 @@ theme:
   name: material
 
 plugins:
-    - search
-    - awesome-pages
+  - search
+  - awesome-pages
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          # paths: [opt_einsum]
+          options:
+            docstring_style: google
 
 extra_javascript:
-  - javascripts/config.js
+  - javascript/config.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
@@ -29,7 +36,6 @@ markdown_extensions:
   - pymdownx.extra
   - pymdownx.arithmatex:
       generic: true
-  - mkautodoc
 
 nav:
   - Overview: index.md
