@@ -8,7 +8,10 @@ dependencies:
   - nomkl
 
     # Testing
-  - pytest
+  - autoflake
+  - black
   - codecov
-  - pytest-cov
+  - isort
   - mypy
+  - pytest
+  - pytest-cov

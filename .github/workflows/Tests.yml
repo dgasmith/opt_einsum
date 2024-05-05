@@ -12,10 +12,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7]
+        python-version: [3.9, 3.12]
         environment: ["min-deps", "full", "min-ver"]
         exclude:
-         - python-version: 3.6
+         - python-version: 3.12
            environment: "full"
         include:
          - python-version: 3.9
