@@ -16,10 +16,7 @@ jobs:
         environment: ["min-deps", "full", "min-ver"]
         exclude:
          - python-version: 3.12
-           environment: "full"
-        include:
-         - python-version: 3.9
-           environment: "min-deps"
+           environment: "min-ver"
 
     runs-on: ubuntu-latest
 
