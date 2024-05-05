@@ -8,8 +8,8 @@ dependencies:
   - nomkl
 
     # Backends
-  - tensorflow ==1.14.*
-  - dask ==1.1.*
+  - tensorflow ==2.5.*
+  - dask ==2021.*
 
     # Testing
   - autoflake

@@ -98,7 +98,7 @@ def ssa_to_linear(ssa_path: PathType) -> PathType:
     #> [(0, 3), (1, 2), (0, 1)]
     ```
     """
-    ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)  # type: ignore
+    ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
     path = []
     for ssa_ids in ssa_path:
         path.append(tuple(int(ids[ssa_id]) for ssa_id in ssa_ids))
@@ -217,7 +217,7 @@ def optimal(
     #> [(0, 2), (0, 1)]
     ```
     """
-    inputs_set = tuple(map(frozenset, inputs))  # type: ignore
+    inputs_set = tuple(map(frozenset, inputs))
     output_set = frozenset(output)
 
     best_flops = {"flops": float("inf")}
