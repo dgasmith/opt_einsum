@@ -379,8 +379,10 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
     else:
         input_subscripts, output_subscript = subscripts, find_output_str(subscripts)
 
-    # Make sure output subscripts are in the input
+    # Make sure output subscripts are unique and in the input
     for char in output_subscript:
+        if output_subscript.count(char) != 1:
+            raise ValueError("Output character '{}' appeared more than once in the output.".format(char))
         if char not in input_subscripts:
             raise ValueError("Output character '{}' did not appear in the input".format(char))
 
