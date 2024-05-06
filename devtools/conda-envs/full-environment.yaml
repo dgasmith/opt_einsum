@@ -4,15 +4,15 @@ channels:
 dependencies:
     # Base depends
   - python
-  - numpy
+  - numpy >=1.23
   - nomkl
 
     # Backends
   - tensorflow-base
   - dask
-  - sparse
+  # - sparse
   - pytorch-cpu
-  - autograd
+  # - autograd
   - jax
 
     # Testing

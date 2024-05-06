@@ -4,7 +4,7 @@ channels:
 dependencies:
     # Base depends
   - python
-  - numpy
+  - numpy >=1.23
   - nomkl
 
     # Testing
