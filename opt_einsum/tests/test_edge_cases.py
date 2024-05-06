@@ -5,7 +5,7 @@ Tets a series of opt_einsum contraction paths to ensure the results are the same
 import numpy as np
 import pytest
 
-from opt_einsum import contract, contract_expression
+from opt_einsum import contract, contract_path, contract_expression
 
 
 def test_contract_expression_checks():
@@ -123,3 +123,12 @@ def test_can_blas_on_healed_broadcast_dimensions():
     # but then is healed GEMM is usable
     assert expr.contraction_list[1][2] == "bca,bd->acd"
     assert expr.contraction_list[1][-1] == "GEMM"
+
+
+def test_pathinfo_for_empty_contraction():
+    eq = "->"
+    arrays = (1.0,)
+    path = []
+    _, info = contract_path(eq, *arrays, optimize=path)
+    print(info)
+    assert info.largest_intermediate == 1
