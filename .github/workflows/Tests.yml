@@ -17,7 +17,6 @@ jobs:
         exclude:
          - python-version: 3.9
            environment: "full"
-        exclude:
          - python-version: 3.12
            environment: "min-ver"
 
