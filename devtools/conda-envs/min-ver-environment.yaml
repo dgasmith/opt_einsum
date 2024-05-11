@@ -3,12 +3,12 @@ channels:
   - conda-forge
 dependencies:
     # Base depends
-  - python >=3.8
+  - python >=3.9
   - numpy >=1.23
   - nomkl
 
     # Backends
-  - tensorflow ==2.10.*
+  - tensorflow-cpu ==2.10.*
   - dask ==2021.*
 
     # Testing
