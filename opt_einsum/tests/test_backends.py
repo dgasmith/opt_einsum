@@ -379,9 +379,13 @@ def test_sparse(string):
     sparse_views = [sparse.COO.from_numpy(x) for x in views]
     sparse_opt = expr(*sparse_views)
 
+    # If the expression returns a float, stop here
+    if not ein.shape:
+        assert pytest.approx(ein) == 0.0
+        return
+
     # check type is maintained when not using numpy arrays
     assert isinstance(sparse_opt, sparse.COO)
-
     assert np.allclose(ein, sparse_opt.todense())
 
     # try raw contract

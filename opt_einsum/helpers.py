@@ -52,13 +52,11 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
 
 
 @overload
-def compute_size_by_dict(indices: Iterable[int], idx_dict: List[int]) -> int:
-    ...
+def compute_size_by_dict(indices: Iterable[int], idx_dict: List[int]) -> int: ...
 
 
 @overload
-def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> int:
-    ...
+def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> int: ...
 
 
 def compute_size_by_dict(indices: Any, idx_dict: Any) -> int:

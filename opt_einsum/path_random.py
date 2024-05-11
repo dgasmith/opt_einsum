@@ -292,7 +292,7 @@ def ssa_path_compute_cost(
     size_dict: Dict[str, int],
 ) -> Tuple[int, int]:
     """Compute the flops and max size of an ssa path."""
-    inputs = list(map(frozenset, inputs))  # type: ignore
+    inputs = list(map(frozenset, inputs))
     output = frozenset(output)
     remaining = set(range(len(inputs)))
     total_cost = 0

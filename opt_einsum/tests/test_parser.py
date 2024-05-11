@@ -2,9 +2,9 @@
 Directly tests various parser utility functions.
 """
 
-from multiprocessing.sharedctypes import Value
 import numpy as np
 import pytest
+
 from opt_einsum.parser import get_symbol, parse_einsum_input, possibly_convert_to_numpy
 
 

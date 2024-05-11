@@ -16,7 +16,7 @@ def can_blas(
     inputs: List[str],
     result: str,
     idx_removed: ArrayIndexType,
-    shapes: Sequence[Tuple[int]] = None,
+    shapes: Union[Sequence[Tuple[int]], None] = None,
 ) -> Union[str, bool]:
     """
     Checks if we can use a BLAS call.
