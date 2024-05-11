@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
     # Base depends
-  - python
+  - python >=3.8
   - numpy >=1.23
   - nomkl
 
