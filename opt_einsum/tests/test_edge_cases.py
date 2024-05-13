@@ -53,7 +53,6 @@ def test_contract_expression_checks():
 
 
 def test_broadcasting_contraction():
-
     a = np.random.rand(1, 5, 4)
     b = np.random.rand(4, 6)
     c = np.random.rand(5, 6)
@@ -73,7 +72,6 @@ def test_broadcasting_contraction():
 
 
 def test_broadcasting_contraction2():
-
     a = np.random.rand(1, 1, 5, 4)
     b = np.random.rand(4, 6)
     c = np.random.rand(5, 6)
@@ -93,7 +91,6 @@ def test_broadcasting_contraction2():
 
 
 def test_broadcasting_contraction3():
-
     a = np.random.rand(1, 5, 4)
     b = np.random.rand(4, 1, 6)
     c = np.random.rand(5, 6)
@@ -106,7 +103,6 @@ def test_broadcasting_contraction3():
 
 
 def test_broadcasting_contraction4():
-
     a = np.arange(64).reshape(2, 4, 8)
     ein = contract("obk,ijk->ioj", a, a, optimize=False)
     opt = contract("obk,ijk->ioj", a, a, optimize=True)
@@ -115,7 +111,6 @@ def test_broadcasting_contraction4():
 
 
 def test_can_blas_on_healed_broadcast_dimensions():
-
     expr = contract_expression("ab,bc,bd->acd", (5, 4), (1, 5), (4, 20))
     # first contraction involves broadcasting
     assert expr.contraction_list[0][2] == "bc,ab->bca"
