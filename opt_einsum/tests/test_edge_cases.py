@@ -130,5 +130,6 @@ def test_pathinfo_for_empty_contraction():
     arrays = (1.0,)
     path = []
     _, info = contract_path(eq, *arrays, optimize=path)
-    print(info)
+    # some info is built lazily, so check repr
+    assert repr(info)
     assert info.largest_intermediate == 1
