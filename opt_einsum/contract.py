@@ -50,7 +50,7 @@ class PathInfo:
         self.scale_list = scale_list
         self.naive_cost = Decimal(naive_cost)
         self.opt_cost = Decimal(opt_cost)
-        self.speedup = self.naive_cost / max(self.opt_cost, 1)
+        self.speedup = self.naive_cost / max(self.opt_cost, Decimal(1))
         self.size_list = size_list
         self.size_dict = size_dict
 
