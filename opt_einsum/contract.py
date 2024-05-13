@@ -50,13 +50,13 @@ class PathInfo:
         self.scale_list = scale_list
         self.naive_cost = Decimal(naive_cost)
         self.opt_cost = Decimal(opt_cost)
-        self.speedup = self.naive_cost / self.opt_cost
+        self.speedup = self.naive_cost / max(self.opt_cost, Decimal(1))
         self.size_list = size_list
         self.size_dict = size_dict
 
         self.shapes = [tuple(size_dict[k] for k in ks) for ks in input_subscripts.split(",")]
         self.eq = "{}->{}".format(input_subscripts, output_subscript)
-        self.largest_intermediate = Decimal(max(size_list))
+        self.largest_intermediate = Decimal(max(size_list, default=1))
 
     def __repr__(self) -> str:
         # Return the path along with a nice string representation
@@ -65,7 +65,7 @@ class PathInfo:
         path_print = [
             "  Complete contraction:  {}\n".format(self.eq),
             "         Naive scaling:  {}\n".format(len(self.indices)),
-            "     Optimized scaling:  {}\n".format(max(self.scale_list)),
+            "     Optimized scaling:  {}\n".format(max(self.scale_list, default=0)),
             "      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
             "  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
             "   Theoretical speedup:  {:.3e}\n".format(self.speedup),
