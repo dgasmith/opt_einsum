@@ -31,6 +31,7 @@ _aliases = {
     "theano": "theano.tensor",
     "torch": "opt_einsum.backends.torch",
     "jax": "jax.numpy",
+    "jaxlib": "jax.numpy",
     "autograd": "autograd.numpy",
     "mars": "mars.tensor",
 }
