@@ -2,17 +2,17 @@
 
 ### `opt_einsum.contract`
 
-::: opt_einsum.contract
+::: opt_einsum.contract.contract
     <!-- :docstring: -->
 
 ### `opt_einsum.contract_path`
 
-::: opt_einsum.contract_path
+::: opt_einsum.contract.contract_path
     <!-- :docstring: -->
 
 ### `opt_einsum.contract_expression`
 
-::: opt_einsum.contract_expression
+::: opt_einsum.contract.contract_expression
     <!-- :docstring:
     :members: -->
 
@@ -29,12 +29,12 @@
 
 ### `opt_einsum.get_symbol`
 
-::: opt_einsum.get_symbol
+::: opt_einsum.parser.get_symbol
     <!-- :docstring: -->
 
 ### `opt_einsum.shared_intermediates`
 
-::: opt_einsum.shared_intermediates
+::: opt_einsum.sharing.shared_intermediates
     <!-- :docstring: -->
 
 ### `opt_einsum.paths.optimal`

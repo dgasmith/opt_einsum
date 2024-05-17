@@ -5,7 +5,7 @@ Tets a series of opt_einsum contraction paths to ensure the results are the same
 import numpy as np
 import pytest
 
-from opt_einsum import contract, contract_path, contract_expression
+from opt_einsum import contract, contract_expression, contract_path
 
 
 def test_contract_expression_checks():

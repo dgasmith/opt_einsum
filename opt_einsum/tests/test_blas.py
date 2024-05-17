@@ -83,7 +83,7 @@ def test_tensor_blas(inp, benchmark):
     einsum_result = np.einsum(einsum_str, view_left, view_right)
     blas_result = blas.tensor_blas(view_left, tensor_strs[0], view_right, tensor_strs[1], output, reduced_idx)
 
-    assert np.allclose(einsum_result, blas_result)
+    np.testing.assert_allclose(einsum_result, blas_result)
 
 
 def test_blas_out():
@@ -93,7 +93,8 @@ def test_blas_out():
     d = np.empty((4, 4))
 
     contract("ij,jk->ik", a, b, out=d)
+    np.testing.assert_allclose(d, np.dot(a, b))
     assert np.allclose(d, np.dot(a, b))
 
     contract("ij,jk,kl->il", a, b, c, out=d)
-    assert np.allclose(d, np.dot(a, b).dot(c))
+    np.testing.assert_allclose(d, np.dot(a, b).dot(c))

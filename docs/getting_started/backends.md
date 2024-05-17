@@ -38,7 +38,7 @@ The following is a brief overview of libraries which have been tested with
 The automatic backend detection will be detected based on the first supplied
 array (default), this can be overridden by specifying the correct `backend`
 argument for the type of arrays supplied when calling
-[`opt_einsum.contract`](../api_reference.md##opt_einsumcontract). For example, if you had a library installed
+[`opt_einsum.contract`](../api_reference.md### `opt_einsum.contract`). For example, if you had a library installed
 called `'foo'` which provided an `numpy.ndarray` like object with a
 `.shape` attribute as well as `foo.tensordot` and `foo.transpose` then
 you could contract them with something like:
