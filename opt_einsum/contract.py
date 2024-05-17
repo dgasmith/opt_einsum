@@ -599,9 +599,11 @@ def contract(
 
     # check if performing contraction or just building expression
     if gen_expression:
-        return ContractExpression(full_str, contraction_list, constants_dict, **einsum_kwargs)
+        return ContractExpression(full_str, contraction_list, constants_dict, dtype=dtype, order=order, casting=casting)
 
-    return _core_contract(operands, contraction_list, backend=backend, **einsum_kwargs)
+    return _core_contract(
+        operands, contraction_list, backend=backend, out=out, dtype=dtype, order=order, casting=casting
+    )
 
 
 @lru_cache(None)
@@ -634,15 +636,17 @@ def _core_contract(
     contraction_list: ContractionListType,
     backend: Optional[str] = "auto",
     evaluate_constants: bool = False,
-    **einsum_kwargs: Any,
+    out: Optional[ArrayType] = None,
+    dtype: Optional[str] = None,
+    order: _OrderKACF = "K",
+    casting: _Casting = "safe",
 ) -> ArrayType:
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
 
     # Special handling if out is specified
-    out_array = einsum_kwargs.pop("out", None)
-    specified_out = out_array is not None
+    specified_out = out is not None
 
     operands = list(operands_)
     backend = parse_backend(operands, backend)
@@ -696,23 +700,20 @@ def _core_contract(
                 new_view = _transpose(new_view, axes=transpose, backend=backend)
 
                 if handle_out:
-                    out_array[:] = new_view
+                    out[:] = new_view  # type: ignore
 
-        # Call einsum
         else:
-            # If out was specified
-            if handle_out:
-                einsum_kwargs["out"] = out_array
-
-            # Do the contraction
-            new_view = _einsum(einsum_str, *tmp_operands, backend=backend, **einsum_kwargs)
+            # Call einsum
+            new_view = _einsum(
+                einsum_str, *tmp_operands, backend=backend, dtype=dtype, order=order, casting=casting, out=out
+            )
 
         # Append new items and dereference what we can
         operands.append(new_view)
         del tmp_operands, new_view
 
     if specified_out:
-        return out_array
+        return out
     else:
         return operands[0]
 
@@ -753,10 +754,14 @@ class ContractExpression:
         contraction: str,
         contraction_list: ContractionListType,
         constants_dict: Dict[int, ArrayType],
-        **einsum_kwargs: Any,
+        dtype: Optional[str] = None,
+        order: _OrderKACF = "K",
+        casting: _Casting = "safe",
     ):
         self.contraction_list = contraction_list
-        self.einsum_kwargs = einsum_kwargs
+        self.dtype = dtype
+        self.order = order
+        self.casting = casting
         self.contraction = format_const_einsum_str(contraction, constants_dict.keys())
 
         # need to know _full_num_args to parse constants with, and num_args to call with
@@ -825,7 +830,9 @@ class ContractExpression:
             out=out,
             backend=backend,
             evaluate_constants=evaluate_constants,
-            **self.einsum_kwargs,
+            dtype=self.dtype,
+            order=self.order,
+            casting=self.casting,
         )
 
     def _contract_with_conversion(
@@ -924,8 +931,8 @@ class ContractExpression:
         for i, c in enumerate(self.contraction_list):
             s.append("\n  {}.  ".format(i + 1))
             s.append("'{}'".format(c[2]) + (" [{}]".format(c[-1]) if c[-1] else ""))
-        if self.einsum_kwargs:
-            s.append("\neinsum_kwargs={}".format(self.einsum_kwargs))
+            kwargs = {"dtype": self.dtype, "order": self.order, "casting": self.casting}
+            s.append(f"\neinsum_kwargs={kwargs}")
         return "".join(s)
 
 
