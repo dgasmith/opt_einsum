@@ -7,8 +7,16 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Any, Collection, Dict, Iterable, List, Literal, Optional, Sequence, Tuple, Union, overload
 
-from . import backends, blas, helpers, parser, paths, sharing
-from .typing import ArrayIndexType, ArrayType, ContractionListType, OptimizeKind, PathType
+from opt_einsum import backends, blas, helpers, parser, paths, sharing
+from opt_einsum.typing import (
+    ArrayIndexType,
+    ArrayType,
+    BackendType,
+    ContractionListType,
+    OptimizeKind,
+    PathType,
+    TensorShapeType,
+)
 
 __all__ = [
     "contract_path",
@@ -24,7 +32,6 @@ _OrderKACF = Literal[None, "K", "A", "C", "F"]
 
 _Casting = Literal["no", "equiv", "safe", "same_kind", "unsafe"]
 _MemoryLimit = Union[None, int, Decimal, Literal["max_input"]]
-_Backend = Literal["auto",]
 
 
 class PathInfo:
@@ -466,7 +473,7 @@ def contract(
     use_blas: bool = ...,
     optimize: OptimizeKind = ...,
     memory_limit: _MemoryLimit = ...,
-    backend: _Backend = ...,
+    backend: BackendType = ...,
     **kwargs: Any,
 ) -> ArrayType: ...
 
@@ -482,7 +489,7 @@ def contract(
     use_blas: bool = ...,
     optimize: OptimizeKind = ...,
     memory_limit: _MemoryLimit = ...,
-    backend: _Backend = ...,
+    backend: BackendType = ...,
     **kwargs: Any,
 ) -> ArrayType: ...
 
@@ -497,7 +504,7 @@ def contract(
     use_blas: bool = True,
     optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
-    backend: _Backend = "auto",
+    backend: BackendType = "auto",
     **kwargs: Any,
 ) -> ArrayType:
     """
@@ -935,14 +942,14 @@ class ContractExpression:
 Shaped = namedtuple("Shaped", ["shape"])
 
 
-def shape_only(shape: PathType) -> Shaped:
+def shape_only(shape: TensorShapeType) -> Shaped:
     """Dummy ``numpy.ndarray`` which has a shape only - for generating
     contract expressions.
     """
     return Shaped(shape)
 
 
-def contract_expression(subscripts: str, *shapes: PathType, **kwargs: Any) -> Any:
+def contract_expression(subscripts: str, *shapes: TensorShapeType | ArrayType, **kwargs: Any) -> Any:
     """Generate a reusable expression for a given contraction with
     specific shapes, which can, for example, be cached.
 

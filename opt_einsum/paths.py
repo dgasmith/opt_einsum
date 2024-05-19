@@ -16,7 +16,7 @@ from typing import Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tu
 import numpy as np
 
 from opt_einsum.helpers import compute_size_by_dict, flop_count
-from opt_einsum.typing import ArrayIndexType, PathSearchFunctionType, PathType
+from opt_einsum.typing import ArrayIndexType, PathSearchFunctionType, PathType, TensorShapeType
 
 __all__ = [
     "optimal",
@@ -620,7 +620,7 @@ def ssa_greedy_optimize(
     # Deduplicate shapes by eagerly computing Hadamard products.
     remaining: Dict[ArrayIndexType, int] = {}  # key -> ssa_id
     ssa_ids = itertools.count(len(fs_inputs))
-    ssa_path = []
+    ssa_path: List[TensorShapeType] = []
     for ssa_id, key in enumerate(fs_inputs):
         if key in remaining:
             ssa_path.append((remaining[key], ssa_id))

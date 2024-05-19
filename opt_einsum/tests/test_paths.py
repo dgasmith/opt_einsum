@@ -74,7 +74,7 @@ def check_path(test_output: PathType, benchmark: PathType, bypass: bool = False)
     ret = True
     for pos in range(len(test_output)):
         ret &= isinstance(test_output[pos], tuple)
-        ret &= test_output[pos] == benchmark[pos]
+        ret &= test_output[pos] == list(benchmark)[pos]
     return ret
 
 

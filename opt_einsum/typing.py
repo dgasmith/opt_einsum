@@ -2,10 +2,10 @@
 Types used in the opt_einsum package
 """
 
-from typing import Any, Callable, Dict, FrozenSet, List, Literal, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Tuple, Union
 
-PathType = Sequence[Tuple[int, ...]]
 TensorShapeType = Tuple[int, ...]
+PathType = Collection[TensorShapeType]
 
 ArrayType = Any  # TODO
 ArrayIndexType = FrozenSet[str]
@@ -23,3 +23,4 @@ OptimizeKind = Union[
     PathType,
     PathSearchFunctionType,
 ]
+BackendType = Literal["auto", "torch"]
