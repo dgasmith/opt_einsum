@@ -6,9 +6,10 @@ import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_expression, contract_path
+from opt_einsum.typing import PathType
 
 
-def test_contract_expression_checks():
+def test_contract_expression_checks() -> None:
     # check optimize needed
     with pytest.raises(ValueError):
         contract_expression("ab,bc->ac", (2, 3), (3, 4), optimize=False)
@@ -52,7 +53,7 @@ def test_contract_expression_checks():
     assert "only valid keyword arguments to a `ContractExpression`" in str(err.value)
 
 
-def test_broadcasting_contraction():
+def test_broadcasting_contraction() -> None:
     a = np.random.rand(1, 5, 4)
     b = np.random.rand(4, 6)
     c = np.random.rand(5, 6)
@@ -71,7 +72,7 @@ def test_broadcasting_contraction():
     assert np.allclose(opt, result)
 
 
-def test_broadcasting_contraction2():
+def test_broadcasting_contraction2() -> None:
     a = np.random.rand(1, 1, 5, 4)
     b = np.random.rand(4, 6)
     c = np.random.rand(5, 6)
@@ -90,7 +91,7 @@ def test_broadcasting_contraction2():
     assert np.allclose(opt, result)
 
 
-def test_broadcasting_contraction3():
+def test_broadcasting_contraction3() -> None:
     a = np.random.rand(1, 5, 4)
     b = np.random.rand(4, 1, 6)
     c = np.random.rand(5, 6)
@@ -102,7 +103,7 @@ def test_broadcasting_contraction3():
     assert np.allclose(ein, opt)
 
 
-def test_broadcasting_contraction4():
+def test_broadcasting_contraction4() -> None:
     a = np.arange(64).reshape(2, 4, 8)
     ein = contract("obk,ijk->ioj", a, a, optimize=False)
     opt = contract("obk,ijk->ioj", a, a, optimize=True)
@@ -110,7 +111,7 @@ def test_broadcasting_contraction4():
     assert np.allclose(ein, opt)
 
 
-def test_can_blas_on_healed_broadcast_dimensions():
+def test_can_blas_on_healed_broadcast_dimensions() -> None:
     expr = contract_expression("ab,bc,bd->acd", (5, 4), (1, 5), (4, 20))
     # first contraction involves broadcasting
     assert expr.contraction_list[0][2] == "bc,ab->bca"
@@ -120,10 +121,10 @@ def test_can_blas_on_healed_broadcast_dimensions():
     assert expr.contraction_list[1][-1] == "GEMM"
 
 
-def test_pathinfo_for_empty_contraction():
+def test_pathinfo_for_empty_contraction() -> None:
     eq = "->"
     arrays = (1.0,)
-    path = []
+    path: PathType = []
     _, info = contract_path(eq, *arrays, optimize=path)
     # some info is built lazily, so check repr
     assert repr(info)

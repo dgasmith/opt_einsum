@@ -23,4 +23,4 @@ OptimizeKind = Union[
     PathType,
     PathSearchFunctionType,
 ]
-BackendType = Literal["auto", "torch"]
+BackendType = Literal["auto", "object", "autograd", "cupy", "dask", "jax", "theano", "tensorflow", "torch", "libjax"]
