@@ -318,6 +318,10 @@ def rand_equation(
     shapes = [tuple(size_dict[ix] for ix in op) for op in inputs]
 
     if return_size_dict:
-        return (eq, shapes, size_dict,)
+        return (
+            eq,
+            shapes,
+            size_dict,
+        )
     else:
         return (eq, shapes)

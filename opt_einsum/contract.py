@@ -23,7 +23,7 @@ __all__ = [
 _OrderKACF = Literal[None, "K", "A", "C", "F"]
 
 _Casting = Literal["no", "equiv", "safe", "same_kind", "unsafe"]
-_MemoryLimit = Union[None, int, Literal["max_input"]]
+_MemoryLimit = Union[None, int, Decimal, Literal["max_input"]]
 _Backend = Literal["auto",]
 
 
@@ -100,6 +100,9 @@ class PathInfo:
 def _choose_memory_arg(memory_limit: _MemoryLimit, size_list: List[int]) -> Optional[int]:
     if memory_limit == "max_input":
         return max(size_list)
+
+    if isinstance(memory_limit, str):
+        raise ValueError("memory_limit must be None, int, or the string Literal['max_input'].")
 
     if memory_limit is None:
         return None

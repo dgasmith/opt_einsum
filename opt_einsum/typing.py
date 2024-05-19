@@ -2,9 +2,9 @@
 Types used in the opt_einsum package
 """
 
-from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, FrozenSet, List, Literal, Optional, Sequence, Tuple, Union
 
-PathType = Collection[Tuple[int, ...]]
+PathType = Sequence[Tuple[int, ...]]
 TensorShapeType = Tuple[int, ...]
 
 ArrayType = Any  # TODO

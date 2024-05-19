@@ -1139,7 +1139,7 @@ class DynamicProgramming(PathOptimizer):
             slow down the path finding considerably on all but very small graphs.
     """
 
-    def __init__(self, minimize: str = "flops", cost_cap: bool = True, search_outer: bool = False) -> None:
+    def __init__(self, minimize: str = "flops", cost_cap: Union[bool, int] = True, search_outer: bool = False) -> None:
         self.minimize = minimize
         self.search_outer = search_outer
         self.cost_cap = cost_cap

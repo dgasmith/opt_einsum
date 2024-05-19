@@ -5,9 +5,9 @@ Support for random optimizers, including the random-greedy path.
 import functools
 import heapq
 import math
-import numbers
 import time
 from collections import deque
+from decimal import Decimal
 from random import choices as random_choices
 from random import seed as random_seed
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
@@ -69,7 +69,7 @@ class RandomOptimizer(paths.PathOptimizer):
         max_repeats: int = 32,
         max_time: Optional[float] = None,
         minimize: str = "flops",
-        parallel: Union[bool, numbers.Number] = False,
+        parallel: Union[bool, Decimal, int] = False,
         pre_dispatch: int = 128,
     ):
 
@@ -80,7 +80,7 @@ class RandomOptimizer(paths.PathOptimizer):
         self.max_time = max_time
         self.minimize = minimize
         self.better = paths.get_better_fn(minimize)
-        self._parallel = False
+        self._parallel: Union[bool, Decimal, int] = False
         self.parallel = parallel
         self.pre_dispatch = pre_dispatch
 
@@ -98,11 +98,11 @@ class RandomOptimizer(paths.PathOptimizer):
         return paths.ssa_to_linear(self.best["ssa_path"])
 
     @property
-    def parallel(self) -> Union[bool, numbers.Number]:
+    def parallel(self) -> Union[bool, Decimal, int]:
         return self._parallel
 
     @parallel.setter
-    def parallel(self, parallel: Union[bool, numbers.Number]) -> None:
+    def parallel(self, parallel: Union[bool, Decimal, int]) -> None:
         # shutdown any previous executor if we are managing it
         if getattr(self, "_managing_executor", False):
             self._executor.shutdown()
@@ -121,10 +121,10 @@ class RandomOptimizer(paths.PathOptimizer):
             self._managing_executor = True
             return
 
-        if isinstance(parallel, numbers.Number):
+        if isinstance(parallel, (int, Decimal)):
             from concurrent.futures import ProcessPoolExecutor
 
-            self._executor = ProcessPoolExecutor(parallel)
+            self._executor = ProcessPoolExecutor(int(parallel))
             self._managing_executor = True
             return
 

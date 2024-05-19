@@ -128,7 +128,7 @@ def test_flop_cost() -> None:
 
 def test_bad_path_option() -> None:
     with pytest.raises(KeyError):
-        oe.contract("a,b,c", [1], [2], [3], optimize="optimall")
+        oe.contract("a,b,c", [1], [2], [3], optimize="optimall")  # type: ignore
 
 
 def test_explicit_path() -> None:
@@ -176,7 +176,7 @@ def test_memory_paths() -> None:
 
 
 @pytest.mark.parametrize("alg,expression,order", path_edge_tests)
-def test_path_edge_cases(alg, expression, order) -> None:
+def test_path_edge_cases(alg: OptimizeKind, expression: str, order: PathType) -> None:
     views = oe.helpers.build_views(expression)
 
     # Test tiny memory limit
@@ -186,7 +186,7 @@ def test_path_edge_cases(alg, expression, order) -> None:
 
 @pytest.mark.parametrize("expression,order", path_scalar_tests)
 @pytest.mark.parametrize("alg", oe.paths._PATH_OPTIONS)
-def test_path_scalar_cases(alg, expression, order) -> None:
+def test_path_scalar_cases(alg: OptimizeKind, expression: str, order: PathType) -> None:
     views = oe.helpers.build_views(expression)
 
     # Test tiny memory limit
@@ -285,7 +285,7 @@ def test_custom_dp_can_set_cost_cap() -> None:
         ("limit-256", 983832, 2016, [(2, 7), (3, 4), (0, 4), (3, 6), (2, 5), (0, 4), (0, 3), (1, 2), (0, 1)]),
     ],
 )
-def test_custom_dp_can_set_minimize(minimize, cost, width, path) -> None:
+def test_custom_dp_can_set_minimize(minimize: str, cost: int, width: int, path: PathType) -> None:
     eq, shapes = oe.helpers.rand_equation(10, 4, seed=43)
     opt = oe.DynamicProgramming(minimize=minimize)
     info = oe.contract_path(eq, *shapes, shapes=True, optimize=opt)[1]
@@ -295,11 +295,11 @@ def test_custom_dp_can_set_minimize(minimize, cost, width, path) -> None:
 
 
 def test_dp_errors_when_no_contractions_found() -> None:
-    eq, shapes, size_dict = oe.helpers.rand_equation(10, 3, seed=42, return_size_dict=True)
+    eq, shapes = oe.helpers.rand_equation(10, 3, seed=42)
 
     # first get the actual minimum cost
     opt = oe.DynamicProgramming(minimize="size")
-    path, info = oe.contract_path(eq, *shapes, shapes=True, optimize=opt)
+    _, info = oe.contract_path(eq, *shapes, shapes=True, optimize=opt)
     mincost = info.largest_intermediate
 
     # check we can still find it without minimizing size explicitly
@@ -322,7 +322,7 @@ def test_can_optimize_outer_products(optimize: OptimizeKind) -> None:
 
 
 @pytest.mark.parametrize("num_symbols", [2, 3, 26, 26 + 26, 256 - 140, 300])
-def test_large_path(num_symbols) -> None:
+def test_large_path(num_symbols: int) -> None:
     symbols = "".join(oe.get_symbol(i) for i in range(num_symbols))
     dimension_dict = dict(zip(symbols, itertools.cycle([2, 3, 4])))
     expression = ",".join(symbols[t : t + 2] for t in range(num_symbols - 1))
