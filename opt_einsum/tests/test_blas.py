@@ -2,6 +2,8 @@
 Tests the BLAS capability for the opt_einsum module.
 """
 
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -59,13 +61,13 @@ blas_tests = [
 
 
 @pytest.mark.parametrize("inp,benchmark", blas_tests)
-def test_can_blas(inp, benchmark):
+def test_can_blas(inp: Any, benchmark: bool) -> None:
     result = blas.can_blas(*inp)
     assert result == benchmark
 
 
 @pytest.mark.parametrize("inp,benchmark", blas_tests)
-def test_tensor_blas(inp, benchmark):
+def test_tensor_blas(inp: Any, benchmark: bool) -> None:
 
     # Weed out non-blas cases
     if benchmark is False:
@@ -86,7 +88,7 @@ def test_tensor_blas(inp, benchmark):
     np.testing.assert_allclose(einsum_result, blas_result)
 
 
-def test_blas_out():
+def test_blas_out() -> None:
     a = np.random.rand(4, 4)
     b = np.random.rand(4, 4)
     c = np.random.rand(4, 4)

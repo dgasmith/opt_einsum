@@ -10,7 +10,7 @@ import time
 from collections import deque
 from random import choices as random_choices
 from random import seed as random_seed
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 from . import helpers, paths
 from .typing import ArrayIndexType, ArrayType, PathType
@@ -102,7 +102,7 @@ class RandomOptimizer(paths.PathOptimizer):
         return self._parallel
 
     @parallel.setter
-    def parallel(self, parallel: bool) -> None:
+    def parallel(self, parallel: Union[bool, numbers.Number]) -> None:
         # shutdown any previous executor if we are managing it
         if getattr(self, "_managing_executor", False):
             self._executor.shutdown()

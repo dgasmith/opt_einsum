@@ -1,7 +1,7 @@
 # Custom Path Optimizers
 
 If you want to implement or just experiment with custom contaction paths then
-you can easily by subclassing the [`opt_einsum.paths.PathOptimizer`](../api_reference.md#opt_einsumpathspathoptimizer)
+you can easily by subclassing the [`opt_einsum.paths.PathOptimizer`](../api_reference.md#opt_einsum.paths.PathOptimizer)
 object. For example, imagine we want to test the path that just blindly
 contracts the first pair of tensors again and again. We would implement this
 as:
@@ -49,7 +49,7 @@ machinery of the random-greedy approach. Namely:
 - Parallelization using a pool-executor
 
 This is done by subclassing the
-[`opt_einsum.paths.RandomOptimizer`](../api_reference.md#opt_einsumpathsrandomoptimizer)
+[`opt_einsum.paths.RandomOptimizer`](../api_reference.md#opt_einsum.path_random.RandomOptimizer)
  object and implementing a
 `setup` method. Here's an example where we just randomly select any path
 (again, although we get a considerable speedup over `einsum` this is

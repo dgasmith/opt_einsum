@@ -8,7 +8,7 @@ from functools import lru_cache
 from typing import Any, Collection, Dict, Iterable, List, Literal, Optional, Sequence, Tuple, Union, overload
 
 from . import backends, blas, helpers, parser, paths, sharing
-from .typing import ArrayIndexType, ArrayType, ContractionListType, PathType
+from .typing import ArrayIndexType, ArrayType, ContractionListType, OptimizeKind, PathType
 
 __all__ = [
     "contract_path",
@@ -21,14 +21,7 @@ __all__ = [
 ## Common types
 
 _OrderKACF = Literal[None, "K", "A", "C", "F"]
-_OptimizeKind = Union[
-    None,
-    bool,
-    Literal[
-        "optimal", "dp", "greedy", "random-greedy", "random-greedy-128", "branch-all", "branch-2", "auto", "auto-hq"
-    ],
-    PathType,
-]
+
 _Casting = Literal["no", "equiv", "safe", "same_kind", "unsafe"]
 _MemoryLimit = Union[None, int, Literal["max_input"]]
 _Backend = Literal["auto",]
@@ -135,7 +128,7 @@ def contract_path(
     subscripts: str,
     *operands: ArrayType,
     use_blas: bool = True,
-    optimize: _OptimizeKind = True,
+    optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
     shapes: bool = False,
     **kwargs: Any,
@@ -147,7 +140,7 @@ def contract_path(
     subscripts: ArrayType,
     *operands: ArrayType | Collection[int],
     use_blas: bool = True,
-    optimize: _OptimizeKind = True,
+    optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
     shapes: bool = False,
     **kwargs: Any,
@@ -158,7 +151,7 @@ def contract_path(
     subscripts: Any,
     *operands: Any,
     use_blas: bool = True,
-    optimize: _OptimizeKind = True,
+    optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
     shapes: bool = False,
     **kwargs: Any,
@@ -468,7 +461,7 @@ def contract(
     order: _OrderKACF = ...,
     casting: _Casting = ...,
     use_blas: bool = ...,
-    optimize: _OptimizeKind = ...,
+    optimize: OptimizeKind = ...,
     memory_limit: _MemoryLimit = ...,
     backend: _Backend = ...,
     **kwargs: Any,
@@ -484,7 +477,7 @@ def contract(
     order: _OrderKACF = ...,
     casting: _Casting = ...,
     use_blas: bool = ...,
-    optimize: _OptimizeKind = ...,
+    optimize: OptimizeKind = ...,
     memory_limit: _MemoryLimit = ...,
     backend: _Backend = ...,
     **kwargs: Any,
@@ -499,7 +492,7 @@ def contract(
     order: _OrderKACF = "K",
     casting: _Casting = "safe",
     use_blas: bool = True,
-    optimize: _OptimizeKind = True,
+    optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
     backend: _Backend = "auto",
     **kwargs: Any,
@@ -517,7 +510,7 @@ def contract(
         order: The order of the resulting contraction, see np.einsum.
         casting: The casting procedure for operations of different dtype, see np.einsum.
         use_blas: Do you use BLAS for valid operations, may use extra memory for more intermediates.
-        optimize: Choose the type of path the contraction will be optimized with:
+        optimize:- Choose the type of path the contraction will be optimized with
             - if a list is given uses this as the path.
             - `'optimal'` An algorithm that explores all possible ways of
             contracting the listed tensors. Scales factorially with the number of
@@ -544,16 +537,16 @@ def contract(
             below 1sec.
 
         memory_limit:- Give the upper bound of the largest intermediate tensor contract will build.
-            - None or -1 means there is no limit
-            - `max_input` means the limit is set as largest input tensor
-            - a positive integer is taken as an explicit limit on the number of elements
+            - None or -1 means there is no limit.
+            - `max_input` means the limit is set as largest input tensor.
+            - A positive integer is taken as an explicit limit on the number of elements.
 
             The default is None. Note that imposing a limit can make contractions
             exponentially slower to perform.
 
         backend: Which library to use to perform the required ``tensordot``, ``transpose``
             and ``einsum`` calls. Should match the types of arrays supplied, See
-            :func:`contract_expression` for generating expressions which convert
+            `contract_expression` for generating expressions which convert
             numpy arrays to and from the backend library automatically.
 
     Returns:
@@ -950,36 +943,35 @@ def contract_expression(subscripts: str, *shapes: PathType, **kwargs: Any) -> An
     """Generate a reusable expression for a given contraction with
     specific shapes, which can, for example, be cached.
 
-    **Parameters:**
+    Parameters:
 
-    - **subscripts** - *(str)* Specifies the subscripts for summation.
-    - **shapes** - *(sequence of integer tuples)* Shapes of the arrays to optimize the contraction for.
-    - **constants** - *(sequence of int, optional)* The indices of any constant arguments in `shapes`, in which case the
-        actual array should be supplied at that position rather than just a
-        shape. If these are specified, then constant parts of the contraction
-        between calls will be reused. Additionally, if a GPU-enabled backend is
-        used for example, then the constant tensors will be kept on the GPU,
-        minimizing transfers.
-    - **kwargs** - Passed on to `contract_path` or `einsum`. See `contract`.
+        subscripts: Specifies the subscripts for summation.
+        shapes: Shapes of the arrays to optimize the contraction for.
+        constants: The indices of any constant arguments in `shapes`, in which case the
+            actual array should be supplied at that position rather than just a
+            shape. If these are specified, then constant parts of the contraction
+            between calls will be reused. Additionally, if a GPU-enabled backend is
+            used for example, then the constant tensors will be kept on the GPU,
+            minimizing transfers.
+        kwargs: Passed on to `contract_path` or `einsum`. See `contract`.
 
-    **Returns:**
+    Returns:
+        Callable with signature `expr(*arrays, out=None, backend='numpy')` where the array's shapes should match `shapes`.
 
-    - **expr** - *(ContractExpression)* Callable with signature `expr(*arrays, out=None, backend='numpy')` where the array's shapes should match `shapes`.
+    Notes:
 
-    **Notes:**
+        The `out` keyword argument should be supplied to the generated expression
+        rather than this function.
+        The `backend` keyword argument should also be supplied to the generated
+        expression. If numpy arrays are supplied, if possible they will be
+        converted to and back from the correct backend array type.
+        The generated expression will work with any arrays which have
+        the same rank (number of dimensions) as the original shapes, however, if
+        the actual sizes are different, the expression may no longer be optimal.
+        Constant operations will be computed upon the first call with a particular
+        backend, then subsequently reused.
 
-    - The `out` keyword argument should be supplied to the generated expression
-      rather than this function.
-    - The `backend` keyword argument should also be supplied to the generated
-      expression. If numpy arrays are supplied, if possible they will be
-      converted to and back from the correct backend array type.
-    - The generated expression will work with any arrays which have
-      the same rank (number of dimensions) as the original shapes, however, if
-      the actual sizes are different, the expression may no longer be optimal.
-    - Constant operations will be computed upon the first call with a particular
-      backend, then subsequently reused.
-
-    **Examples:**
+    Examples:
 
     Basic usage:
 

@@ -3,6 +3,8 @@ repo_url: https://github.com/dgasmith/opt_einsum
 repo_name: dgasmith/opt_einsum
 theme:
   name: material
+  features:
+    - navigation.instant
   palette:
 
     # Palette toggle for automatic mode
@@ -77,6 +79,8 @@ markdown_extensions:
   - pymdownx.extra
   - pymdownx.arithmatex:
       generic: true
+  - toc:
+      toc_depth: 2
 
 nav:
   - Overview: index.md
