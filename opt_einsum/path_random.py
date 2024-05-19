@@ -69,7 +69,7 @@ class RandomOptimizer(paths.PathOptimizer):
         max_repeats: int = 32,
         max_time: Optional[float] = None,
         minimize: str = "flops",
-        parallel: bool = False,
+        parallel: Union[bool, numbers.Number] = False,
         pre_dispatch: int = 128,
     ):
 
@@ -98,7 +98,7 @@ class RandomOptimizer(paths.PathOptimizer):
         return paths.ssa_to_linear(self.best["ssa_path"])
 
     @property
-    def parallel(self) -> bool:
+    def parallel(self) -> Union[bool, numbers.Number]:
         return self._parallel
 
     @parallel.setter

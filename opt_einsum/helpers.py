@@ -214,8 +214,7 @@ def rand_equation(
     d_max: int = ...,
     seed: Optional[int] = ...,
     global_dim: bool = ...,
-    *,
-    return_size_dict: Literal[False],
+    return_size_dict: Literal[False] = ...,
 ) -> Tuple[str, PathType]: ...
 
 
@@ -318,9 +317,7 @@ def rand_equation(
     # make the shapes
     shapes = [tuple(size_dict[ix] for ix in op) for op in inputs]
 
-    ret = (eq, shapes)
-
     if return_size_dict:
-        return ret + (size_dict,)
+        return (eq, shapes, size_dict,)
     else:
-        return ret
+        return (eq, shapes)
