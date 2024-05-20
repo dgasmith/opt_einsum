@@ -143,6 +143,7 @@ def _filter_einsum_defaults(kwargs: Dict[Literal["order", "casting", "dtype", "o
     return ret
 
 
+# Overlaod for contract(str, *operands)
 @overload
 def contract_path(
     subscripts: str,
@@ -155,10 +156,11 @@ def contract_path(
 ) -> Tuple[PathType, PathInfo]: ...
 
 
+# Overlaod for contract(operand, indices, ....)
 @overload
 def contract_path(
     subscripts: ArrayType,
-    *operands: ArrayType | Collection[int],
+    *operands: Union[ArrayType, Collection[int]],
     use_blas: bool = True,
     optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
