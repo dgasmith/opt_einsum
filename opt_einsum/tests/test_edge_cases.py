@@ -48,9 +48,9 @@ def test_contract_expression_checks() -> None:
     assert "Internal error while evaluating `ContractExpression`" in str(err.value)
 
     # should only be able to specify out
-    with pytest.raises(ValueError) as err:
-        expr(np.random.rand(2, 3), np.random.rand(3, 4), order="F")
-    assert "only valid keyword arguments to a `ContractExpression`" in str(err.value)
+    with pytest.raises(TypeError) as err_type:
+        expr(np.random.rand(2, 3), np.random.rand(3, 4), order="F")  # type: ignore
+    assert "only valid keyword arguments to a `ContractExpression`" in str(err_type.value)
 
 
 def test_broadcasting_contraction() -> None:

@@ -123,10 +123,13 @@ def _choose_memory_arg(memory_limit: _MemoryLimit, size_list: List[int]) -> Opti
     return int(memory_limit)
 
 
-def _filter_einsum_defaults(kwargs: Dict[Literal["order", "casting", "dtype", "out"], Any]) -> Dict[str, Any]:
+_EinsumDefaultKeys = Literal["order", "casting", "dtype", "out"]
+
+
+def _filter_einsum_defaults(kwargs: Dict[_EinsumDefaultKeys, Any]) -> Dict[_EinsumDefaultKeys, Any]:
     """Filters out default contract kwargs to pass to various backends."""
     kwargs = kwargs.copy()
-    ret = {}
+    ret: Dict[_EinsumDefaultKeys, Any] = {}
     if (order := kwargs.pop("order", "K")) != "K":
         ret["order"] = order
 
@@ -143,7 +146,7 @@ def _filter_einsum_defaults(kwargs: Dict[Literal["order", "casting", "dtype", "o
     return ret
 
 
-# Overlaod for contract(str, *operands)
+# Overlaod for contract(einsum_string, *operands)
 @overload
 def contract_path(
     subscripts: str,
@@ -156,7 +159,7 @@ def contract_path(
 ) -> Tuple[PathType, PathInfo]: ...
 
 
-# Overlaod for contract(operand, indices, ....)
+# Overlaod for contract(operand, indices, operand, indices, ....)
 @overload
 def contract_path(
     subscripts: ArrayType,
@@ -449,7 +452,7 @@ def _einsum(*operands: Any, **kwargs: Any) -> ArrayType:
 
         einsum_str = parser.convert_to_valid_einsum_chars(einsum_str)
 
-    kwargs = _filter_einsum_defaults(kwargs)
+    kwargs = _filter_einsum_defaults(kwargs)  # type: ignore
     return fn(einsum_str, *operands, **kwargs)
 
 
@@ -494,7 +497,7 @@ def contract(
 @overload
 def contract(
     subscripts: ArrayType,
-    *operands: ArrayType | Collection[int],
+    *operands: Union[ArrayType | Collection[int]],
     out: ArrayType = ...,
     dtype: Any = ...,
     order: _OrderKACF = ...,
@@ -508,8 +511,8 @@ def contract(
 
 
 def contract(
-    subscripts: Any,
-    *operands: Any,
+    subscripts: str | ArrayType,
+    *operands: Union[ArrayType | Collection[int]],
     out: Optional[ArrayType] = None,
     dtype: Optional[str] = None,
     order: _OrderKACF = "K",
@@ -720,7 +723,7 @@ def _core_contract(
 
         else:
             # Call einsum
-            out_kwarg: None | ArrayType = None
+            out_kwarg: Union[None, ArrayType] = None
             if handle_out:
                 out_kwarg = out
             new_view = _einsum(
@@ -881,29 +884,28 @@ class ContractExpression:
 
         return result
 
-    def __call__(self, *arrays: ArrayType, **kwargs: Any) -> ArrayType:
+    def __call__(
+        self,
+        *arrays: ArrayType,
+        out: Union[None, ArrayType] = None,
+        backend: str = "auto",
+        evaluate_constants: bool = False,
+    ) -> ArrayType:
         """Evaluate this expression with a set of arrays.
 
-        Parameters
-        ----------
-        arrays : seq of array
-            The arrays to supply as input to the expression.
-        out : array, optional (default: ``None``)
-            If specified, output the result into this array.
-        backend : str, optional  (default: ``numpy``)
-            Perform the contraction with this backend library. If numpy arrays
-            are supplied then try to convert them to and from the correct
-            backend array type.
-        """
-        out = kwargs.pop("out", None)
-        backend = parse_backend(arrays, kwargs.pop("backend", "auto"))
-        evaluate_constants = kwargs.pop("evaluate_constants", False)
+        Parameters:
+            arrays: The arrays to supply as input to the expression.
+            out: If specified, output the result into this array.
+            backend: Perform the contraction with this backend library. If numpy arrays
+                are supplied then try to convert them to and from the correct
+                backend array type.
+            evaluate_constants: Pre-evaluates constants with the appropriate backend.
 
-        if kwargs:
-            raise ValueError(
-                "The only valid keyword arguments to a `ContractExpression` "
-                "call are `out=` or `backend=`. Got: {}.".format(kwargs)
-            )
+        Returns:
+            The contracted result.
+        """
+
+        backend = parse_backend(arrays, backend)
 
         correct_num_args = self._full_num_args if evaluate_constants else self.num_args
 
@@ -965,7 +967,41 @@ def shape_only(shape: TensorShapeType) -> Shaped:
     return Shaped(shape)
 
 
-def contract_expression(subscripts: str, *shapes: TensorShapeType | ArrayType, **kwargs: Any) -> Any:
+# Overlaod for contract(einsum_string, *operands)
+@overload
+def contract_expression(
+    subscripts: str,
+    *operands: Union[ArrayType, TensorShapeType],
+    constants: Union[Collection[int], None] = ...,
+    use_blas: bool = ...,
+    optimize: OptimizeKind = ...,
+    memory_limit: _MemoryLimit = ...,
+    **kwargs: Any,
+) -> ContractExpression: ...
+
+
+# Overlaod for contract(operand, indices, operand, indices, ....)
+@overload
+def contract_expression(
+    subscripts: Union[ArrayType, TensorShapeType],
+    *operands: Union[ArrayType, TensorShapeType, Collection[int]],
+    constants: Union[Collection[int], None] = ...,
+    use_blas: bool = ...,
+    optimize: OptimizeKind = ...,
+    memory_limit: _MemoryLimit = ...,
+    **kwargs: Any,
+) -> ContractExpression: ...
+
+
+def contract_expression(
+    subscripts: Union[str, ArrayType, TensorShapeType],
+    *shapes: Union[ArrayType, TensorShapeType, Collection[int]],
+    constants: Union[Collection[int], None] = None,
+    use_blas: bool = True,
+    optimize: OptimizeKind = True,
+    memory_limit: _MemoryLimit = None,
+    **kwargs: Any,
+) -> ContractExpression:
     """Generate a reusable expression for a given contraction with
     specific shapes, which can, for example, be cached.
 
@@ -1022,7 +1058,7 @@ def contract_expression(subscripts: str, *shapes: TensorShapeType | ArrayType, *
     ```
 
     """
-    if not kwargs.get("optimize", True):
+    if not optimize:
         raise ValueError("Can only generate expressions for optimized contractions.")
 
     for arg in ("out", "backend"):
@@ -1033,16 +1069,18 @@ def contract_expression(subscripts: str, *shapes: TensorShapeType | ArrayType, *
             )
 
     if not isinstance(subscripts, str):
-        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)
+        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)  # type: ignore
 
     kwargs["_gen_expression"] = True
 
     # build dict of constant indices mapped to arrays
-    constants = kwargs.pop("constants", ())
+    constants = constants or tuple()
     constants_dict = {i: shapes[i] for i in constants}
     kwargs["_constants_dict"] = constants_dict
 
     # apart from constant arguments, make dummy arrays
-    dummy_arrays = [s if i in constants else shape_only(s) for i, s in enumerate(shapes)]
+    dummy_arrays = [s if i in constants else shape_only(s) for i, s in enumerate(shapes)]  # type: ignore
 
-    return contract(subscripts, *dummy_arrays, **kwargs)
+    return contract(
+        subscripts, *dummy_arrays, use_blas=use_blas, optimize=optimize, memory_limit=memory_limit, **kwargs
+    )
