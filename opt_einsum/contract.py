@@ -497,7 +497,7 @@ def contract(
 @overload
 def contract(
     subscripts: ArrayType,
-    *operands: Union[ArrayType | Collection[int]],
+    *operands: Union[ArrayType, Collection[int]],
     out: ArrayType = ...,
     dtype: Any = ...,
     order: _OrderKACF = ...,
@@ -511,8 +511,8 @@ def contract(
 
 
 def contract(
-    subscripts: str | ArrayType,
-    *operands: Union[ArrayType | Collection[int]],
+    subscripts: Union[str, ArrayType],
+    *operands: Union[ArrayType, Collection[int]],
     out: Optional[ArrayType] = None,
     dtype: Optional[str] = None,
     order: _OrderKACF = "K",
