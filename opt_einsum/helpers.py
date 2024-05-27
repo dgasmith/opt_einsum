@@ -2,13 +2,10 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Tuple, overload
 from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Literal, Optional, Tuple, Union, overload
 
-from opt_einsum.typing import ArrayIndexType, ArrayType
-
 from opt_einsum.parser import get_symbol
-from opt_einsum.typing import ArrayIndexType, PathType
+from opt_einsum.typing import ArrayIndexType, ArrayType, PathType
 
 __all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
 
@@ -197,6 +194,7 @@ def has_array_interface(array: ArrayType) -> ArrayType:
         return True
     else:
         return False
+
 
 @overload
 def rand_equation(

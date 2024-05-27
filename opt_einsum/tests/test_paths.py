@@ -10,11 +10,8 @@ from typing import Any, Dict, List, Optional
 import pytest
 
 import opt_einsum as oe
-<<<<<<< HEAD
 from opt_einsum.testing import build_views, import_numpy_or_skip, rand_equation
-=======
 from opt_einsum.typing import ArrayIndexType, OptimizeKind, PathType, TensorShapeType
->>>>>>> eede8fab01479e22e5862bdea4836250b1789811
 
 explicit_path_tests = {
     "GEMM1": (
@@ -179,13 +176,8 @@ def test_memory_paths() -> None:
 
 
 @pytest.mark.parametrize("alg,expression,order", path_edge_tests)
-<<<<<<< HEAD
-def test_path_edge_cases(alg, expression, order):
-    views = build_views(expression)
-=======
 def test_path_edge_cases(alg: OptimizeKind, expression: str, order: PathType) -> None:
     views = oe.helpers.build_views(expression)
->>>>>>> eede8fab01479e22e5862bdea4836250b1789811
 
     # Test tiny memory limit
     path_ret = oe.contract_path(expression, *views, optimize=alg)
@@ -194,13 +186,8 @@ def test_path_edge_cases(alg: OptimizeKind, expression: str, order: PathType) ->
 
 @pytest.mark.parametrize("expression,order", path_scalar_tests)
 @pytest.mark.parametrize("alg", oe.paths._PATH_OPTIONS)
-<<<<<<< HEAD
-def test_path_scalar_cases(alg, expression, order):
-    views = build_views(expression)
-=======
 def test_path_scalar_cases(alg: OptimizeKind, expression: str, order: PathType) -> None:
     views = oe.helpers.build_views(expression)
->>>>>>> eede8fab01479e22e5862bdea4836250b1789811
 
     # Test tiny memory limit
     path_ret = oe.contract_path(expression, *views, optimize=alg)
@@ -490,6 +477,7 @@ def test_custom_path_optimizer() -> None:
 
 def test_custom_random_optimizer() -> None:
     np = import_numpy_or_skip()
+
     class NaiveRandomOptimizer(oe.path_random.RandomOptimizer):
         @staticmethod
         def random_path(

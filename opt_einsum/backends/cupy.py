@@ -2,9 +2,8 @@
 Required functions for optimized contractions of numpy arrays using cupy.
 """
 
-
-from ..helpers import has_array_interface
-from ..sharing import to_backend_cache_wrap
+from opt_einsum.helpers import has_array_interface
+from opt_einsum.sharing import to_backend_cache_wrap
 
 __all__ = ["to_cupy", "build_expression", "evaluate_constants"]
 

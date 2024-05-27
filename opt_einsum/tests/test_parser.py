@@ -37,6 +37,7 @@ def test_parse_einsum_input_shapes_error() -> None:
 @using_numpy
 def test_parse_einsum_input_shapes() -> None:
     import numpy as np
+
     eq = "ab,bc,cd"
     shps = [(2, 3), (3, 4), (4, 5)]
     input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shps], shapes=True)

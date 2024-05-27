@@ -2,12 +2,8 @@
 Tests the BLAS capability for the opt_einsum module.
 """
 
-<<<<<<< HEAD
-=======
 from typing import Any
 
-import numpy as np
->>>>>>> eede8fab01479e22e5862bdea4836250b1789811
 import pytest
 
 from opt_einsum import blas, contract
@@ -97,6 +93,7 @@ def test_tensor_blas(inp: Any, benchmark: bool) -> None:
 @using_numpy
 def test_blas_out() -> None:
     import numpy as np
+
     a = np.random.rand(4, 4)
     b = np.random.rand(4, 4)
     c = np.random.rand(4, 4)

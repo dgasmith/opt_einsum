@@ -1373,7 +1373,7 @@ def auto_hq(
     how many input arguments there are, but targeting a more generous
     amount of search time than ``'auto'``.
     """
-    from .path_random import random_greedy_128
+    from opt_einsum.path_random import random_greedy_128
 
     N = len(inputs)
     return _AUTO_HQ_CHOICES.get(N, random_greedy_128)(inputs, output, size_dict, memory_limit)

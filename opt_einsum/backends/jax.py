@@ -2,8 +2,7 @@
 Required functions for optimized contractions of numpy arrays using jax.
 """
 
-
-from ..sharing import to_backend_cache_wrap
+from opt_einsum.sharing import to_backend_cache_wrap
 
 __all__ = ["build_expression", "evaluate_constants"]
 
