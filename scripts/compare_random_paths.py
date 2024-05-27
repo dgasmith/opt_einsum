@@ -1,5 +1,6 @@
 import resource
 import timeit
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -12,7 +13,7 @@ resource.setrlimit(rsrc, (limit, limit))
 
 pd.set_option("display.width", 200)
 
-opt_path = "optimal"
+opt_path: Literal["optimal"] = "optimal"
 
 # Number of dimensions
 max_dims = 4
@@ -108,7 +109,7 @@ df["Ratio"] = df["Einsum time"] / df["Opt_einsum time"]
 
 diff_flags = df["Flag"] is not True
 print("\nNumber of contract different than einsum: %d." % np.sum(diff_flags))
-if sum(diff_flags) > 0:
+if diff_flags > 0:
     print("Terms different than einsum")
     print(df[df["Flag"] is not True])
 

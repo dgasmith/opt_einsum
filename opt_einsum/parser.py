@@ -5,7 +5,7 @@ A functionally equivalent parser of the numpy.einsum input parser
 import itertools
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
-from .typing import ArrayType, TensorShapeType
+from opt_einsum.typing import ArrayType, TensorShapeType
 
 __all__ = [
     "is_valid_einsum_char",
@@ -223,7 +223,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, List[Any]]:
+def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, Tuple[ArrayType, ...]]:
     """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
@@ -258,7 +258,7 @@ def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[s
         subscripts += "->"
         subscripts += convert_subscripts(output_list, symbol_map)
 
-    return subscripts, operands
+    return subscripts, tuple(operands)
 
 
 def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
@@ -378,8 +378,10 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
     else:
         input_subscripts, output_subscript = subscripts, find_output_str(subscripts)
 
-    # Make sure output subscripts are in the input
+    # Make sure output subscripts are unique and in the input
     for char in output_subscript:
+        if output_subscript.count(char) != 1:
+            raise ValueError("Output character '{}' appeared more than once in the output.".format(char))
         if char not in input_subscripts:
             raise ValueError("Output character '{}' did not appear in the input".format(char))
 

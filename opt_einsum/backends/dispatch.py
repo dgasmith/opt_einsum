@@ -7,12 +7,12 @@ constants.
 import importlib
 from typing import Any, Dict
 
-from . import cupy as _cupy
-from . import jax as _jax
-from . import object_arrays
-from . import tensorflow as _tensorflow
-from . import theano as _theano
-from . import torch as _torch
+from opt_einsum.backends import cupy as _cupy
+from opt_einsum.backends import jax as _jax
+from opt_einsum.backends import object_arrays
+from opt_einsum.backends import tensorflow as _tensorflow
+from opt_einsum.backends import theano as _theano
+from opt_einsum.backends import torch as _torch
 
 __all__ = [
     "get_func",
@@ -29,6 +29,7 @@ _aliases = {
     "theano": "theano.tensor",
     "torch": "opt_einsum.backends.torch",
     "jax": "jax.numpy",
+    "jaxlib": "jax.numpy",
     "autograd": "autograd.numpy",
     "mars": "mars.tensor",
 }

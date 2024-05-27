@@ -2,16 +2,19 @@
 Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 """
 
+from typing import Any
+
 import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_path
+from opt_einsum.typing import ArrayType
 
 
-def build_views(string):
+def build_views(string: str) -> list[ArrayType]:
     chars = "abcdefghij"
-    sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
-    sizes = {c: s for c, s in zip(chars, sizes)}
+    sizes_array = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
+    sizes = {c: s for c, s in zip(chars, sizes_array)}
 
     views = []
 
@@ -24,7 +27,7 @@ def build_views(string):
     return views
 
 
-def test_type_errors():
+def test_type_errors() -> None:
     # subscripts must be a string
     with pytest.raises(TypeError):
         contract(0, 0)
@@ -36,11 +39,11 @@ def test_type_errors():
     # order parameter must be a valid order
     # changed in Numpy 1.19, see https://github.com/numpy/numpy/commit/35b0a051c19265f5643f6011ee11e31d30c8bc4c
     with pytest.raises((TypeError, ValueError)):
-        contract("", 0, order="W")
+        contract("", 0, order="W")  # type: ignore
 
     # casting parameter must be a valid casting
     with pytest.raises(ValueError):
-        contract("", 0, casting="blah")
+        contract("", 0, casting="blah")  # type: ignore
 
     # dtype parameter must be a valid dtype
     with pytest.raises(TypeError):
@@ -81,92 +84,92 @@ def test_type_errors():
         contract(views[0], [Ellipsis, dict()], [Ellipsis, "a"])
 
 
-def test_value_errors():
+@pytest.mark.parametrize("contract_fn", [contract, contract_path])
+def test_value_errors(contract_fn: Any) -> None:
     with pytest.raises(ValueError):
-        contract("")
+        contract_fn("")
 
     # subscripts must be a string
     with pytest.raises(TypeError):
-        contract(0, 0)
+        contract_fn(0, 0)
 
     # invalid subscript character
     with pytest.raises(ValueError):
-        contract("i%...", [0, 0])
+        contract_fn("i%...", [0, 0])
     with pytest.raises(ValueError):
-        contract("...j$", [0, 0])
+        contract_fn("...j$", [0, 0])
     with pytest.raises(ValueError):
-        contract("i->&", [0, 0])
+        contract_fn("i->&", [0, 0])
 
     with pytest.raises(ValueError):
-        contract("")
+        contract_fn("")
     # number of operands must match count in subscripts string
     with pytest.raises(ValueError):
-        contract("", 0, 0)
+        contract_fn("", 0, 0)
     with pytest.raises(ValueError):
-        contract(",", 0, [0], [0])
+        contract_fn(",", 0, [0], [0])
     with pytest.raises(ValueError):
-        contract(",", [0])
+        contract_fn(",", [0])
 
     # can't have more subscripts than dimensions in the operand
     with pytest.raises(ValueError):
-        contract("i", 0)
+        contract_fn("i", 0)
     with pytest.raises(ValueError):
-        contract("ij", [0, 0])
+        contract_fn("ij", [0, 0])
     with pytest.raises(ValueError):
-        contract("...i", 0)
+        contract_fn("...i", 0)
     with pytest.raises(ValueError):
-        contract("i...j", [0, 0])
+        contract_fn("i...j", [0, 0])
     with pytest.raises(ValueError):
-        contract("i...", 0)
+        contract_fn("i...", 0)
     with pytest.raises(ValueError):
-        contract("ij...", [0, 0])
+        contract_fn("ij...", [0, 0])
 
     # invalid ellipsis
     with pytest.raises(ValueError):
-        contract("i..", [0, 0])
+        contract_fn("i..", [0, 0])
     with pytest.raises(ValueError):
-        contract(".i...", [0, 0])
+        contract_fn(".i...", [0, 0])
     with pytest.raises(ValueError):
-        contract("j->..j", [0, 0])
+        contract_fn("j->..j", [0, 0])
     with pytest.raises(ValueError):
-        contract("j->.j...", [0, 0])
+        contract_fn("j->.j...", [0, 0])
 
     # invalid subscript character
     with pytest.raises(ValueError):
-        contract("i%...", [0, 0])
+        contract_fn("i%...", [0, 0])
     with pytest.raises(ValueError):
-        contract("...j$", [0, 0])
+        contract_fn("...j$", [0, 0])
     with pytest.raises(ValueError):
-        contract("i->&", [0, 0])
+        contract_fn("i->&", [0, 0])
 
     # output subscripts must appear in input
     with pytest.raises(ValueError):
-        contract("i->ij", [0, 0])
+        contract_fn("i->ij", [0, 0])
 
     # output subscripts may only be specified once
     with pytest.raises(ValueError):
-        contract("ij->jij", [[0, 0], [0, 0]])
+        contract_fn("ij->jij", [[0, 0], [0, 0]])
 
     # dimensions much match when being collapsed
     with pytest.raises(ValueError):
-        contract("ii", np.arange(6).reshape(2, 3))
+        contract_fn("ii", np.arange(6).reshape(2, 3))
     with pytest.raises(ValueError):
-        contract("ii->i", np.arange(6).reshape(2, 3))
+        contract_fn("ii->i", np.arange(6).reshape(2, 3))
 
     # broadcasting to new dimensions must be enabled explicitly
     with pytest.raises(ValueError):
-        contract("i", np.arange(6).reshape(2, 3))
-    with pytest.raises(ValueError):
-        contract("i->i", [[0, 1], [0, 1]], out=np.arange(4).reshape(2, 2))
-
-
-def test_contract_inputs():
+        contract_fn("i", np.arange(6).reshape(2, 3))
+    if contract_fn is contract:
+        # contract_path does not have an `out` parameter
+        with pytest.raises(ValueError):
+            contract_fn("i->i", [[0, 1], [0, 1]], out=np.arange(4).reshape(2, 2))
 
     with pytest.raises(TypeError):
-        contract_path("i->i", [[0, 1], [0, 1]], bad_kwarg=True)
+        contract_fn("i->i", [[0, 1], [0, 1]], bad_kwarg=True)
 
     with pytest.raises(ValueError):
-        contract_path("i->i", [[0, 1], [0, 1]], memory_limit=-1)
+        contract_fn("i->i", [[0, 1], [0, 1]], memory_limit=-1)
 
 
 @pytest.mark.parametrize(
@@ -181,7 +184,7 @@ def test_contract_inputs():
         "...a,...b",
     ],
 )
-def test_compare(string):
+def test_compare(string: str) -> None:
     views = build_views(string)
 
     ein = contract(string, *views, optimize=False)
@@ -192,7 +195,7 @@ def test_compare(string):
     assert np.allclose(ein, opt)
 
 
-def test_ellipse_input1():
+def test_ellipse_input1() -> None:
     string = "...a->..."
     views = build_views(string)
 
@@ -201,7 +204,7 @@ def test_ellipse_input1():
     assert np.allclose(ein, opt)
 
 
-def test_ellipse_input2():
+def test_ellipse_input2() -> None:
     string = "...a"
     views = build_views(string)
 
@@ -210,7 +213,7 @@ def test_ellipse_input2():
     assert np.allclose(ein, opt)
 
 
-def test_ellipse_input3():
+def test_ellipse_input3() -> None:
     string = "...a->...a"
     views = build_views(string)
 
@@ -219,7 +222,7 @@ def test_ellipse_input3():
     assert np.allclose(ein, opt)
 
 
-def test_ellipse_input4():
+def test_ellipse_input4() -> None:
     string = "...b,...a->..."
     views = build_views(string)
 
@@ -228,7 +231,7 @@ def test_ellipse_input4():
     assert np.allclose(ein, opt)
 
 
-def test_singleton_dimension_broadcast():
+def test_singleton_dimension_broadcast() -> None:
     # singleton dimensions broadcast (gh-10343)
     p = np.ones((10, 2))
     q = np.ones((1, 2))
@@ -248,7 +251,7 @@ def test_singleton_dimension_broadcast():
         assert np.allclose(res2, np.full((1, 5), 5))
 
 
-def test_large_int_input_format():
+def test_large_int_input_format() -> None:
     string = "ab,bc,cd"
     x, y, z = build_views(string)
     string_output = contract(string, x, y, z)
@@ -259,7 +262,7 @@ def test_large_int_input_format():
         assert np.allclose(transpose_output, x.T)
 
 
-def test_hashable_object_input_format():
+def test_hashable_object_input_format() -> None:
     string = "ab,bc,cd"
     x, y, z = build_views(string)
     string_output = contract(string, x, y, z)

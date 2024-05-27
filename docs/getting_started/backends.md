@@ -1,12 +1,12 @@
 # Backends & GPU Support
 
-`opt_einsum` is quite agnostic to the type of n-dimensional arrays (tensors)
+`opt_einsum` is largely agnostic to the type of n-dimensional arrays (tensors)
 it uses, since finding the contraction path only relies on getting the shape
 attribute of each array supplied.
 It can perform the underlying tensor contractions with various
 libraries. In fact, any library that provides a `numpy.tensordot` and
 `numpy.transpose` implementation can perform most normal contractions.
-While more special functionality such as axes reduction is reliant on a
+However, certain special functionalities such as axes reduction are reliant on a
 `numpy.einsum` implementation.
 The following is a brief overview of libraries which have been tested with
 `opt_einsum`:
@@ -26,20 +26,11 @@ The following is a brief overview of libraries which have been tested with
 - [jax](https://github.com/google/jax): compiled GPU tensor expressions
   including `autograd`-like functionality
 
-`opt_einsum` is agnostic to the type of n-dimensional arrays (tensors)
-it uses, since finding the contraction path only relies on getting the shape
-attribute of each array supplied.
-It can perform the underlying tensor contractions with various
-libraries. In fact, any library that provides a `numpy.tensordot` and
-`~numpy.transpose` implementation can perform most normal contractions.
-While more special functionality such as axes reduction is reliant on a
-`numpy.einsum` implementation.
-
 !!! note
     For a contraction to be possible without using a backend einsum, it must
     satisfy the following rule: in the full expression (*including* output
     indices) each index must appear twice. In other words, each dimension
-    must be contracted with one other dimension, or left alone.
+    must be either contracted with one other dimension or left alone.
 
 
 ## Backend agnostic contractions
@@ -47,7 +38,7 @@ While more special functionality such as axes reduction is reliant on a
 The automatic backend detection will be detected based on the first supplied
 array (default), this can be overridden by specifying the correct `backend`
 argument for the type of arrays supplied when calling
-[`opt_einsum.contract`](../api_reference.md##opt_einsumcontract). For example, if you had a library installed
+[`opt_einsum.contract`](../api_reference.md#opt_einsum.contract.contract). For example, if you had a library installed
 called `'foo'` which provided an `numpy.ndarray` like object with a
 `.shape` attribute as well as `foo.tensordot` and `foo.transpose` then
 you could contract them with something like:
@@ -198,7 +189,7 @@ Currently `opt_einsum` can handle this automatically for:
 
 all of which offer GPU support. Since `tensorflow` and `theano` both require
 compiling the expression, this functionality is encapsulated in generating a
-[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsumcontractcontractexpression) using
+[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsum.contract.contract_expression) using
 [`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression), which can then be called using numpy
 arrays whilst specifying `backend='tensorflow'` etc.
 Additionally, if arrays are marked as `constant`
@@ -268,7 +259,7 @@ tf.enable_eager_execution()
 
 After which `opt_einsum` will automatically detect eager mode if
 `backend='tensorflow'` is supplied to a
-[`opt_einsum.ContractExpression`](../api_reference.md###opt_einsumcontractcontractexpression).
+[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsum.contract.contract_expression).
 
 
 ### Pytorch & Cupy

@@ -1,3 +1,6 @@
+from typing import Set
+
+import numpy as np
 import pytest
 
 from opt_einsum import backends, contract, contract_expression, sharing
@@ -71,8 +74,8 @@ tests = [
 
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_tensorflow(string):
-    views = build_views(string)
+def test_tensorflow(string: str) -> None:
+    views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     opt = np.empty_like(ein)
 
@@ -93,7 +96,7 @@ def test_tensorflow(string):
 
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_tensorflow_with_constants(constants):
+def test_tensorflow_with_constants(constants: Set[int]) -> None:
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -122,8 +125,8 @@ def test_tensorflow_with_constants(constants):
 
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_tensorflow_with_sharing(string):
-    views = build_views(string)
+def test_tensorflow_with_sharing(string: str) -> None:
+    views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     shps = [v.shape for v in views]
@@ -147,8 +150,8 @@ def test_tensorflow_with_sharing(string):
 
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_theano(string):
-    views = build_views(string)
+def test_theano(string: str) -> None:
+    views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -165,7 +168,7 @@ def test_theano(string):
 
 @pytest.mark.skipif(not found_theano, reason="theano not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_theano_with_constants(constants):
+def test_theano_with_constants(constants: Set[int]) -> None:
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -191,8 +194,8 @@ def test_theano_with_constants(constants):
 
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_theano_with_sharing(string):
-    views = build_views(string)
+def test_theano_with_sharing(string: str) -> None:
+    views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     shps = [v.shape for v in views]
@@ -214,8 +217,8 @@ def test_theano_with_sharing(string):
 
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_cupy(string):  # pragma: no cover
-    views = build_views(string)
+def test_cupy(string: str) -> None:  # pragma: no cover
+    views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -233,7 +236,7 @@ def test_cupy(string):  # pragma: no cover
 
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_cupy_with_constants(constants):  # pragma: no cover
+def test_cupy_with_constants(constants: Set[int]) -> None:  # pragma: no cover
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -261,8 +264,8 @@ def test_cupy_with_constants(constants):  # pragma: no cover
 
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_jax(string):  # pragma: no cover
-    views = build_views(string)
+def test_jax(string: str) -> None:  # pragma: no cover
+    views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -275,7 +278,7 @@ def test_jax(string):  # pragma: no cover
 
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_jax_with_constants(constants):  # pragma: no cover
+def test_jax_with_constants(constants: Set[int]) -> None:  # pragma: no cover
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -294,7 +297,7 @@ def test_jax_with_constants(constants):  # pragma: no cover
 
 
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
-def test_jax_jit_gradient():
+def test_jax_jit_gradient() -> None:
     eq = "ij,jk,kl->"
     shapes = (2, 3), (3, 4), (4, 2)
     views = [np.random.randn(*s) for s in shapes]
@@ -317,7 +320,7 @@ def test_jax_jit_gradient():
 
 
 @pytest.mark.skipif(not found_autograd, reason="autograd not installed.")
-def test_autograd_gradient():
+def test_autograd_gradient() -> None:
     eq = "ij,jk,kl->"
     shapes = (2, 3), (3, 4), (4, 2)
     views = [np.random.randn(*s) for s in shapes]
@@ -336,7 +339,7 @@ def test_autograd_gradient():
 
 
 @pytest.mark.parametrize("string", tests)
-def test_dask(string):
+def test_dask(string: str) -> None:
     da = pytest.importorskip("dask.array")
 
     views = build_views(string)
@@ -360,7 +363,7 @@ def test_dask(string):
 
 
 @pytest.mark.parametrize("string", tests)
-def test_sparse(string):
+def test_sparse(string: str) -> None:
     sparse = pytest.importorskip("sparse")
 
     views = build_views(string)
@@ -379,9 +382,13 @@ def test_sparse(string):
     sparse_views = [sparse.COO.from_numpy(x) for x in views]
     sparse_opt = expr(*sparse_views)
 
+    # If the expression returns a float, stop here
+    if not ein.shape:
+        assert pytest.approx(ein) == 0.0
+        return
+
     # check type is maintained when not using numpy arrays
     assert isinstance(sparse_opt, sparse.COO)
-
     assert np.allclose(ein, sparse_opt.todense())
 
     # try raw contract
@@ -392,7 +399,7 @@ def test_sparse(string):
 
 @pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_torch(string):
+def test_torch(string: str) -> None:
 
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
@@ -412,7 +419,7 @@ def test_torch(string):
 
 @pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_torch_with_constants(constants):
+def test_torch_with_constants(constants: Set[int]) -> None:
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -438,7 +445,7 @@ def test_torch_with_constants(constants):
     assert np.allclose(res_exp, res_got3)
 
 
-def test_auto_backend_custom_array_no_tensordot():
+def test_auto_backend_custom_array_no_tensordot() -> None:
     x = Shaped((1, 2, 3))
     # Shaped is an array-like object defined by opt_einsum - which has no TDOT
     assert infer_backend(x) == "opt_einsum"
@@ -447,8 +454,8 @@ def test_auto_backend_custom_array_no_tensordot():
 
 
 @pytest.mark.parametrize("string", tests)
-def test_object_arrays_backend(string):
-    views = build_views(string)
+def test_object_arrays_backend(string: str) -> None:
+    views = helpers.build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     assert ein.dtype != object
 

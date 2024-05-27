@@ -12,21 +12,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7]
-        environment: ["min-deps", "full", "min-ver"]
-        exclude:
-         - python-version: 3.6
-           environment: "full"
         include:
          - python-version: 3.9
            environment: "min-deps"
+         - python-version: 3.12
+           environment: "min-deps"
+         - python-version: 3.9
+           environment: "min-ver"
+         - python-version: 3.11
+           environment: "full"
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v3
       with:
         python-version: ${{ matrix.python-version }}
         mamba-version: "*"

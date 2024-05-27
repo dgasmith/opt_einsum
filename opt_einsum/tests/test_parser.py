@@ -8,7 +8,7 @@ from opt_einsum.parser import get_symbol, parse_einsum_input, possibly_convert_t
 from opt_einsum.testing import build_arrays_from_tuples, using_numpy
 
 
-def test_get_symbol():
+def test_get_symbol() -> None:
     assert get_symbol(2) == "c"
     assert get_symbol(200000) == "\U00031540"
     # Ensure we skip surrogates '[\uD800-\uDFFF]'
@@ -17,7 +17,7 @@ def test_get_symbol():
     assert get_symbol(57343) == "\ue7ff"
 
 
-def test_parse_einsum_input():
+def test_parse_einsum_input() -> None:
     eq = "ab,bc,cd"
     ops = build_arrays_from_tuples([(2, 3), (3, 4), (4, 5)])
     input_subscripts, output_subscript, operands = parse_einsum_input([eq, *ops])
@@ -26,7 +26,7 @@ def test_parse_einsum_input():
     assert operands == ops
 
 
-def test_parse_einsum_input_shapes_error():
+def test_parse_einsum_input_shapes_error() -> None:
     eq = "ab,bc,cd"
     ops = build_arrays_from_tuples([(2, 3), (3, 4), (4, 5)])
 
@@ -35,9 +35,8 @@ def test_parse_einsum_input_shapes_error():
 
 
 @using_numpy
-def test_parse_einsum_input_shapes():
+def test_parse_einsum_input_shapes() -> None:
     import numpy as np
-
     eq = "ab,bc,cd"
     shps = [(2, 3), (3, 4), (4, 5)]
     input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shps], shapes=True)

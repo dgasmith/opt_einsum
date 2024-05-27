@@ -2,7 +2,7 @@
 isort = isort opt_einsum scripts/
 black = black opt_einsum scripts/
 autoflake = autoflake -ir --remove-all-unused-imports --ignore-init-module-imports --remove-unused-variables opt_einsum scripts/
-mypy = mypy --ignore-missing-imports codex opt_einsum scripts/
+mypy = mypy --ignore-missing-imports opt_einsum scripts/
 
 .PHONY: install
 install:

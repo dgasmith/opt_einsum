@@ -3,9 +3,9 @@ Required functions for optimized contractions of numpy arrays using pytorch.
 """
 
 
-from ..helpers import has_array_interface
-from ..parser import convert_to_valid_einsum_chars
-from ..sharing import to_backend_cache_wrap
+from opt_einsum.helpers import has_array_interface
+from opt_einsum.parser import convert_to_valid_einsum_chars
+from opt_einsum.sharing import to_backend_cache_wrap
 
 __all__ = [
     "transpose",
@@ -41,7 +41,7 @@ def transpose(a, axes):
     return a.permute(*axes)
 
 
-def einsum(equation, *operands):
+def einsum(equation, *operands, **kwargs):
     """Variadic version of torch.einsum to match numpy api."""
     # rename symbols to support PyTorch 0.4.1 and earlier,
     # which allow only symbols a-z.

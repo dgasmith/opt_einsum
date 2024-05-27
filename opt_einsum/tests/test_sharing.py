@@ -1,6 +1,7 @@
 import itertools
 import weakref
 from collections import Counter
+from typing import Any
 
 import numpy as np
 import pytest
@@ -11,6 +12,8 @@ from opt_einsum.contract import _einsum
 from opt_einsum.parser import parse_einsum_input
 from opt_einsum.sharing import count_cached_ops, currently_sharing, get_sharing_cache
 from opt_einsum.testing import build_views
+from opt_einsum.typing import BackendType
+from opt_einsum import helpers
 
 try:
     import cupy  # noqa
@@ -47,8 +50,8 @@ to_backend = {
 
 @pytest.mark.parametrize("eq", equations)
 @pytest.mark.parametrize("backend", backends)
-def test_sharing_value(eq, backend):
-    views = build_views(eq)
+def test_sharing_value(eq: str, backend: BackendType) -> None:
+    views = helpers.build_views(eq)
     shapes = [v.shape for v in views]
     expr = contract_expression(eq, *shapes)
 
@@ -60,7 +63,7 @@ def test_sharing_value(eq, backend):
 
 
 @pytest.mark.parametrize("backend", backends)
-def test_complete_sharing(backend):
+def test_complete_sharing(backend: BackendType) -> None:
     eq = "ab,bc,cd->"
     views = build_views(eq)
     expr = contract_expression(eq, *(v.shape for v in views))
@@ -85,7 +88,7 @@ def test_complete_sharing(backend):
 
 
 @pytest.mark.parametrize("backend", backends)
-def test_sharing_reused_cache(backend):
+def test_sharing_reused_cache(backend: BackendType) -> None:
     eq = "ab,bc,cd->"
     views = build_views(eq)
     expr = contract_expression(eq, *(v.shape for v in views))
@@ -111,7 +114,7 @@ def test_sharing_reused_cache(backend):
 
 
 @pytest.mark.parametrize("backend", backends)
-def test_no_sharing_separate_cache(backend):
+def test_no_sharing_separate_cache(backend: BackendType) -> None:
     eq = "ab,bc,cd->"
     views = build_views(eq)
     expr = contract_expression(eq, *(v.shape for v in views))
@@ -139,11 +142,11 @@ def test_no_sharing_separate_cache(backend):
 
 
 @pytest.mark.parametrize("backend", backends)
-def test_sharing_nesting(backend):
+def test_sharing_nesting(backend: BackendType) -> None:
     eqs = ["ab,bc,cd->a", "ab,bc,cd->b", "ab,bc,cd->c", "ab,bc,cd->c"]
     views = build_views(eqs[0])
     shapes = [v.shape for v in views]
-    refs = weakref.WeakValueDictionary()
+    refs: Any = weakref.WeakValueDictionary()
 
     def method1(views):
         with shared_intermediates():
@@ -179,11 +182,11 @@ def test_sharing_nesting(backend):
 
 @pytest.mark.parametrize("eq", equations)
 @pytest.mark.parametrize("backend", backends)
-def test_sharing_modulo_commutativity(eq, backend):
-    ops = build_views(eq)
+def test_sharing_modulo_commutativity(eq: str, backend: BackendType) -> None:
+    ops = helpers.build_views(eq)
     ops = [to_backend[backend](x) for x in ops]
     inputs, output, _ = parse_einsum_input([eq] + ops)
-    inputs = inputs.split(",")
+    inputs_list = inputs.split(",")
 
     print("-" * 40)
     print("Without sharing:")
@@ -194,7 +197,7 @@ def test_sharing_modulo_commutativity(eq, backend):
     print("-" * 40)
     print("With sharing:")
     with shared_intermediates() as cache:
-        for permuted in itertools.permutations(zip(inputs, ops)):
+        for permuted in itertools.permutations(zip(inputs_list, ops)):
             permuted_inputs = [p[0] for p in permuted]
             permuted_ops = [p[1] for p in permuted]
             permuted_eq = "{}->{}".format(",".join(permuted_inputs), output)
@@ -208,7 +211,7 @@ def test_sharing_modulo_commutativity(eq, backend):
 
 
 @pytest.mark.parametrize("backend", backends)
-def test_partial_sharing(backend):
+def test_partial_sharing(backend: BackendType) -> None:
     eq = "ab,bc,de->"
     x, y, z1 = build_views(eq)
     z2 = 2.0 * z1 - 1.0
@@ -216,7 +219,7 @@ def test_partial_sharing(backend):
 
     print("-" * 40)
     print("Without sharing:")
-    num_exprs_nosharing = Counter()
+    num_exprs_nosharing: Any = Counter()
     with shared_intermediates() as cache:
         expr(x, y, z1, backend=backend)
         num_exprs_nosharing.update(count_cached_ops(cache))
@@ -238,10 +241,10 @@ def test_partial_sharing(backend):
 
 
 @pytest.mark.parametrize("backend", backends)
-def test_sharing_with_constants(backend):
+def test_sharing_with_constants(backend: BackendType) -> None:
     inputs = "ij,jk,kl"
     outputs = "ijkl"
-    equations = ["{}->{}".format(inputs, output) for output in outputs]
+    equations = [f"{inputs}->{output}" for output in outputs]
     shapes = (2, 3), (3, 4), (4, 5)
     constants = {0, 2}
     ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
@@ -253,12 +256,12 @@ def test_sharing_with_constants(backend):
         actual = [contract_expression(eq, *ops, constants=constants)(var) for eq in equations]
 
     for dim, expected_dim, actual_dim in zip(outputs, expected, actual):
-        assert np.allclose(expected_dim, actual_dim), "error at {}".format(dim)
+        assert np.allclose(expected_dim, actual_dim), f"error at {dim}"
 
 
 @pytest.mark.parametrize("size", [3, 4, 5])
 @pytest.mark.parametrize("backend", backends)
-def test_chain(size, backend):
+def test_chain(size: int, backend: BackendType) -> None:
     xs = [np.random.rand(2, 2) for _ in range(size)]
     shapes = [x.shape for x in xs]
     alphabet = "".join(get_symbol(i) for i in range(size + 1))
@@ -279,7 +282,7 @@ def test_chain(size, backend):
 
 @pytest.mark.parametrize("size", [3, 4, 5, 10])
 @pytest.mark.parametrize("backend", backends)
-def test_chain_2(size, backend):
+def test_chain_2(size: int, backend: BackendType) -> None:
     xs = [np.random.rand(2, 2) for _ in range(size)]
     shapes = [x.shape for x in xs]
     alphabet = "".join(get_symbol(i) for i in range(size + 1))
@@ -304,7 +307,7 @@ def _compute_cost(cache):
 
 
 @pytest.mark.parametrize("backend", backends)
-def test_chain_2_growth(backend):
+def test_chain_2_growth(backend: BackendType) -> None:
     sizes = list(range(1, 21))
     costs = []
     for size in sizes:
@@ -329,7 +332,7 @@ def test_chain_2_growth(backend):
 
 @pytest.mark.parametrize("size", [3, 4, 5])
 @pytest.mark.parametrize("backend", backends)
-def test_chain_sharing(size, backend):
+def test_chain_sharing(size: int, backend: BackendType) -> None:
     xs = [np.random.rand(2, 2) for _ in range(size)]
     alphabet = "".join(get_symbol(i) for i in range(size + 1))
     names = [alphabet[i : i + 2] for i in range(size)]
@@ -340,7 +343,7 @@ def test_chain_sharing(size, backend):
         with shared_intermediates() as cache:
             target = alphabet[i]
             eq = "{}->{}".format(inputs, target)
-            expr = contract_expression(eq, *(x.shape for x in xs))
+            expr = contract_expression(eq, *tuple(x.shape for x in xs))
             expr(*xs, backend=backend)
             num_exprs_nosharing += _compute_cost(cache)
 
@@ -351,7 +354,7 @@ def test_chain_sharing(size, backend):
             eq = "{}->{}".format(inputs, target)
             path_info = contract_path(eq, *xs)
             print(path_info[1])
-            expr = contract_expression(eq, *(x.shape for x in xs))
+            expr = contract_expression(eq, *list(x.shape for x in xs))
             expr(*xs, backend=backend)
         num_exprs_sharing = _compute_cost(cache)
 
@@ -361,7 +364,7 @@ def test_chain_sharing(size, backend):
     assert num_exprs_nosharing > num_exprs_sharing
 
 
-def test_multithreaded_sharing():
+def test_multithreaded_sharing() -> None:
     from multiprocessing.pool import ThreadPool
 
     def fn():
