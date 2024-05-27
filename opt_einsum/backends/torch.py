@@ -41,7 +41,7 @@ def transpose(a, axes):
     return a.permute(*axes)
 
 
-def einsum(equation, *operands):
+def einsum(equation, *operands, **kwargs):
     """Variadic version of torch.einsum to match numpy api."""
     # rename symbols to support PyTorch 0.4.1 and earlier,
     # which allow only symbols a-z.

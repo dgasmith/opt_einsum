@@ -7,8 +7,10 @@ import operator
 
 import numpy as np
 
+from opt_einsum.typing import ArrayType
 
-def object_einsum(eq, *arrays):
+
+def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
     """A ``einsum`` implementation for ``numpy`` arrays with object dtype.
     The loop is performed in python, meaning the objects themselves need
     only to implement ``__mul__`` and ``__add__`` for the contraction to be

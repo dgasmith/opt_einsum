@@ -2,16 +2,19 @@
 Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 """
 
+from typing import Any
+
 import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_path
+from opt_einsum.typing import ArrayType
 
 
-def build_views(string):
+def build_views(string: str) -> list[ArrayType]:
     chars = "abcdefghij"
-    sizes = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
-    sizes = {c: s for c, s in zip(chars, sizes)}
+    sizes_array = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
+    sizes = {c: s for c, s in zip(chars, sizes_array)}
 
     views = []
 
@@ -24,7 +27,7 @@ def build_views(string):
     return views
 
 
-def test_type_errors():
+def test_type_errors() -> None:
     # subscripts must be a string
     with pytest.raises(TypeError):
         contract(0, 0)
@@ -36,11 +39,11 @@ def test_type_errors():
     # order parameter must be a valid order
     # changed in Numpy 1.19, see https://github.com/numpy/numpy/commit/35b0a051c19265f5643f6011ee11e31d30c8bc4c
     with pytest.raises((TypeError, ValueError)):
-        contract("", 0, order="W")
+        contract("", 0, order="W")  # type: ignore
 
     # casting parameter must be a valid casting
     with pytest.raises(ValueError):
-        contract("", 0, casting="blah")
+        contract("", 0, casting="blah")  # type: ignore
 
     # dtype parameter must be a valid dtype
     with pytest.raises(TypeError):
@@ -82,7 +85,7 @@ def test_type_errors():
 
 
 @pytest.mark.parametrize("contract_fn", [contract, contract_path])
-def test_value_errors(contract_fn):
+def test_value_errors(contract_fn: Any) -> None:
     with pytest.raises(ValueError):
         contract_fn("")
 
@@ -181,7 +184,7 @@ def test_value_errors(contract_fn):
         "...a,...b",
     ],
 )
-def test_compare(string):
+def test_compare(string: str) -> None:
     views = build_views(string)
 
     ein = contract(string, *views, optimize=False)
@@ -192,7 +195,7 @@ def test_compare(string):
     assert np.allclose(ein, opt)
 
 
-def test_ellipse_input1():
+def test_ellipse_input1() -> None:
     string = "...a->..."
     views = build_views(string)
 
@@ -201,7 +204,7 @@ def test_ellipse_input1():
     assert np.allclose(ein, opt)
 
 
-def test_ellipse_input2():
+def test_ellipse_input2() -> None:
     string = "...a"
     views = build_views(string)
 
@@ -210,7 +213,7 @@ def test_ellipse_input2():
     assert np.allclose(ein, opt)
 
 
-def test_ellipse_input3():
+def test_ellipse_input3() -> None:
     string = "...a->...a"
     views = build_views(string)
 
@@ -219,7 +222,7 @@ def test_ellipse_input3():
     assert np.allclose(ein, opt)
 
 
-def test_ellipse_input4():
+def test_ellipse_input4() -> None:
     string = "...b,...a->..."
     views = build_views(string)
 
@@ -228,7 +231,7 @@ def test_ellipse_input4():
     assert np.allclose(ein, opt)
 
 
-def test_singleton_dimension_broadcast():
+def test_singleton_dimension_broadcast() -> None:
     # singleton dimensions broadcast (gh-10343)
     p = np.ones((10, 2))
     q = np.ones((1, 2))
@@ -248,7 +251,7 @@ def test_singleton_dimension_broadcast():
         assert np.allclose(res2, np.full((1, 5), 5))
 
 
-def test_large_int_input_format():
+def test_large_int_input_format() -> None:
     string = "ab,bc,cd"
     x, y, z = build_views(string)
     string_output = contract(string, x, y, z)
@@ -259,7 +262,7 @@ def test_large_int_input_format():
         assert np.allclose(transpose_output, x.T)
 
 
-def test_hashable_object_input_format():
+def test_hashable_object_input_format() -> None:
     string = "ab,bc,cd"
     x, y, z = build_views(string)
     string_output = contract(string, x, y, z)

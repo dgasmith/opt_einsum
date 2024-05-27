@@ -2,12 +2,12 @@
 Contains helper functions for opt_einsum testing scripts
 """
 
-from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Optional, Tuple, Union, overload
+from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
 
-from .parser import get_symbol
-from .typing import ArrayIndexType, PathType
+from opt_einsum.parser import get_symbol
+from opt_einsum.typing import ArrayIndexType, PathType
 
 __all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
 
@@ -191,9 +191,36 @@ def flop_count(
     return overall_size * op_factor
 
 
+@overload
 def rand_equation(
     n: int,
-    reg: int,
+    regularity: int,
+    n_out: int = ...,
+    d_min: int = ...,
+    d_max: int = ...,
+    seed: Optional[int] = ...,
+    global_dim: bool = ...,
+    *,
+    return_size_dict: Literal[True],
+) -> Tuple[str, PathType, Dict[str, int]]: ...
+
+
+@overload
+def rand_equation(
+    n: int,
+    regularity: int,
+    n_out: int = ...,
+    d_min: int = ...,
+    d_max: int = ...,
+    seed: Optional[int] = ...,
+    global_dim: bool = ...,
+    return_size_dict: Literal[False] = ...,
+) -> Tuple[str, PathType]: ...
+
+
+def rand_equation(
+    n: int,
+    regularity: int,
     n_out: int = 0,
     d_min: int = 2,
     d_max: int = 9,
@@ -203,60 +230,48 @@ def rand_equation(
 ) -> Union[Tuple[str, PathType, Dict[str, int]], Tuple[str, PathType]]:
     """Generate a random contraction and shapes.
 
-    Parameters
-    ----------
-    n : int
-        Number of array arguments.
-    reg : int
-        'Regularity' of the contraction graph. This essentially determines how
-        many indices each tensor shares with others on average.
-    n_out : int, optional
-        Number of output indices (i.e. the number of non-contracted indices).
-        Defaults to 0, i.e., a contraction resulting in a scalar.
-    d_min : int, optional
-        Minimum dimension size.
-    d_max : int, optional
-        Maximum dimension size.
-    seed: int, optional
-        If not None, seed numpy's random generator with this.
-    global_dim : bool, optional
-        Add a global, 'broadcast', dimension to every operand.
-    return_size_dict : bool, optional
-        Return the mapping of indices to sizes.
+    Parameters:
+        n: Number of array arguments.
+        regularity: 'Regularity' of the contraction graph. This essentially determines how
+            many indices each tensor shares with others on average.
+        n_out: Number of output indices (i.e. the number of non-contracted indices).
+            Defaults to 0, i.e., a contraction resulting in a scalar.
+        d_min: Minimum dimension size.
+        d_max: Maximum dimension size.
+        seed: If not None, seed numpy's random generator with this.
+        global_dim: Add a global, 'broadcast', dimension to every operand.
+        return_size_dict: Return the mapping of indices to sizes.
 
-    Returns
-    -------
-    eq : str
-        The equation string.
-    shapes : list[tuple[int]]
-        The array shapes.
-    size_dict : dict[str, int]
-        The dict of index sizes, only returned if ``return_size_dict=True``.
+    Returns:
+        eq: The equation string.
+        shapes: The array shapes.
+        size_dict: The dict of index sizes, only returned if ``return_size_dict=True``.
 
-    Examples
-    --------
-    >>> eq, shapes = rand_equation(n=10, reg=4, n_out=5, seed=42)
-    >>> eq
-    'oyeqn,tmaq,skpo,vg,hxui,n,fwxmr,hitplcj,kudlgfv,rywjsb->cebda'
+    Examples:
+        ```python
+        >>> eq, shapes = rand_equation(n=10, regularity=4, n_out=5, seed=42)
+        >>> eq
+        'oyeqn,tmaq,skpo,vg,hxui,n,fwxmr,hitplcj,kudlgfv,rywjsb->cebda'
 
-    >>> shapes
-    [(9, 5, 4, 5, 4),
-     (4, 4, 8, 5),
-     (9, 4, 6, 9),
-     (6, 6),
-     (6, 9, 7, 8),
-     (4,),
-     (9, 3, 9, 4, 9),
-     (6, 8, 4, 6, 8, 6, 3),
-     (4, 7, 8, 8, 6, 9, 6),
-     (9, 5, 3, 3, 9, 5)]
+        >>> shapes
+        [(9, 5, 4, 5, 4),
+        (4, 4, 8, 5),
+        (9, 4, 6, 9),
+        (6, 6),
+        (6, 9, 7, 8),
+        (4,),
+        (9, 3, 9, 4, 9),
+        (6, 8, 4, 6, 8, 6, 3),
+        (4, 7, 8, 8, 6, 9, 6),
+        (9, 5, 3, 3, 9, 5)]
+        ```
     """
 
     if seed is not None:
         np.random.seed(seed)
 
     # total number of indices
-    num_inds = n * reg // 2 + n_out
+    num_inds = n * regularity // 2 + n_out
     inputs = ["" for _ in range(n)]
     output = []
 
@@ -302,9 +317,11 @@ def rand_equation(
     # make the shapes
     shapes = [tuple(size_dict[ix] for ix in op) for op in inputs]
 
-    ret = (eq, shapes)
-
     if return_size_dict:
-        return ret + (size_dict,)
+        return (
+            eq,
+            shapes,
+            size_dict,
+        )
     else:
-        return ret
+        return (eq, shapes)

@@ -5,12 +5,12 @@ Support for random optimizers, including the random-greedy path.
 import functools
 import heapq
 import math
-import numbers
 import time
 from collections import deque
+from decimal import Decimal
 from random import choices as random_choices
 from random import seed as random_seed
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 from . import helpers, paths
 from .typing import ArrayIndexType, ArrayType, PathType
@@ -42,28 +42,26 @@ class RandomOptimizer(paths.PathOptimizer):
     random number generator. See `RandomGreedy` for an example.
 
 
-    **Parameters:**
+    Parameters:
+        max_repeats: The maximum number of repeat trials to have.
+        max_time: The maximum amount of time to run the algorithm for.
+        minimize:  Whether to favour paths that minimize the total estimated flop-count or
+            the size of the largest intermediate created.
+        parallel: Whether to parallelize the random trials, by default `False`. If
+            `True`, use a `concurrent.futures.ProcessPoolExecutor` with the same
+            number of processes as cores. If an integer is specified, use that many
+            processes instead. Finally, you can supply a custom executor-pool which
+            should have an API matching that of the python 3 standard library
+            module `concurrent.futures`. Namely, a `submit` method that returns
+            `Future` objects, themselves with `result` and `cancel` methods.
+        pre_dispatch: If running in parallel, how many jobs to pre-dispatch so as to avoid
+            submitting all jobs at once. Should also be more than twice the number
+            of workers to avoid under-subscription. Default: 128.
 
-    - **max_repeats** - *(int, optional)* The maximum number of repeat trials to have.
-    - **max_time** - *(float, optional)* The maximum amount of time to run the algorithm for.
-    - **minimize** - *({'flops', 'size'}, optional)* Whether to favour paths that minimize the total estimated flop-count or
-        the size of the largest intermediate created.
-    - **parallel** - *({bool, int, or executor-pool like}, optional)* Whether to parallelize the random trials, by default `False`. If
-        `True`, use a `concurrent.futures.ProcessPoolExecutor` with the same
-        number of processes as cores. If an integer is specified, use that many
-        processes instead. Finally, you can supply a custom executor-pool which
-        should have an API matching that of the python 3 standard library
-        module `concurrent.futures`. Namely, a `submit` method that returns
-        `Future` objects, themselves with `result` and `cancel` methods.
-    - **pre_dispatch** - *(int, optional)* If running in parallel, how many jobs to pre-dispatch so as to avoid
-        submitting all jobs at once. Should also be more than twice the number
-        of workers to avoid under-subscription. Default: 128.
-
-    **Attributes:**
-
-    - **path** - *(list[tuple[int]])* The best path found so far.
-    - **costs** - *(list[int])* The list of each trial's costs found so far.
-    - **sizes** - *(list[int])* The list of each trial's largest intermediate size so far.
+    Attributes:
+        path: The best path found so far.
+        costs: The list of each trial's costs found so far.
+        sizes: The list of each trial's largest intermediate size so far.
     """
 
     def __init__(
@@ -71,7 +69,7 @@ class RandomOptimizer(paths.PathOptimizer):
         max_repeats: int = 32,
         max_time: Optional[float] = None,
         minimize: str = "flops",
-        parallel: bool = False,
+        parallel: Union[bool, Decimal, int] = False,
         pre_dispatch: int = 128,
     ):
 
@@ -82,7 +80,7 @@ class RandomOptimizer(paths.PathOptimizer):
         self.max_time = max_time
         self.minimize = minimize
         self.better = paths.get_better_fn(minimize)
-        self._parallel = False
+        self._parallel: Union[bool, Decimal, int] = False
         self.parallel = parallel
         self.pre_dispatch = pre_dispatch
 
@@ -100,11 +98,11 @@ class RandomOptimizer(paths.PathOptimizer):
         return paths.ssa_to_linear(self.best["ssa_path"])
 
     @property
-    def parallel(self) -> bool:
+    def parallel(self) -> Union[bool, Decimal, int]:
         return self._parallel
 
     @parallel.setter
-    def parallel(self, parallel: bool) -> None:
+    def parallel(self, parallel: Union[bool, Decimal, int]) -> None:
         # shutdown any previous executor if we are managing it
         if getattr(self, "_managing_executor", False):
             self._executor.shutdown()
@@ -123,10 +121,10 @@ class RandomOptimizer(paths.PathOptimizer):
             self._managing_executor = True
             return
 
-        if isinstance(parallel, numbers.Number):
+        if isinstance(parallel, (int, Decimal)):
             from concurrent.futures import ProcessPoolExecutor
 
-            self._executor = ProcessPoolExecutor(parallel)
+            self._executor = ProcessPoolExecutor(int(parallel))
             self._managing_executor = True
             return
 
@@ -225,26 +223,24 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
     `abs(c_0)` to account for likely fluctuating cost magnitudes during the
     course of a contraction.
 
-    **Parameters:**
+    Parameters:
+        queue: The heapified list of candidate contractions.
+        remaining: Mapping of remaining inputs' indices to the ssa id.
+        temperature: When choosing a possible contraction, its relative probability will be
+            proportional to `exp(-cost / temperature)`. Thus the larger
+            `temperature` is, the further random paths will stray from the normal
+            'greedy' path. Conversely, if set to zero, only paths with exactly the
+            same cost as the best at each step will be explored.
+        rel_temperature: Whether to normalize the `temperature` at each step to the scale of
+            the best cost. This is generally beneficial as the magnitude of costs
+            can vary significantly throughout a contraction.
+        nbranch: How many potential paths to calculate probability for and choose from at each step.
 
-    - **queue** - *(list)* The heapified list of candidate contractions.
-    - **remaining** - *(dict[str, int])* Mapping of remaining inputs' indices to the ssa id.
-    - **temperature** - *(float, optional)* When choosing a possible contraction, its relative probability will be
-        proportional to `exp(-cost / temperature)`. Thus the larger
-        `temperature` is, the further random paths will stray from the normal
-        'greedy' path. Conversely, if set to zero, only paths with exactly the
-        same cost as the best at each step will be explored.
-    - **rel_temperature** - *(bool, optional)* Whether to normalize the `temperature` at each step to the scale of
-        the best cost. This is generally beneficial as the magnitude of costs
-        can vary significantly throughout a contraction.
-    - **nbranch** - *(int, optional)* How many potential paths to calculate probability for and choose from at each step.
-
-    **Returns:**
-
-    - **cost**
-    - **k1**
-    - **k2**
-    - **k3**
+    Returns:
+        cost
+        k1
+        k2
+        k3
     """
     n = 0
     choices = []
@@ -332,27 +328,6 @@ def _trial_greedy_ssa_path_and_cost(
 
 
 class RandomGreedy(RandomOptimizer):
-    """
-
-    **Parameters:**
-
-    - **cost_fn** - *(callable, optional)* A function that returns a heuristic 'cost' of a potential contraction
-        with which to sort candidates. Should have signature
-        `cost_fn(size12, size1, size2, k12, k1, k2)`.
-    - **temperature** - *(float, optional)* When choosing a possible contraction, its relative probability will be
-        proportional to `exp(-cost / temperature)`. Thus the larger
-        `temperature` is, the further random paths will stray from the normal
-        'greedy' path. Conversely, if set to zero, only paths with exactly the
-        same cost as the best at each step will be explored.
-    - **rel_temperature** - *(bool, optional)* Whether to normalize the ``temperature`` at each step to the scale of
-        the best cost. This is generally beneficial as the magnitude of costs
-        can vary significantly throughout a contraction. If False, the
-        algorithm will end up branching when the absolute cost is low, but
-        stick to the 'greedy' path when the cost is high - this can also be
-        beneficial.
-    - **nbranch** - *(int, optional)* How many potential paths to calculate probability for and choose from at each step.
-    - **kwargs** - Supplied to RandomOptimizer.
-    """
 
     def __init__(
         self,
@@ -362,6 +337,25 @@ class RandomGreedy(RandomOptimizer):
         nbranch: int = 8,
         **kwargs: Any,
     ):
+        """
+        Parameters:
+            cost_fn: A function that returns a heuristic 'cost' of a potential contraction
+                    with which to sort candidates. Should have signature
+                    `cost_fn(size12, size1, size2, k12, k1, k2)`.
+            temperature: When choosing a possible contraction, its relative probability will be
+                    proportional to `exp(-cost / temperature)`. Thus the larger
+                    `temperature` is, the further random paths will stray from the normal
+                    'greedy' path. Conversely, if set to zero, only paths with exactly the
+                    same cost as the best at each step will be explored.
+            rel_temperature: Whether to normalize the ``temperature`` at each step to the scale of
+                    the best cost. This is generally beneficial as the magnitude of costs
+                    can vary significantly throughout a contraction. If False, the
+                    algorithm will end up branching when the absolute cost is low, but
+                    stick to the 'greedy' path when the cost is high - this can also be
+                    beneficial.
+            nbranch: How many potential paths to calculate probability for and choose from at each step.
+            kwargs: Supplied to RandomOptimizer.
+        """
         self.cost_fn = cost_fn
         self.temperature = temperature
         self.rel_temperature = rel_temperature

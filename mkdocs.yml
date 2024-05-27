@@ -3,6 +3,30 @@ repo_url: https://github.com/dgasmith/opt_einsum
 repo_name: dgasmith/opt_einsum
 theme:
   name: material
+  features:
+    - navigation.instant
+  palette:
+
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
 
 plugins:
   - search
@@ -14,6 +38,25 @@ plugins:
           # paths: [opt_einsum]
           options:
             docstring_style: google
+          docstring_options:
+            ignore_init_summary: true
+          docstring_section_style: list
+          filters: ["!^_"]
+          heading_level: 1
+          inherited_members: true
+          merge_init_into_class: true
+          parameter_headings: true
+          preload_modules: [mkdocstrings]
+          separate_signature: true
+          show_root_heading: true
+          show_root_full_path: false
+          show_signature_annotations: true
+          show_source: false
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+          signature_crossrefs: true
+          summary: true
+          unwrap_annotated: true
 
 extra_javascript:
   - javascript/config.js
@@ -36,6 +79,8 @@ markdown_extensions:
   - pymdownx.extra
   - pymdownx.arithmatex:
       generic: true
+  - toc:
+      toc_depth: 2
 
 nav:
   - Overview: index.md

@@ -38,7 +38,7 @@ The following is a brief overview of libraries which have been tested with
 The automatic backend detection will be detected based on the first supplied
 array (default), this can be overridden by specifying the correct `backend`
 argument for the type of arrays supplied when calling
-[`opt_einsum.contract`](../api_reference.md##opt_einsumcontract). For example, if you had a library installed
+[`opt_einsum.contract`](../api_reference.md#opt_einsum.contract.contract). For example, if you had a library installed
 called `'foo'` which provided an `numpy.ndarray` like object with a
 `.shape` attribute as well as `foo.tensordot` and `foo.transpose` then
 you could contract them with something like:
@@ -189,7 +189,7 @@ Currently `opt_einsum` can handle this automatically for:
 
 all of which offer GPU support. Since `tensorflow` and `theano` both require
 compiling the expression, this functionality is encapsulated in generating a
-[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsumcontractcontractexpression) using
+[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsum.contract.contract_expression) using
 [`opt_einsum.contract_expression`](../api_reference.md#opt_einsumcontract_expression), which can then be called using numpy
 arrays whilst specifying `backend='tensorflow'` etc.
 Additionally, if arrays are marked as `constant`
@@ -259,7 +259,7 @@ tf.enable_eager_execution()
 
 After which `opt_einsum` will automatically detect eager mode if
 `backend='tensorflow'` is supplied to a
-[`opt_einsum.ContractExpression`](../api_reference.md###opt_einsumcontractcontractexpression).
+[`opt_einsum.ContractExpression`](../api_reference.md#opt_einsum.contract.contract_expression).
 
 
 ### Pytorch & Cupy

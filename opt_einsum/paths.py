@@ -15,8 +15,8 @@ from typing import Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tu
 
 import numpy as np
 
-from .helpers import compute_size_by_dict, flop_count
-from .typing import ArrayIndexType, PathType
+from opt_einsum.helpers import compute_size_by_dict, flop_count
+from opt_einsum.typing import ArrayIndexType, PathSearchFunctionType, PathType, TensorShapeType
 
 __all__ = [
     "optimal",
@@ -41,16 +41,15 @@ class PathOptimizer:
     ```python
     def __call__(self, inputs, output, size_dict, memory_limit=None):
         \"\"\"
-        **Parameters:**
-        ----------
-        inputs : list[set[str]]
-            The indices of each input array.
-        outputs : set[str]
-            The output indices
-        size_dict : dict[str, int]
-            The size of each index
-        memory_limit : int, optional
-            If given, the maximum allowed memory.
+        Parameters:
+            inputs : list[set[str]]
+                The indices of each input array.
+            outputs : set[str]
+                The output indices
+            size_dict : dict[str, int]
+                The size of each index
+            memory_limit : int, optional
+                If given, the maximum allowed memory.
         \"\"\"
         # ... compute path here ...
         return path
@@ -91,12 +90,13 @@ class PathOptimizer:
 def ssa_to_linear(ssa_path: PathType) -> PathType:
     """
     Convert a path with static single assignment ids to a path with recycled
-    linear ids. For example:
+    linear ids.
 
-    ```python
-    ssa_to_linear([(0, 3), (2, 4), (1, 5)])
-    #> [(0, 3), (1, 2), (0, 1)]
-    ```
+    Example:
+        ```python
+        ssa_to_linear([(0, 3), (2, 4), (1, 5)])
+        #> [(0, 3), (1, 2), (0, 1)]
+        ```
     """
     ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
     path = []
@@ -110,12 +110,13 @@ def ssa_to_linear(ssa_path: PathType) -> PathType:
 def linear_to_ssa(path: PathType) -> PathType:
     """
     Convert a path with recycled linear ids to a path with static single
-    assignment ids. For example::
+    assignment ids.
 
-    ```python
-    linear_to_ssa([(0, 3), (1, 2), (0, 1)])
-    #> [(0, 3), (2, 4), (1, 5)]
-    ```
+    Exmaple:
+        ```python
+        linear_to_ssa([(0, 3), (1, 2), (0, 1)])
+        #> [(0, 3), (2, 4), (1, 5)]
+        ```
     """
     num_inputs = sum(map(len, path)) - len(path) + 1
     linear_to_ssa = list(range(num_inputs))
@@ -141,21 +142,19 @@ def calc_k12_flops(
     Calculate the resulting indices and flops for a potential pairwise
     contraction - used in the recursive (optimal/branch) algorithms.
 
-    **Parameters:**
+    Parameters:
+        inputs: The indices of each tensor in this contraction, note this includes
+            tensors unavailable to contract as static single assignment is used:>
+            contracted tensors are not removed from the list.
+        output: The set of output indices for the whole contraction.
+        remaining: *The set of indices (corresponding to ``inputs``) of tensors still available to contract.
+        i: Index of potential tensor to contract.
+        j: Index of potential tensor to contract.
+        size_dict: Size mapping of all the indices.
 
-    - **inputs** - *(tuple[frozenset[str]])* The indices of each tensor in this contraction, note this includes
-        tensors unavailable to contract as static single assignment is used ->
-        contracted tensors are not removed from the list.
-    - **output** - *(frozenset[str])* The set of output indices for the whole contraction.
-    - **remaining** - *(frozenset[int])* The set of indices (corresponding to ``inputs``) of tensors still available to contract.
-    - **i** - *(int)* Index of potential tensor to contract.
-    - **j** - *(int)* Index of potential tensor to contract.
-    - **size_dict : dict[str, int] )* Size mapping of all the indices.
-
-    **Returns:**
-
-    - **k12** - *(frozenset)* The resulting indices of the potential tensor.
-    - **cost** - *(int)* Estimated flop count of operation.
+    Returns:
+        k12: The resulting indices of the potential tensor.
+        cost: Estimated flop count of operation.
     """
     k1, k2 = inputs[i], inputs[j]
     either = k1 | k2
@@ -193,21 +192,17 @@ def optimal(
     """
     Computes all possible pair contractions in a depth-first recursive manner,
     sieving results based on `memory_limit` and the best path found so far.
-    **Returns:** the lowest cost path. This algorithm scales factoriallly with
-    respect to the elements in the list `input_sets`.
 
-    **Parameters:**
+    Parameters:
+        inputs: List of sets that represent the lhs side of the einsum subscript.
+        output: Set that represents the rhs side of the overall einsum subscript.
+        size_dict: Dictionary of index sizes.
+        memory_limit: The maximum number of elements in a temporary array.
 
-    - **inputs** - *(list)* List of sets that represent the lhs side of the einsum subscript.
-    - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript.
-    - **size_dict** - *(dictionary)* Dictionary of index sizes.
-    - **memory_limit** - *(int)* The maximum number of elements in a temporary array.
+    Returns:
+        path: The optimal contraction order within the memory limit constraint.
 
-    **Returns:**
-
-    - **path** - *(list)* The optimal contraction order within the memory limit constraint.
-
-    **Examples:**
+    Examples:
 
     ```python
     isets = [set('abd'), set('ac'), set('bdc')]
@@ -321,48 +316,44 @@ _COST_FNS = {
 
 
 class BranchBound(PathOptimizer):
-    """
-    Explores possible pair contractions in a depth-first recursive manner like
-    the `optimal` approach, but with extra heuristic early pruning of branches
-    as well sieving by `memory_limit` and the best path found so far. **Returns:**
-    the lowest cost path. This algorithm still scales factorially with respect
-    to the elements in the list `input_sets` if `nbranch` is not set, but it
-    scales exponentially like `nbranch**len(input_sets)` otherwise.
-
-    **Parameters:**
-
-    - **nbranch** - *(None or int, optional)* How many branches to explore at each contraction step. If None, explore
-        all possible branches. If an integer, branch into this many paths at
-        each step. Defaults to None.
-    - **cutoff_flops_factor** - *(float, optional)* If at any point, a path is doing this much worse than the best path
-        found so far was, terminate it. The larger this is made, the more paths
-        will be fully explored and the slower the algorithm. Defaults to 4.
-    - **minimize** - *({'flops', 'size'}, optional)* Whether to optimize the path with regard primarily to the total
-        estimated flop-count, or the size of the largest intermediate. The
-        option not chosen will still be used as a secondary criterion.
-    - **cost_fn** - *(callable, optional)* A function that returns a heuristic 'cost' of a potential contraction
-        with which to sort candidates. Should have signature
-        `cost_fn(size12, size1, size2, k12, k1, k2)`.
-    """
-
     def __init__(
         self,
-        nbranch=None,
-        cutoff_flops_factor=4,
-        minimize="flops",
-        cost_fn="memory-removed",
+        nbranch: Optional[int] = None,
+        cutoff_flops_factor: int = 4,
+        minimize: str = "flops",
+        cost_fn: str = "memory-removed",
     ):
+        """
+        Explores possible pair contractions in a depth-first recursive manner like
+        the `optimal` approach, but with extra heuristic early pruning of branches
+        as well sieving by `memory_limit` and the best path found so far.
+
+
+        Parameters:
+            nbranch: How many branches to explore at each contraction step. If None, explore
+                all possible branches. If an integer, branch into this many paths at
+                each step. Defaults to None.
+            cutoff_flops_factor: If at any point, a path is doing this much worse than the best path
+                found so far was, terminate it. The larger this is made, the more paths
+                will be fully explored and the slower the algorithm. Defaults to 4.
+            minimize: Whether to optimize the path with regard primarily to the total
+                estimated flop-count, or the size of the largest intermediate. The
+                option not chosen will still be used as a secondary criterion.
+            cost_fn: A function that returns a heuristic 'cost' of a potential contraction
+                with which to sort candidates. Should have signature
+                `cost_fn(size12, size1, size2, k12, k1, k2)`.
+        """
         if (nbranch is not None) and nbranch < 1:
             raise ValueError(f"The number of branches must be at least one, `nbranch={nbranch}`.")
 
         self.nbranch = nbranch
         self.cutoff_flops_factor = cutoff_flops_factor
         self.minimize = minimize
-        self.cost_fn = _COST_FNS.get(cost_fn, cost_fn)
+        self.cost_fn: Any = _COST_FNS.get(cost_fn, cost_fn)
 
         self.better = get_better_fn(minimize)
-        self.best = {"flops": float("inf"), "size": float("inf")}
-        self.best_progress = defaultdict(lambda: float("inf"))
+        self.best: Dict[str, Any] = {"flops": float("inf"), "size": float("inf")}
+        self.best_progress: Dict[int, float] = defaultdict(lambda: float("inf"))
 
     @property
     def path(self) -> PathType:
@@ -377,18 +368,16 @@ class BranchBound(PathOptimizer):
     ) -> PathType:
         """
 
-        **Parameters:**
+        Parameters:
+            inputs_: List of sets that represent the lhs side of the einsum subscript
+            output_: Set that represents the rhs side of the overall einsum subscript
+            size_dict: Dictionary of index sizes
+            memory_limit: The maximum number of elements in a temporary array
 
-        - **input_sets** - *(list)* List of sets that represent the lhs side of the einsum subscript
-        - **output_set** - *(set)* Set that represents the rhs side of the overall einsum subscript
-        - **idx_dict** - *(dictionary)* Dictionary of index sizes
-        - **memory_limit** - *(int)* The maximum number of elements in a temporary array
+        Returns:
+            path: The contraction order within the memory limit constraint.
 
-        **Returns:**
-
-        - **path** - *(list)* The contraction order within the memory limit constraint.
-
-        **Examples:**
+        Examples:
 
         ```python
         isets = [set('abd'), set('ac'), set('bdc')]
@@ -505,7 +494,7 @@ def branch(
     memory_limit: Optional[int] = None,
     **optimizer_kwargs: Dict[str, Any],
 ) -> PathType:
-    optimizer = BranchBound(**optimizer_kwargs)
+    optimizer = BranchBound(**optimizer_kwargs)  # type: ignore
     return optimizer(inputs, output, size_dict, memory_limit)
 
 
@@ -631,7 +620,7 @@ def ssa_greedy_optimize(
     # Deduplicate shapes by eagerly computing Hadamard products.
     remaining: Dict[ArrayIndexType, int] = {}  # key -> ssa_id
     ssa_ids = itertools.count(len(fs_inputs))
-    ssa_path = []
+    ssa_path: List[TensorShapeType] = []
     for ssa_id, key in enumerate(fs_inputs):
         if key in remaining:
             ssa_path.append((remaining[key], ssa_id))
@@ -749,28 +738,26 @@ def greedy(
     This algorithm scales quadratically with respect to the
     maximum number of elements sharing a common dim.
 
-    **Parameters:**
+    Parameters:
+        inputs: List of sets that represent the lhs side of the einsum subscript
+        output: Set that represents the rhs side of the overall einsum subscript
+        size_dict: Dictionary of index sizes
+        memory_limit: The maximum number of elements in a temporary array
+        choose_fn: A function that chooses which contraction to perform from the queue
+        cost_fn: A function that assigns a potential contraction a cost.
 
-    - **inputs** - *(list)* List of sets that represent the lhs side of the einsum subscript
-    - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript
-    - **size_dict** - *(dictionary)* Dictionary of index sizes
-    - **memory_limit** - *(int)* The maximum number of elements in a temporary array
-    - **choose_fn** - *(callable, optional)* A function that chooses which contraction to perform from the queue
-    - **cost_fn** - *(callable, optional)* A function that assigns a potential contraction a cost.
+    Returns:
+        path: The contraction order (a list of tuples of ints).
 
-    **Returns:**
+    Examples:
 
-    - **path** - *(list)* The contraction order (a list of tuples of ints).
-
-    **Examples:**
-
-    ```python
-    isets = [set('abd'), set('ac'), set('bdc')]
-    oset = set('')
-    idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
-    greedy(isets, oset, idx_sizes)
-    #> [(0, 2), (0, 1)]
-    ```
+        ```python
+        isets = [set('abd'), set('ac'), set('bdc')]
+        oset = set('')
+        idx_sizes = {'a': 1, 'b':2, 'c':3, 'd':4}
+        greedy(isets, oset, idx_sizes)
+        #> [(0, 2), (0, 1)]
+        ```
     """
     if memory_limit not in _UNLIMITED_MEM:
         return branch(inputs, output, size_dict, memory_limit, nbranch=1, cost_fn=cost_fn)  # type: ignore
@@ -788,20 +775,17 @@ def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
     contractions are commutative, e.g. (j, k, l) = (k, l, j). Note that in
     general, solutions are not unique.
 
-    **Parameters:**
+    Parameters:
+        c: Contraction tree
 
-    - **c** - *(tuple or int)* Contraction tree
+    Returns:
+        path: Contraction path
 
-    **Returns:**
-
-    - **path** - *(list[set[int]])* Contraction path
-
-    **Examples:**
-
-    ```python
-    _tree_to_sequence(((1,2),(0,(4,5,3))))
-    #> [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
-    ```
+    Examples:
+        ```python
+        _tree_to_sequence(((1,2),(0,(4,5,3))))
+        #> [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
+        ```
     """
 
     # ((1,2),(0,(4,5,3))) --> [(1, 2), (1, 2, 3), (0, 2), (0, 1)]
@@ -843,23 +827,21 @@ def _find_disconnected_subgraphs(inputs: List[FrozenSet[int]], output: FrozenSet
     connected if they share summation indices. Note: Disconnected subgraphs
     can be contracted independently before forming outer products.
 
-    **Parameters:**
-    - **inputs** - *(list[set])* List of sets that represent the lhs side of the einsum subscript
-    - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript
+    Parameters:
+        inputs: List of sets that represent the lhs side of the einsum subscript
+        output: Set that represents the rhs side of the overall einsum subscript
 
-    **Returns:**
+    Returns:
+        subgraphs: List containing sets of indices for each subgraph
 
-    - **subgraphs** - *(list[set[int]])* List containing sets of indices for each subgraph
+    Examples:
+        ```python
+        _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("bd"))
+        #> [{0, 2}, {1}]
 
-    **Examples:**
-
-    ```python
-    _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("bd"))
-    #> [{0, 2}, {1}]
-
-    _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("abd"))
-    #> [{0}, {1}, {2}]
-    ```
+        _find_disconnected_subgraphs([set("ab"), set("c"), set("ad")], set("abd"))
+        #> [{0}, {1}, {2}]
+        ```
     """
 
     subgraphs = []
@@ -1136,31 +1118,28 @@ class DynamicProgramming(PathOptimizer):
     linearly in the number of disconnected subgraphs and only exponentially
     with the number of inputs per subgraph.
 
-    **Parameters:**
+    Parameters:
+        minimize: What to minimize:
+            - 'flops' - minimize the number of flops
+            - 'size' - minimize the size of the largest intermediate
+            - 'write' - minimize the size of all intermediate tensors
+            - 'combo' - minimize `flops + alpha * write` summed over intermediates, a default ratio of alpha=64
+            is used, or it can be customized with `f'combo-{alpha}'`
+            - 'limit' - minimize `max(flops, alpha * write)` summed over intermediates, a default ratio of alpha=64
+            is used, or it can be customized with `f'limit-{alpha}'`
+            - callable - a custom local cost function
 
-    - **minimize** - *({'flops', 'size', 'write', 'combo', 'limit', callable}, optional)* What to minimize:
+        cost_cap: How to implement cost-capping:
+            - True - iteratively increase the cost-cap
+            - False - implement no cost-cap at all
+            - int - use explicit cost cap
 
-        - 'flops' - minimize the number of flops
-        - 'size' - minimize the size of the largest intermediate
-        - 'write' - minimize the size of all intermediate tensors
-        - 'combo' - minimize `flops + alpha * write` summed over intermediates, a default ratio of alpha=64
-          is used, or it can be customized with `f'combo-{alpha}'`
-        - 'limit' - minimize `max(flops, alpha * write)` summed over intermediates, a default ratio of alpha=64
-          is used, or it can be customized with `f'limit-{alpha}'`
-        - callable - a custom local cost function
-
-    - **cost_cap** - *({True, False, int}, optional)* How to implement cost-capping:
-
-        - True - iteratively increase the cost-cap
-        - False - implement no cost-cap at all
-        - int - use explicit cost cap
-
-    - **search_outer** - *(bool, optional)* In rare circumstances the optimal contraction may involve an outer
-        product, this option allows searching such contractions but may well
-        slow down the path finding considerably on all but very small graphs.
+        search_outer: In rare circumstances the optimal contraction may involve an outer
+            product, this option allows searching such contractions but may well
+            slow down the path finding considerably on all but very small graphs.
     """
 
-    def __init__(self, minimize: str = "flops", cost_cap: bool = True, search_outer: bool = False) -> None:
+    def __init__(self, minimize: str = "flops", cost_cap: Union[bool, int] = True, search_outer: bool = False) -> None:
         self.minimize = minimize
         self.search_outer = search_outer
         self.cost_cap = cost_cap
@@ -1170,40 +1149,37 @@ class DynamicProgramming(PathOptimizer):
         inputs_: List[ArrayIndexType],
         output_: ArrayIndexType,
         size_dict_: Dict[str, int],
-        memory_limit: Optional[int] = None,
+        memory_limit_: Optional[int] = None,
     ) -> PathType:
         """
-        **Parameters:**
+        Parameters:
+            inputs_: List of sets that represent the lhs side of the einsum subscript
+            output_: Set that represents the rhs side of the overall einsum subscript
+            size_dict_: Dictionary of index sizes
+            memory_limit_: The maximum number of elements in a temporary array
 
-        - **inputs** - *(list)* List of sets that represent the lhs side of the einsum subscript
-        - **output** - *(set)* Set that represents the rhs side of the overall einsum subscript
-        - **size_dict** - *(dictionary)* Dictionary of index sizes
-        - **memory_limit** - *(int)* The maximum number of elements in a temporary array
+        Returns:
+            path: The contraction order (a list of tuples of ints).
 
-        **Returns:**
-
-        - **path** - *(list)* The contraction order (a list of tuples of ints).
-
-        **Examples:**
-
-        ```python
-        n_in = 3  # exponential scaling
-        n_out = 2 # linear scaling
-        s = dict()
-        i_all = []
-        for _ in range(n_out):
-            i = [set() for _ in range(n_in)]
-            for j in range(n_in):
-                for k in range(j+1, n_in):
-                    c = oe.get_symbol(len(s))
-                    i[j].add(c)
-                    i[k].add(c)
-                    s[c] = 2
-            i_all.extend(i)
-        o = DynamicProgramming()
-        o(i_all, set(), s)
-        #> [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
-        ```
+        Examples:
+            ```python
+            n_in = 3  # exponential scaling
+            n_out = 2 # linear scaling
+            s = dict()
+            i_all = []
+            for _ in range(n_out):
+                i = [set() for _ in range(n_in)]
+                for j in range(n_in):
+                    for k in range(j+1, n_in):
+                        c = oe.get_symbol(len(s))
+                        i[j].add(c)
+                        i[k].add(c)
+                        s[c] = 2
+                i_all.extend(i)
+            o = DynamicProgramming()
+            o(i_all, set(), s)
+            #> [(1, 2), (0, 4), (1, 2), (0, 2), (0, 1)]
+            ```
         """
         _check_contraction, naive_scale = _parse_minimize(self.minimize)
         _check_outer = (lambda x: True) if self.search_outer else (lambda x: x)
@@ -1302,7 +1278,7 @@ class DynamicProgramming(PathOptimizer):
                                             all_tensors,
                                             inputs,
                                             i1_cut_i2_wo_output,
-                                            memory_limit,
+                                            memory_limit_,
                                             contract1,
                                             contract2,
                                         )
@@ -1391,7 +1367,6 @@ def auto_hq(
     return _AUTO_HQ_CHOICES.get(N, random_greedy_128)(inputs, output, size_dict, memory_limit)
 
 
-PathSearchFunctionType = Callable[[List[ArrayIndexType], ArrayIndexType, Dict[str, int], Optional[int]], PathType]
 _PATH_OPTIONS: Dict[str, PathSearchFunctionType] = {
     "auto": auto,
     "auto-hq": auto_hq,
