@@ -41,3 +41,12 @@ def test_parse_einsum_input_shapes() -> None:
     assert input_subscripts == eq
     assert output_subscript == "ad"
     assert np.allclose([possibly_convert_to_numpy(shp) for shp in shps], operands)
+
+
+def test_parse_with_ellisis():
+    eq = "...a,ab"
+    shps = [(2, 3), (3, 4)]
+    input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shps], shapes=True)
+    assert input_subscripts == "da,ab"
+    assert output_subscript == "db"
+    assert np.allclose([possibly_convert_to_numpy(shp) for shp in shps], operands)
