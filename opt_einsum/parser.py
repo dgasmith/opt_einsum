@@ -310,7 +310,7 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
         subscripts, operands = convert_interleaved_input(operands)
 
     if shapes:
-        operand_shapes = operands
+        operand_shapes = [list(s) for s in operands]
     else:
         operand_shapes = [o.shape for o in operands]
 
