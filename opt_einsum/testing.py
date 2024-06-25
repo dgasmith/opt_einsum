@@ -3,12 +3,12 @@ Testing routines for opt_einsum.
 """
 
 from importlib.util import find_spec
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
 
 import pytest
 
 from opt_einsum.parser import get_symbol
-from opt_einsum.typing import PathType
+from opt_einsum.typing import ArrayType, PathType
 
 _valid_chars = "abcdefghijklmopqABC"
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]
@@ -29,27 +29,23 @@ def import_numpy_or_skip() -> Any:
         return find_spec("numpy")
 
 
-def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> List[Any]:
+def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> List[ArrayType]:
     """
     Builds random numpy arrays for testing.
 
-    Parameters
-    ----------
-    string : str
-        List of tensor strings to build
-    dimension_dict : dictionary
-        Dictionary of index _sizes
+    Parameters:
+        string: List of tensor strings to build
+        dimension_dict: Dictionary of index _sizes
 
     Returns
-    -------
-    ret : list of np.ndarry's
         The resulting views.
 
-    Examples
-    --------
-    >>> view = build_views('abbc', {'a': 2, 'b':3, 'c':5})
-    >>> view[0].shape
-    (2, 3, 3, 5)
+    Examples:
+        ```python
+        >>> view = build_views('abbc', {'a': 2, 'b':3, 'c':5})
+        >>> view[0].shape
+        (2, 3, 3, 5)
+        ```
 
     """
     np = import_numpy_or_skip()
@@ -65,9 +61,36 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
     return views
 
 
+@overload
 def rand_equation(
     n: int,
-    reg: int,
+    regularity: int,
+    n_out: int = ...,
+    d_min: int = ...,
+    d_max: int = ...,
+    seed: Optional[int] = ...,
+    global_dim: bool = ...,
+    *,
+    return_size_dict: Literal[True],
+) -> Tuple[str, PathType, Dict[str, int]]: ...
+
+
+@overload
+def rand_equation(
+    n: int,
+    regularity: int,
+    n_out: int = ...,
+    d_min: int = ...,
+    d_max: int = ...,
+    seed: Optional[int] = ...,
+    global_dim: bool = ...,
+    return_size_dict: Literal[False] = ...,
+) -> Tuple[str, PathType]: ...
+
+
+def rand_equation(
+    n: int,
+    regularity: int,
     n_out: int = 0,
     d_min: int = 2,
     d_max: int = 9,
@@ -77,53 +100,41 @@ def rand_equation(
 ) -> Union[Tuple[str, PathType, Dict[str, int]], Tuple[str, PathType]]:
     """Generate a random contraction and shapes.
 
-    Parameters
-    ----------
-    n : int
-        Number of array arguments.
-    reg : int
-        'Regularity' of the contraction graph. This essentially determines how
-        many indices each tensor shares with others on average.
-    n_out : int, optional
-        Number of output indices (i.e. the number of non-contracted indices).
-        Defaults to 0, i.e., a contraction resulting in a scalar.
-    d_min : int, optional
-        Minimum dimension size.
-    d_max : int, optional
-        Maximum dimension size.
-    seed: int, optional
-        If not None, seed numpy's random generator with this.
-    global_dim : bool, optional
-        Add a global, 'broadcast', dimension to every operand.
-    return_size_dict : bool, optional
-        Return the mapping of indices to sizes.
+    Parameters:
+        n: Number of array arguments.
+        regularity: 'Regularity' of the contraction graph. This essentially determines how
+            many indices each tensor shares with others on average.
+        n_out: Number of output indices (i.e. the number of non-contracted indices).
+            Defaults to 0, i.e., a contraction resulting in a scalar.
+        d_min: Minimum dimension size.
+        d_max: Maximum dimension size.
+        seed: If not None, seed numpy's random generator with this.
+        global_dim: Add a global, 'broadcast', dimension to every operand.
+        return_size_dict: Return the mapping of indices to sizes.
 
-    Returns
-    -------
-    eq : str
-        The equation string.
-    shapes : list[tuple[int]]
-        The array shapes.
-    size_dict : dict[str, int]
-        The dict of index sizes, only returned if ``return_size_dict=True``.
+    Returns:
+        eq: The equation string.
+        shapes: The array shapes.
+        size_dict: The dict of index sizes, only returned if ``return_size_dict=True``.
 
-    Examples
-    --------
-    >>> eq, shapes = rand_equation(n=10, reg=4, n_out=5, seed=42)
-    >>> eq
-    'oyeqn,tmaq,skpo,vg,hxui,n,fwxmr,hitplcj,kudlgfv,rywjsb->cebda'
+    Examples:
+        ```python
+        >>> eq, shapes = rand_equation(n=10, regularity=4, n_out=5, seed=42)
+        >>> eq
+        'oyeqn,tmaq,skpo,vg,hxui,n,fwxmr,hitplcj,kudlgfv,rywjsb->cebda'
 
-    >>> shapes
-    [(9, 5, 4, 5, 4),
-     (4, 4, 8, 5),
-     (9, 4, 6, 9),
-     (6, 6),
-     (6, 9, 7, 8),
-     (4,),
-     (9, 3, 9, 4, 9),
-     (6, 8, 4, 6, 8, 6, 3),
-     (4, 7, 8, 8, 6, 9, 6),
-     (9, 5, 3, 3, 9, 5)]
+        >>> shapes
+        [(9, 5, 4, 5, 4),
+        (4, 4, 8, 5),
+        (9, 4, 6, 9),
+        (6, 6),
+        (6, 9, 7, 8),
+        (4,),
+        (9, 3, 9, 4, 9),
+        (6, 8, 4, 6, 8, 6, 3),
+        (4, 7, 8, 8, 6, 9, 6),
+        (9, 5, 3, 3, 9, 5)]
+        ```
     """
 
     np = import_numpy_or_skip()

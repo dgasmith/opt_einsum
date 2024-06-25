@@ -265,32 +265,29 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
     """
     A reproduction of einsum c side einsum parsing in python.
 
-    **Parameters:**
-    Intakes the same inputs as `contract_path`, but NOT the keyword args. The only
-    supported keyword argument is:
-    - **shapes** - *(bool, optional)* Whether ``parse_einsum_input`` should assume arrays (the default) or
-        array shapes have been supplied.
+    Parameters:
+        operands: Intakes the same inputs as `contract_path`, but NOT the keyword args. The only
+            supported keyword argument is:
+        shapes: Whether ``parse_einsum_input`` should assume arrays (the default) or
+            array shapes have been supplied.
 
     Returns
-    -------
-    input_strings : str
-        Parsed input strings
-    output_string : str
-        Parsed output string
-    operands : list of array_like
-        The operands to use in the numpy contraction
+        input_strings: Parsed input strings
+        output_string: Parsed output string
+        operands: The operands to use in the numpy contraction
 
-    Examples
-    --------
-    The operand list is simplified to reduce printing:
+    Examples:
+        The operand list is simplified to reduce printing:
 
-    >>> a = np.random.rand(4, 4)
-    >>> b = np.random.rand(4, 4, 4)
-    >>> parse_einsum_input(('...a,...a->...', a, b))
-    ('za,xza', 'xz', [a, b])
+        ```python
+        >>> a = np.random.rand(4, 4)
+        >>> b = np.random.rand(4, 4, 4)
+        >>> parse_einsum_input(('...a,...a->...', a, b))
+        ('za,xza', 'xz', [a, b])
 
-    >>> parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
-    ('za,xza', 'xz', [a, b])
+        >>> parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
+        ('za,xza', 'xz', [a, b])
+        ```
     """
 
     if len(operands) == 0:

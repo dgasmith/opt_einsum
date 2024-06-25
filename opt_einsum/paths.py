@@ -13,8 +13,6 @@ from typing import Any, Callable
 from typing import Counter as CounterType
 from typing import Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tuple, Union
 
-import numpy as np
-
 from opt_einsum.helpers import compute_size_by_dict, flop_count
 from opt_einsum.typing import ArrayIndexType, PathSearchFunctionType, PathType, TensorShapeType
 
@@ -39,17 +37,13 @@ class PathOptimizer:
     Subclassed optimizers should define a call method with signature:
 
     ```python
-    def __call__(self, inputs, output, size_dict, memory_limit=None):
+    def __call__(self, inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: dict[str, int], memory_limit: int | None = None) -> list[tuple[int, ...]]:
         \"\"\"
         Parameters:
-            inputs : list[set[str]]
-                The indices of each input array.
-            outputs : set[str]
-                The output indices
-            size_dict : dict[str, int]
-                The size of each index
-            memory_limit : int, optional
-                If given, the maximum allowed memory.
+            inputs: The indices of each input array.
+            outputs: The output indices
+            size_dict: The size of each index
+            memory_limit: If given, the maximum allowed memory.
         \"\"\"
         # ... compute path here ...
         return path

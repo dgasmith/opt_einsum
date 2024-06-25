@@ -18,9 +18,7 @@ def test_get_symbol() -> None:
 
 
 def test_parse_einsum_input() -> None:
-    eq = "ab,bc,cd"
-    ops = build_arrays_from_tuples([(2, 3), (3, 4), (4, 5)])
-    input_subscripts, output_subscript, operands = parse_einsum_input([eq, *ops])
+    input_subscripts, output_subscript, operands = parse_einsum_input(["ab,bc,cd", (2, 3), (3, 4), (4, 5)], shapes=True)
     assert input_subscripts == eq
     assert output_subscript == "ad"
     assert operands == ops
@@ -39,8 +37,8 @@ def test_parse_einsum_input_shapes() -> None:
     import numpy as np
 
     eq = "ab,bc,cd"
-    shps = [(2, 3), (3, 4), (4, 5)]
-    input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shps], shapes=True)
+    shapes = [(2, 3), (3, 4), (4, 5)]
+    input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shapes], shapes=True)
     assert input_subscripts == eq
     assert output_subscript == "ad"
     assert np.allclose([possibly_convert_to_numpy(shp) for shp in shps], operands)

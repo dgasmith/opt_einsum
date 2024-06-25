@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from opt_einsum import backends, contract, contract_expression, sharing
-from opt_einsum.contract import Shaped, infer_backend, parse_backend
+from opt_einsum.contract import ArrayShaped, infer_backend, parse_backend
 from opt_einsum.testing import build_views
 
 try:
@@ -446,7 +446,7 @@ def test_torch_with_constants(constants: Set[int]) -> None:
 
 
 def test_auto_backend_custom_array_no_tensordot() -> None:
-    x = Shaped((1, 2, 3))
+    x = ArrayShaped((1, 2, 3))
     # Shaped is an array-like object defined by opt_einsum - which has no TDOT
     assert infer_backend(x) == "opt_einsum"
     assert parse_backend([x], "auto") == "numpy"
