@@ -13,6 +13,8 @@ import opt_einsum as oe
 from opt_einsum.testing import build_views, import_numpy_or_skip, rand_equation
 from opt_einsum.typing import ArrayIndexType, OptimizeKind, PathType, TensorShapeType
 
+np = pytest.importorskip("numpy")
+
 explicit_path_tests = {
     "GEMM1": (
         [set("abd"), set("ac"), set("bdc")],
@@ -312,7 +314,7 @@ def test_dp_errors_when_no_contractions_found() -> None:
 
 @pytest.mark.parametrize("optimize", ["greedy", "branch-2", "branch-all", "optimal", "dp"])
 def test_can_optimize_outer_products(optimize: OptimizeKind) -> None:
-    np = import_numpy_or_skip()
+    
     a, b, c = [np.random.randn(10, 10) for _ in range(3)]
     d = np.random.randn(10, 2)
     assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, optimize=optimize)[0] == [
@@ -334,7 +336,7 @@ def test_large_path(num_symbols: int) -> None:
 
 
 def test_custom_random_greedy() -> None:
-    np = import_numpy_or_skip()
+    
     eq, shapes = oe.helpers.rand_equation(10, 4, seed=42)
     views = list(map(np.ones, shapes))
 
@@ -373,7 +375,7 @@ def test_custom_random_greedy() -> None:
 
 
 def test_custom_branchbound() -> None:
-    np = import_numpy_or_skip()
+    
     eq, shapes = oe.helpers.rand_equation(8, 4, seed=42)
     views = list(map(np.ones, shapes))
     optimizer = oe.BranchBound(nbranch=2, cutoff_flops_factor=10, minimize="size")
@@ -407,7 +409,7 @@ def test_branchbound_validation() -> None:
 
 @pytest.mark.skipif(sys.version_info < (3, 2), reason="requires python3.2 or higher")
 def test_parallel_random_greedy() -> None:
-    np = import_numpy_or_skip()
+    
     from concurrent.futures import ProcessPoolExecutor
 
     pool = ProcessPoolExecutor(2)
@@ -476,7 +478,7 @@ def test_custom_path_optimizer() -> None:
 
 
 def test_custom_random_optimizer() -> None:
-    np = import_numpy_or_skip()
+    
 
     class NaiveRandomOptimizer(oe.path_random.RandomOptimizer):
         @staticmethod
