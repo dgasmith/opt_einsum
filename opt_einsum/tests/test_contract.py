@@ -4,13 +4,15 @@ Tets a series of opt_einsum contraction paths to ensure the results are the same
 
 from typing import Any, List
 
-import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_expression, contract_path, helpers
 from opt_einsum.paths import _PATH_OPTIONS, linear_to_ssa, ssa_to_linear
 from opt_einsum.testing import build_views
 from opt_einsum.typing import OptimizeKind
+
+# NumPy is required for the majority of this file
+np = pytest.importorskip("numpy")
 
 tests = [
     # Test scalar-like operations

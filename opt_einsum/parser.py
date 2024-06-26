@@ -5,7 +5,7 @@ A functionally equivalent parser of the numpy.einsum input parser
 import itertools
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
-from opt_einsum.typing import ArrayType, TensorShapeType
+from opt_einsum.typing import GenericArrayType, TensorShapeType
 
 __all__ = [
     "is_valid_einsum_char",
@@ -195,9 +195,11 @@ def possibly_convert_to_numpy(x: Any) -> Any:
     >>> oe.parser.possibly_convert_to_numpy(myshape)
     <__main__.Shape object at 0x10f850710>
     """
-    import numpy as np
 
+    # TODO
     if not hasattr(x, "shape"):
+        import numpy as np
+
         return np.asanyarray(x)
     else:
         return x
@@ -223,7 +225,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, Tuple[ArrayType, ...]]:
+def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, Tuple[GenericArrayType, ...]]:
     """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
@@ -261,7 +263,7 @@ def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[s
     return subscripts, tuple(operands)
 
 
-def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
+def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[GenericArrayType]]:
     """
     A reproduction of einsum c side einsum parsing in python.
 

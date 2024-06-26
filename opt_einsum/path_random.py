@@ -13,7 +13,7 @@ from random import seed as random_seed
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 from opt_einsum import helpers, paths
-from opt_einsum.typing import ArrayIndexType, ArrayType, PathType
+from opt_einsum.typing import ArrayIndexType, GenericArrayType, PathType
 
 __all__ = ["RandomGreedy", "random_greedy", "random_greedy_128"]
 
@@ -395,7 +395,7 @@ def random_greedy(
     idx_dict: Dict[str, int],
     memory_limit: Optional[int] = None,
     **optimizer_kwargs: Any,
-) -> ArrayType:
+) -> GenericArrayType:
     """ """
     optimizer = RandomGreedy(**optimizer_kwargs)
     return optimizer(inputs, output, idx_dict, memory_limit)

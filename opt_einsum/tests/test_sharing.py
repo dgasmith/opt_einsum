@@ -3,7 +3,6 @@ import weakref
 from collections import Counter
 from typing import Any
 
-import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_expression, contract_path, get_symbol, helpers, shared_intermediates
@@ -13,6 +12,13 @@ from opt_einsum.parser import parse_einsum_input
 from opt_einsum.sharing import count_cached_ops, currently_sharing, get_sharing_cache
 from opt_einsum.testing import build_views
 from opt_einsum.typing import BackendType
+
+try:
+    import numpy as np  # noqa
+
+    numpy_if_found = "numpy"
+except ImportError:
+    numpy_if_found = pytest.param("numpy", marks=[pytest.mark.skip(reason="NumPy not installed.")])
 
 try:
     import cupy  # noqa
@@ -28,7 +34,7 @@ try:
 except ImportError:
     torch_if_found = pytest.param("torch", marks=[pytest.mark.skip(reason="PyTorch not installed.")])  # type: ignore
 
-backends = ["numpy", torch_if_found, cupy_if_found]
+backends = [numpy_if_found, torch_if_found, cupy_if_found]
 equations = [
     "ab,bc->ca",
     "abc,bcd,dea",

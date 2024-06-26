@@ -2,11 +2,12 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
-import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_expression, contract_path
 from opt_einsum.typing import PathType
+
+np = pytest.importorskip("numpy")
 
 
 def test_contract_expression_checks() -> None:

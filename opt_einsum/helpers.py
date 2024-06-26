@@ -4,7 +4,7 @@ Contains helper functions for opt_einsum testing scripts
 
 from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Tuple, overload
 
-from opt_einsum.typing import ArrayIndexType, ArrayType
+from opt_einsum.typing import ArrayIndexType, GenericArrayType
 
 __all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
 
@@ -153,7 +153,7 @@ def flop_count(
     return overall_size * op_factor
 
 
-def has_array_interface(array: ArrayType) -> ArrayType:
+def has_array_interface(array: GenericArrayType) -> GenericArrayType:
     if hasattr(array, "__array_interface__"):
         return True
     else:

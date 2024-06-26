@@ -3,12 +3,20 @@ Types used in the opt_einsum package
 """
 
 from collections import namedtuple
-from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Protocol, Tuple, Union
 
 TensorShapeType = Tuple[int, ...]
 PathType = Collection[TensorShapeType]
 
-ArrayType = Any  # TODO
+GenericArrayType = Any  # Any array type with or without a shape attribute
+
+
+class ArrayType(Protocol):
+    """The casted array type with a garunteed shape attribute."""
+
+    shape: TensorShapeType
+
+
 ArrayIndexType = FrozenSet[str]
 ArrayShaped = namedtuple("Shaped", ["shape"])
 

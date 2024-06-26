@@ -1,11 +1,13 @@
 from typing import Set
 
-import numpy as np
 import pytest
 
 from opt_einsum import backends, contract, contract_expression, sharing
 from opt_einsum.contract import ArrayShaped, infer_backend, parse_backend
 from opt_einsum.testing import build_views
+
+# NumPy is required for the majority of this file
+np = pytest.importorskip("numpy")
 
 try:
     import cupy

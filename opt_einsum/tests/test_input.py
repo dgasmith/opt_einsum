@@ -4,14 +4,17 @@ Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 
 from typing import Any
 
-import numpy as np
 import pytest
 
 from opt_einsum import contract, contract_path
-from opt_einsum.typing import ArrayType
+from opt_einsum.typing import GenericArrayType
+
+np = pytest.importorskip("numpy")
 
 
-def build_views(string: str) -> list[ArrayType]:
+def build_views(string: str) -> list[GenericArrayType]:
+    """Builds random numpy arrays for testing by using a fixed size dictionary and an input string."""
+
     chars = "abcdefghij"
     sizes_array = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
     sizes = {c: s for c, s in zip(chars, sizes_array)}

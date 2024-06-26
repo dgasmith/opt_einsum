@@ -2,13 +2,14 @@
 Testing routines for opt_einsum.
 """
 
+from importlib import import_module
 from importlib.util import find_spec
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
 
 import pytest
 
 from opt_einsum.parser import get_symbol
-from opt_einsum.typing import ArrayType, PathType
+from opt_einsum.typing import GenericArrayType, PathType
 
 _valid_chars = "abcdefghijklmopqABC"
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]
@@ -26,10 +27,10 @@ def import_numpy_or_skip() -> Any:
     if not HAS_NUMPY:
         pytest.skip("Numpy not detected.")
     else:
-        return find_spec("numpy")
+        return import_module("numpy")
 
 
-def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> List[ArrayType]:
+def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> List[GenericArrayType]:
     """
     Builds random numpy arrays for testing.
 
