@@ -5,7 +5,7 @@ Directly tests various parser utility functions.
 import pytest
 
 from opt_einsum.parser import get_symbol, parse_einsum_input, possibly_convert_to_numpy
-from opt_einsum.testing import build_arrays_from_tuples, using_numpy
+from opt_einsum.testing import build_arrays_from_tuples
 
 
 def test_get_symbol() -> None:
@@ -34,9 +34,8 @@ def test_parse_einsum_input_shapes_error() -> None:
         _ = parse_einsum_input([eq, *ops], shapes=True)
 
 
-@using_numpy
 def test_parse_einsum_input_shapes() -> None:
-    import numpy as np
+    np = pytest.importorskip("numpy")
 
     eq = "ab,bc,cd"
     shapes = [(2, 3), (3, 4), (4, 5)]
@@ -44,3 +43,12 @@ def test_parse_einsum_input_shapes() -> None:
     assert input_subscripts == eq
     assert output_subscript == "ad"
     assert np.allclose([possibly_convert_to_numpy(shp) for shp in shapes], operands)
+
+
+def test_parse_with_ellisis() -> None:
+    eq = "...a,ab"
+    shapes = [(2, 3), (3, 4)]
+    input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shapes], shapes=True)
+    assert input_subscripts == "da,ab"
+    assert output_subscript == "db"
+    assert shapes == operands

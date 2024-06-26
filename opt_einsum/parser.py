@@ -196,8 +196,8 @@ def possibly_convert_to_numpy(x: Any) -> Any:
     <__main__.Shape object at 0x10f850710>
     """
 
-    # TODO
     if not hasattr(x, "shape"):
+        # TODO : fix the raw NumPy import
         import numpy as np
 
         return np.asanyarray(x)

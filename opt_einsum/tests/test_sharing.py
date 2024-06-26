@@ -13,6 +13,8 @@ from opt_einsum.sharing import count_cached_ops, currently_sharing, get_sharing_
 from opt_einsum.testing import build_views
 from opt_einsum.typing import BackendType
 
+pytest.importorskip("numpy")
+
 try:
     import numpy as np  # noqa # type: ignore
 
