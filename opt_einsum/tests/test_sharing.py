@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from opt_einsum import contract, contract_expression, contract_path, get_symbol, helpers, shared_intermediates
+from opt_einsum import contract, contract_expression, contract_path, get_symbol, shared_intermediates
 from opt_einsum.backends import to_cupy, to_torch
 from opt_einsum.contract import _einsum
 from opt_einsum.parser import parse_einsum_input
@@ -14,11 +14,11 @@ from opt_einsum.testing import build_views
 from opt_einsum.typing import BackendType
 
 try:
-    import numpy as np  # noqa
+    import numpy as np  # noqa # type: ignore
 
     numpy_if_found = "numpy"
 except ImportError:
-    numpy_if_found = pytest.param("numpy", marks=[pytest.mark.skip(reason="NumPy not installed.")])
+    numpy_if_found = pytest.param("numpy", marks=[pytest.mark.skip(reason="NumPy not installed.")])  # type: ignore
 
 try:
     import cupy  # noqa
@@ -56,7 +56,7 @@ to_backend = {
 @pytest.mark.parametrize("eq", equations)
 @pytest.mark.parametrize("backend", backends)
 def test_sharing_value(eq: str, backend: BackendType) -> None:
-    views = helpers.build_views(eq)
+    views = build_views(eq)
     shapes = [v.shape for v in views]
     expr = contract_expression(eq, *shapes)
 
@@ -188,9 +188,8 @@ def test_sharing_nesting(backend: BackendType) -> None:
 @pytest.mark.parametrize("eq", equations)
 @pytest.mark.parametrize("backend", backends)
 def test_sharing_modulo_commutativity(eq: str, backend: BackendType) -> None:
-    ops = helpers.build_views(eq)
-    ops = [to_backend[backend](x) for x in ops]
-    inputs, output, _ = parse_einsum_input([eq] + ops)
+    ops = tuple(to_backend[backend](x) for x in build_views(eq))
+    inputs, output, _ = parse_einsum_input([eq] + list(ops))
     inputs_list = inputs.split(",")
 
     print("-" * 40)
@@ -218,7 +217,7 @@ def test_sharing_modulo_commutativity(eq: str, backend: BackendType) -> None:
 @pytest.mark.parametrize("backend", backends)
 def test_partial_sharing(backend: BackendType) -> None:
     eq = "ab,bc,de->"
-    x, y, z1 = build_views(eq)
+    x, y, z1 = build_views(eq)  # type: ignore
     z2 = 2.0 * z1 - 1.0
     expr = contract_expression(eq, x.shape, y.shape, z1.shape)
 

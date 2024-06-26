@@ -7,6 +7,7 @@ import pytest
 from opt_einsum import contract, contract_expression, contract_path
 from opt_einsum.typing import PathType
 
+# NumPy is required for the majority of this file
 np = pytest.importorskip("numpy")
 
 

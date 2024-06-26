@@ -18,7 +18,7 @@ class ArrayType(Protocol):
 
 
 ArrayIndexType = FrozenSet[str]
-ArrayShaped = namedtuple("Shaped", ["shape"])
+ArrayShaped = namedtuple("ArrayShaped", ["shape"])
 
 ContractionListType = List[Tuple[Any, ArrayIndexType, str, Optional[Tuple[str, ...]], Union[str, bool]]]
 PathSearchFunctionType = Callable[[List[ArrayIndexType], ArrayIndexType, Dict[str, int], Optional[int]], PathType]

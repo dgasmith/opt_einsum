@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
 import pytest
 
 from opt_einsum.parser import get_symbol
-from opt_einsum.typing import GenericArrayType, PathType
+from opt_einsum.typing import GenericArrayType, PathType, TensorShapeType
 
 _valid_chars = "abcdefghijklmopqABC"
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]
@@ -30,7 +30,38 @@ def import_numpy_or_skip() -> Any:
         return import_module("numpy")
 
 
-def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> List[GenericArrayType]:
+def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> Tuple[TensorShapeType, ...]:
+    """
+    Builds random tensor shapes for testing.
+
+    Parameters:
+        string: List of tensor strings to build
+        dimension_dict: Dictionary of index _sizes
+
+    Returns
+        The resulting shapes.
+
+    Examples:
+        ```python
+        >>> shapes = build_shapes('abbc', {'a': 2, 'b':3, 'c':5})
+        >>> shapes
+        [(2, 3), (3, 3, 5), (5,)]
+        ```
+
+    """
+
+    if dimension_dict is None:
+        dimension_dict = _default_dim_dict
+
+    shapes = []
+    terms = string.split("->")[0].split(",")
+    for term in terms:
+        dims = [dimension_dict[x] for x in term]
+        shapes.append(tuple(dims))
+    return tuple(shapes)
+
+
+def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> Tuple[GenericArrayType]:
     """
     Builds random numpy arrays for testing.
 
@@ -50,16 +81,10 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
 
     """
     np = import_numpy_or_skip()
-
-    if dimension_dict is None:
-        dimension_dict = _default_dim_dict
-
     views = []
-    terms = string.split("->")[0].split(",")
-    for term in terms:
-        dims = [dimension_dict[x] for x in term]
-        views.append(np.random.rand(*dims))
-    return views
+    for shape in build_shapes(string, dimension_dict=dimension_dict):
+        views.append(np.random.rand(*shape))
+    return tuple(views)
 
 
 @overload

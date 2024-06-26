@@ -77,7 +77,7 @@ tests = [
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow(string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     opt = np.empty_like(ein)
 
@@ -128,7 +128,7 @@ def test_tensorflow_with_constants(constants: Set[int]) -> None:
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow_with_sharing(string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     shps = [v.shape for v in views]
@@ -153,7 +153,7 @@ def test_tensorflow_with_sharing(string: str) -> None:
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano(string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -197,7 +197,7 @@ def test_theano_with_constants(constants: Set[int]) -> None:
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano_with_sharing(string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     shps = [v.shape for v in views]
@@ -220,7 +220,7 @@ def test_theano_with_sharing(string: str) -> None:
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_cupy(string: str) -> None:  # pragma: no cover
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -267,7 +267,7 @@ def test_cupy_with_constants(constants: Set[int]) -> None:  # pragma: no cover
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_jax(string: str) -> None:  # pragma: no cover
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
 
@@ -457,7 +457,7 @@ def test_auto_backend_custom_array_no_tensordot() -> None:
 
 @pytest.mark.parametrize("string", tests)
 def test_object_arrays_backend(string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     assert ein.dtype != object
 
