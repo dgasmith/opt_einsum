@@ -143,7 +143,7 @@ def rand_equation(
         np.random.seed(seed)
 
     # total number of indices
-    num_inds = n * reg // 2 + n_out
+    num_inds = n * regularity // 2 + n_out
     inputs = ["" for _ in range(n)]
     output = []
 
@@ -199,10 +199,10 @@ def rand_equation(
 
 def build_arrays_from_tuples(path: PathType) -> List[Any]:
     """Build random numpy arrays from a path.
-    
+
     Parameters:
         path: The path to build arrays from.
-    
+
     Returns:
         The resulting arrays."""
     np = import_numpy_or_skip()

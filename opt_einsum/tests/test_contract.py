@@ -6,9 +6,9 @@ from typing import Any, List
 
 import pytest
 
-from opt_einsum import contract, contract_expression, contract_path, helpers
+from opt_einsum import contract, contract_expression, contract_path
 from opt_einsum.paths import _PATH_OPTIONS, linear_to_ssa, ssa_to_linear
-from opt_einsum.testing import build_views
+from opt_einsum.testing import build_views, rand_equation
 from opt_einsum.typing import OptimizeKind
 
 # NumPy is required for the majority of this file
@@ -102,7 +102,7 @@ tests = [
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare(optimize: OptimizeKind, string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract(string, *views, optimize=False, use_blas=False)
     opt = contract(string, *views, optimize=optimize, use_blas=False)
@@ -111,7 +111,7 @@ def test_compare(optimize: OptimizeKind, string: str) -> None:
 
 @pytest.mark.parametrize("string", tests)
 def test_drop_in_replacement(string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
     opt = contract(string, *views)
     assert np.allclose(opt, np.einsum(string, *views))
 
@@ -119,7 +119,7 @@ def test_drop_in_replacement(string: str) -> None:
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_greek(optimize: OptimizeKind, string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract(string, *views, optimize=False, use_blas=False)
 
@@ -133,7 +133,7 @@ def test_compare_greek(optimize: OptimizeKind, string: str) -> None:
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_blas(optimize: OptimizeKind, string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(string, *views, optimize=optimize)
@@ -143,7 +143,7 @@ def test_compare_blas(optimize: OptimizeKind, string: str) -> None:
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare_blas_greek(optimize: OptimizeKind, string: str) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
 
     ein = contract(string, *views, optimize=False)
 
@@ -176,7 +176,7 @@ def test_printing():
 @pytest.mark.parametrize("use_blas", [False, True])
 @pytest.mark.parametrize("out_spec", [False, True])
 def test_contract_expressions(string: str, optimize: OptimizeKind, use_blas: bool, out_spec: bool) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
     shapes = [view.shape if hasattr(view, "shape") else tuple() for view in views]
     expected = contract(string, *views, optimize=False, use_blas=False)
 
@@ -217,7 +217,7 @@ def test_contract_expression_interleaved_input() -> None:
     ],
 )
 def test_contract_expression_with_constants(string: str, constants: List[int]) -> None:
-    views = helpers.build_views(string)
+    views = build_views(string)
     expected = contract(string, *views, optimize=False, use_blas=False)
 
     shapes = [view.shape if hasattr(view, "shape") else tuple() for view in views]
@@ -242,8 +242,8 @@ def test_contract_expression_with_constants(string: str, constants: List[int]) -
 @pytest.mark.parametrize("n_out", [0, 2, 4])
 @pytest.mark.parametrize("global_dim", [False, True])
 def test_rand_equation(optimize: OptimizeKind, n: int, reg: int, n_out: int, global_dim: bool) -> None:
-    eq, _, size_dict = helpers.rand_equation(n, reg, n_out, d_min=2, d_max=5, seed=42, return_size_dict=True)
-    views = helpers.build_views(eq, size_dict)
+    eq, _, size_dict = rand_equation(n, reg, n_out, d_min=2, d_max=5, seed=42, return_size_dict=True)
+    views = build_views(eq, size_dict)
 
     expected = contract(eq, *views, optimize=False)
     actual = contract(eq, *views, optimize=optimize)
@@ -253,7 +253,7 @@ def test_rand_equation(optimize: OptimizeKind, n: int, reg: int, n_out: int, glo
 
 @pytest.mark.parametrize("equation", tests)
 def test_linear_vs_ssa(equation: str) -> None:
-    views = helpers.build_views(equation)
+    views = build_views(equation)
     linear_path, _ = contract_path(equation, *views)
     ssa_path = linear_to_ssa(linear_path)
     linear_path2 = ssa_to_linear(ssa_path)

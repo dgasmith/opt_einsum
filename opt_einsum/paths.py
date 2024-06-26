@@ -2,6 +2,7 @@
 Contains the path technology behind opt_einsum in addition to several path helpers
 """
 
+import bisect
 import functools
 import heapq
 import itertools
@@ -98,19 +99,34 @@ def ssa_to_linear(ssa_path: PathType) -> PathType:
     #     path.append(tuple(int(ids[ssa_id]) for ssa_id in ssa_ids))
     #     for ssa_id in ssa_ids:
     #         ids[ssa_id:] -= 1
-    # N = sum(map(len, ssa_path)) - len(ssa_path) + 1
-    # ids = list(range(N))
-    ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
+    # return path
+
+    N = sum(map(len, ssa_path)) - len(ssa_path) + 1
+    ids = list(range(N))
     path = []
     ssa = N
     for scon in ssa_path:
-        con = sorted(map(ids.index, scon))
+        con = sorted([bisect.bisect_left(ids, s) for s in scon])
         for j in reversed(con):
             ids.pop(j)
         ids.append(ssa)
         path.append(con)
         ssa += 1
-    return path
+    return [tuple(x) for x in path]
+
+    # N = sum(map(len, ssa_path)) - len(ssa_path) + 1
+    # ids = list(range(N))
+    # ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
+    # path = []
+    # ssa = N
+    # for scon in ssa_path:
+    #     con = sorted(map(ids.index, scon))
+    #     for j in reversed(con):
+    #         ids.pop(j)
+    #     ids.append(ssa)
+    #     path.append(con)
+    #     ssa += 1
+    # return path
 
 
 def linear_to_ssa(path: PathType) -> PathType:
