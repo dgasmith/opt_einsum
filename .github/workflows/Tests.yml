@@ -21,6 +21,8 @@ jobs:
            environment: "min-ver"
          - python-version: 3.11
            environment: "full"
+         - python-version: 3.12
+           environment: "torch"
 
     runs-on: ubuntu-latest
 
@@ -58,7 +60,7 @@ jobs:
       run: |
         coverage report
 
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage.xml
