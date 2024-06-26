@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 import pytest
 
 import opt_einsum as oe
-from opt_einsum.testing import build_shapes, rand_equation, using_numpy
+from opt_einsum.testing import build_shapes, rand_equation
 from opt_einsum.typing import ArrayIndexType, OptimizeKind, PathType, TensorShapeType
 
 explicit_path_tests = {
@@ -131,8 +131,8 @@ def test_bad_path_option() -> None:
         oe.contract("a,b,c", [1], [2], [3], optimize="optimall", shapes=True)  # type: ignore
 
 
-@using_numpy
 def test_explicit_path() -> None:
+    pytest.importorskip("numpy")
     x = oe.contract("a,b,c", [1], [2], [3], optimize=[(1, 2), (0, 1)])
     assert x.item() == 6
 

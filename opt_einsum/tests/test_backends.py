@@ -6,9 +6,6 @@ from opt_einsum import backends, contract, contract_expression, sharing
 from opt_einsum.contract import ArrayShaped, infer_backend, parse_backend
 from opt_einsum.testing import build_views
 
-# NumPy is required for the majority of this file
-np = pytest.importorskip("numpy")
-
 try:
     import cupy
 
@@ -74,9 +71,17 @@ tests = [
 ]
 
 
+def test_torch_raw() -> None:
+    """Tests torch in the abscence of any other dependancy."""
+    torch = pytest.importorskip("torch")
+    result = contract("ij,jk->ik", torch.rand(6, 5), torch.rand(5, 4))
+    assert result.shape == (6, 4)
+
+
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow(string: str) -> None:
+    np = pytest.importorskip("numpy")
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     opt = np.empty_like(ein)
@@ -99,6 +104,7 @@ def test_tensorflow(string: str) -> None:
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_tensorflow_with_constants(constants: Set[int]) -> None:
+    np = pytest.importorskip("numpy")
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -128,6 +134,7 @@ def test_tensorflow_with_constants(constants: Set[int]) -> None:
 @pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow_with_sharing(string: str) -> None:
+    np = pytest.importorskip("numpy")
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
@@ -153,6 +160,7 @@ def test_tensorflow_with_sharing(string: str) -> None:
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano(string: str) -> None:
+    np = pytest.importorskip("numpy")
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -171,6 +179,7 @@ def test_theano(string: str) -> None:
 @pytest.mark.skipif(not found_theano, reason="theano not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_theano_with_constants(constants: Set[int]) -> None:
+    np = pytest.importorskip("numpy")
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -197,6 +206,7 @@ def test_theano_with_constants(constants: Set[int]) -> None:
 @pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano_with_sharing(string: str) -> None:
+    np = pytest.importorskip("numpy")
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
@@ -219,7 +229,8 @@ def test_theano_with_sharing(string: str) -> None:
 
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_cupy(string: str) -> None:  # pragma: no cover
+def test_cupy(string: str) -> None:
+    np = pytest.importorskip("numpy")  # pragma: no cover
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -238,7 +249,8 @@ def test_cupy(string: str) -> None:  # pragma: no cover
 
 @pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_cupy_with_constants(constants: Set[int]) -> None:  # pragma: no cover
+def test_cupy_with_constants(constants: Set[int]) -> None:
+    np = pytest.importorskip("numpy")  # pragma: no cover
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -266,7 +278,8 @@ def test_cupy_with_constants(constants: Set[int]) -> None:  # pragma: no cover
 
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("string", tests)
-def test_jax(string: str) -> None:  # pragma: no cover
+def test_jax(string: str) -> None:
+    np = pytest.importorskip("numpy")  # pragma: no cover
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -280,7 +293,8 @@ def test_jax(string: str) -> None:  # pragma: no cover
 
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_jax_with_constants(constants: Set[int]) -> None:  # pragma: no cover
+def test_jax_with_constants(constants: Set[int]) -> None:
+    np = pytest.importorskip("numpy")  # pragma: no cover
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -300,6 +314,7 @@ def test_jax_with_constants(constants: Set[int]) -> None:  # pragma: no cover
 
 @pytest.mark.skipif(not found_jax, reason="jax not installed.")
 def test_jax_jit_gradient() -> None:
+    np = pytest.importorskip("numpy")
     eq = "ij,jk,kl->"
     shapes = (2, 3), (3, 4), (4, 2)
     views = [np.random.randn(*s) for s in shapes]
@@ -323,6 +338,7 @@ def test_jax_jit_gradient() -> None:
 
 @pytest.mark.skipif(not found_autograd, reason="autograd not installed.")
 def test_autograd_gradient() -> None:
+    np = pytest.importorskip("numpy")
     eq = "ij,jk,kl->"
     shapes = (2, 3), (3, 4), (4, 2)
     views = [np.random.randn(*s) for s in shapes]
@@ -342,6 +358,7 @@ def test_autograd_gradient() -> None:
 
 @pytest.mark.parametrize("string", tests)
 def test_dask(string: str) -> None:
+    np = pytest.importorskip("numpy")
     da = pytest.importorskip("dask.array")
 
     views = build_views(string)
@@ -366,6 +383,7 @@ def test_dask(string: str) -> None:
 
 @pytest.mark.parametrize("string", tests)
 def test_sparse(string: str) -> None:
+    np = pytest.importorskip("numpy")
     sparse = pytest.importorskip("sparse")
 
     views = build_views(string)
@@ -402,6 +420,7 @@ def test_sparse(string: str) -> None:
 @pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_torch(string: str) -> None:
+    np = pytest.importorskip("numpy")
 
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
@@ -422,6 +441,7 @@ def test_torch(string: str) -> None:
 @pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_torch_with_constants(constants: Set[int]) -> None:
+    np = pytest.importorskip("numpy")
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -457,6 +477,7 @@ def test_auto_backend_custom_array_no_tensordot() -> None:
 
 @pytest.mark.parametrize("string", tests)
 def test_object_arrays_backend(string: str) -> None:
+    np = pytest.importorskip("numpy")
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     assert ein.dtype != object

@@ -1,10 +1,12 @@
 name: test
 channels:
+  - pytorch
   - conda-forge
 dependencies:
     # Base depends
   - python >=3.9
-  - pytorch-cpu >=2.0,<3.0.0a
+  - pytorch::pytorch-cpu >=2.0,<3.0.0a
+  - pytorch::cpuonly
 
     # Testing
   - autoflake

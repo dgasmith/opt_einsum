@@ -2,8 +2,6 @@
 Testing routines for opt_einsum.
 """
 
-from importlib import import_module
-from importlib.util import find_spec
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
 
 import pytest
@@ -14,20 +12,6 @@ from opt_einsum.typing import GenericArrayType, PathType, TensorShapeType
 _valid_chars = "abcdefghijklmopqABC"
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]
 _default_dim_dict = {c: s for c, s in zip(_valid_chars, _sizes)}
-
-HAS_NUMPY = find_spec("numpy") is not None
-
-using_numpy = pytest.mark.skipif(
-    not HAS_NUMPY,
-    reason="Numpy not detected.",
-)
-
-
-def import_numpy_or_skip() -> Any:
-    if not HAS_NUMPY:
-        pytest.skip("Numpy not detected.")
-    else:
-        return import_module("numpy")
 
 
 def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> Tuple[TensorShapeType, ...]:
@@ -80,7 +64,7 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
         ```
 
     """
-    np = import_numpy_or_skip()
+    np = pytest.importorskip("numpy")
     views = []
     for shape in build_shapes(string, dimension_dict=dimension_dict):
         views.append(np.random.rand(*shape))
@@ -163,7 +147,7 @@ def rand_equation(
         ```
     """
 
-    np = import_numpy_or_skip()
+    np = pytest.importorskip("numpy")
     if seed is not None:
         np.random.seed(seed)
 
@@ -230,6 +214,6 @@ def build_arrays_from_tuples(path: PathType) -> List[Any]:
 
     Returns:
         The resulting arrays."""
-    np = import_numpy_or_skip()
+    np = pytest.importorskip("numpy")
 
     return [np.random.rand(*x) for x in path]
