@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
 import pytest
 
 from opt_einsum.parser import get_symbol
-from opt_einsum.typing import GenericArrayType, PathType, TensorShapeType
+from opt_einsum.typing import ArrayType, PathType, TensorShapeType
 
 _valid_chars = "abcdefghijklmopqABC"
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]
@@ -47,7 +47,7 @@ def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -
 
 def build_views(
     string: str, dimension_dict: Optional[Dict[str, int]] = None, array_function: Optional[Any] = None
-) -> Tuple[GenericArrayType]:
+) -> Tuple[ArrayType]:
     """
     Builds random numpy arrays for testing.
 

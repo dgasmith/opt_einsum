@@ -7,12 +7,12 @@ from typing import Any
 import pytest
 
 from opt_einsum import contract, contract_path
-from opt_einsum.typing import GenericArrayType
+from opt_einsum.typing import ArrayType
 
 np = pytest.importorskip("numpy")
 
 
-def build_views(string: str) -> list[GenericArrayType]:
+def build_views(string: str) -> list[ArrayType]:
     """Builds random numpy arrays for testing by using a fixed size dictionary and an input string."""
 
     chars = "abcdefghij"

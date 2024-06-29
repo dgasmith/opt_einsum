@@ -8,14 +8,7 @@ from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Op
 TensorShapeType = Tuple[int, ...]
 PathType = Collection[TensorShapeType]
 
-GenericArrayType = Any  # Any array type with or without a shape attribute
-
-
-class ArrayType(Protocol):
-    """The casted array type with a garunteed shape attribute."""
-
-    shape: TensorShapeType
-
+ArrayType = Any
 
 ArrayIndexType = FrozenSet[str]
 ArrayShaped = namedtuple("ArrayShaped", ["shape"])

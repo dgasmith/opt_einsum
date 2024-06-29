@@ -5,7 +5,7 @@ A functionally equivalent parser of the numpy.einsum input parser
 import itertools
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
-from opt_einsum.typing import GenericArrayType, TensorShapeType
+from opt_einsum.typing import ArrayType, TensorShapeType
 
 __all__ = [
     "is_valid_einsum_char",
@@ -225,7 +225,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, Tuple[GenericArrayType, ...]]:
+def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, Tuple[ArrayType, ...]]:
     """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
@@ -263,7 +263,7 @@ def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[s
     return subscripts, tuple(operands)
 
 
-def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[GenericArrayType]]:
+def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
     """
     A reproduction of einsum c side einsum parsing in python.
 

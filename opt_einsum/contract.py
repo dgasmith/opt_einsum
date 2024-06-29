@@ -10,9 +10,9 @@ from opt_einsum import backends, blas, helpers, parser, paths, sharing
 from opt_einsum.typing import (
     ArrayIndexType,
     ArrayShaped,
+    ArrayType,
     BackendType,
     ContractionListType,
-    GenericArrayType,
     OptimizeKind,
     PathType,
     TensorShapeType,
@@ -150,7 +150,7 @@ def _filter_einsum_defaults(kwargs: Dict[_EinsumDefaultKeys, Any]) -> Dict[_Eins
 @overload
 def contract_path(
     subscripts: str,
-    *operands: GenericArrayType,
+    *operands: ArrayType,
     use_blas: bool = True,
     optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
@@ -162,8 +162,8 @@ def contract_path(
 # Overlaod for contract(operand, indices, operand, indices, ....)
 @overload
 def contract_path(
-    subscripts: GenericArrayType,
-    *operands: Union[GenericArrayType, Collection[int]],
+    subscripts: ArrayType,
+    *operands: Union[ArrayType, Collection[int]],
     use_blas: bool = True,
     optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
@@ -434,7 +434,7 @@ def contract_path(
 
 
 @sharing.einsum_cache_wrap
-def _einsum(*operands: Any, **kwargs: Any) -> GenericArrayType:
+def _einsum(*operands: Any, **kwargs: Any) -> ArrayType:
     """Base einsum, but with pre-parse for valid characters if a string is given."""
     fn = backends.get_func("einsum", kwargs.pop("backend", "numpy"))
 
@@ -456,22 +456,20 @@ def _einsum(*operands: Any, **kwargs: Any) -> GenericArrayType:
     return fn(einsum_str, *operands, **kwargs)
 
 
-def _default_transpose(x: GenericArrayType, axes: Tuple[int, ...]) -> GenericArrayType:
+def _default_transpose(x: ArrayType, axes: Tuple[int, ...]) -> ArrayType:
     #  most libraries implement a method version
     return x.transpose(axes)
 
 
 @sharing.transpose_cache_wrap
-def _transpose(x: GenericArrayType, axes: Tuple[int, ...], backend: str = "numpy") -> GenericArrayType:
+def _transpose(x: ArrayType, axes: Tuple[int, ...], backend: str = "numpy") -> ArrayType:
     """Base transpose."""
     fn = backends.get_func("transpose", backend, _default_transpose)
     return fn(x, axes)
 
 
 @sharing.tensordot_cache_wrap
-def _tensordot(
-    x: GenericArrayType, y: GenericArrayType, axes: Tuple[int, ...], backend: str = "numpy"
-) -> GenericArrayType:
+def _tensordot(x: ArrayType, y: ArrayType, axes: Tuple[int, ...], backend: str = "numpy") -> ArrayType:
     """Base tensordot."""
     fn = backends.get_func("tensordot", backend)
     return fn(x, y, axes=axes)
@@ -483,8 +481,8 @@ def _tensordot(
 @overload
 def contract(
     subscripts: str,
-    *operands: GenericArrayType,
-    out: GenericArrayType = ...,
+    *operands: ArrayType,
+    out: ArrayType = ...,
     dtype: Any = ...,
     order: _OrderKACF = ...,
     casting: _Casting = ...,
@@ -493,14 +491,14 @@ def contract(
     memory_limit: _MemoryLimit = ...,
     backend: BackendType = ...,
     **kwargs: Any,
-) -> GenericArrayType: ...
+) -> ArrayType: ...
 
 
 @overload
 def contract(
-    subscripts: GenericArrayType,
-    *operands: Union[GenericArrayType, Collection[int]],
-    out: GenericArrayType = ...,
+    subscripts: ArrayType,
+    *operands: Union[ArrayType, Collection[int]],
+    out: ArrayType = ...,
     dtype: Any = ...,
     order: _OrderKACF = ...,
     casting: _Casting = ...,
@@ -509,13 +507,13 @@ def contract(
     memory_limit: _MemoryLimit = ...,
     backend: BackendType = ...,
     **kwargs: Any,
-) -> GenericArrayType: ...
+) -> ArrayType: ...
 
 
 def contract(
-    subscripts: Union[str, GenericArrayType],
-    *operands: Union[GenericArrayType, Collection[int]],
-    out: Optional[GenericArrayType] = None,
+    subscripts: Union[str, ArrayType],
+    *operands: Union[ArrayType, Collection[int]],
+    out: Optional[ArrayType] = None,
     dtype: Optional[str] = None,
     order: _OrderKACF = "K",
     casting: _Casting = "safe",
@@ -524,7 +522,7 @@ def contract(
     memory_limit: _MemoryLimit = None,
     backend: BackendType = "auto",
     **kwargs: Any,
-) -> GenericArrayType:
+) -> ArrayType:
     """
     Evaluates the Einstein summation convention on the operands. A drop in
     replacement for NumPy's einsum function that optimizes the order of contraction
@@ -636,7 +634,7 @@ def infer_backend(x: Any) -> str:
     return _infer_backend_class_cached(x.__class__)
 
 
-def parse_backend(arrays: Sequence[GenericArrayType], backend: Optional[str]) -> str:
+def parse_backend(arrays: Sequence[ArrayType], backend: Optional[str]) -> str:
     """Find out what backend we should use, dipatching based on the first
     array if ``backend='auto'`` is specified.
     """
@@ -653,15 +651,15 @@ def parse_backend(arrays: Sequence[GenericArrayType], backend: Optional[str]) ->
 
 
 def _core_contract(
-    operands_: Sequence[GenericArrayType],
+    operands_: Sequence[ArrayType],
     contraction_list: ContractionListType,
     backend: Optional[str] = "auto",
     evaluate_constants: bool = False,
-    out: Optional[GenericArrayType] = None,
+    out: Optional[ArrayType] = None,
     dtype: Optional[str] = None,
     order: _OrderKACF = "K",
     casting: _Casting = "safe",
-) -> GenericArrayType:
+) -> ArrayType:
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
@@ -725,7 +723,7 @@ def _core_contract(
 
         else:
             # Call einsum
-            out_kwarg: Union[None, GenericArrayType] = None
+            out_kwarg: Union[None, ArrayType] = None
             if handle_out:
                 out_kwarg = out
             new_view = _einsum(
@@ -777,7 +775,7 @@ class ContractExpression:
         self,
         contraction: str,
         contraction_list: ContractionListType,
-        constants_dict: Dict[int, GenericArrayType],
+        constants_dict: Dict[int, ArrayType],
         dtype: Optional[str] = None,
         order: _OrderKACF = "K",
         casting: _Casting = "safe",
@@ -819,7 +817,7 @@ class ContractExpression:
         self._evaluated_constants[backend] = new_ops
         self.contraction_list = new_contraction_list
 
-    def _get_evaluated_constants(self, backend: str) -> List[Optional[GenericArrayType]]:
+    def _get_evaluated_constants(self, backend: str) -> List[Optional[ArrayType]]:
         """Retrieve or generate the cached list of constant operators (mixed
         in with None representing non-consts) and the remaining contraction
         list.
@@ -830,7 +828,7 @@ class ContractExpression:
             self.evaluate_constants(backend)
             return self._evaluated_constants[backend]
 
-    def _get_backend_expression(self, arrays: Sequence[GenericArrayType], backend: str) -> Any:
+    def _get_backend_expression(self, arrays: Sequence[ArrayType], backend: str) -> Any:
         try:
             return self._backend_expressions[backend]
         except KeyError:
@@ -840,11 +838,11 @@ class ContractExpression:
 
     def _contract(
         self,
-        arrays: Sequence[GenericArrayType],
-        out: Optional[GenericArrayType] = None,
+        arrays: Sequence[ArrayType],
+        out: Optional[ArrayType] = None,
         backend: Optional[str] = "auto",
         evaluate_constants: bool = False,
-    ) -> GenericArrayType:
+    ) -> ArrayType:
         """The normal, core contraction."""
         contraction_list = self._full_contraction_list if evaluate_constants else self.contraction_list
 
@@ -861,11 +859,11 @@ class ContractExpression:
 
     def _contract_with_conversion(
         self,
-        arrays: Sequence[GenericArrayType],
-        out: Optional[GenericArrayType],
+        arrays: Sequence[ArrayType],
+        out: Optional[ArrayType],
         backend: str,
         evaluate_constants: bool = False,
-    ) -> GenericArrayType:
+    ) -> ArrayType:
         """Special contraction, i.e., contraction with a different backend
         but converting to and from that backend. Retrieves or generates a
         cached expression using ``arrays`` as templates, then calls it
@@ -888,11 +886,11 @@ class ContractExpression:
 
     def __call__(
         self,
-        *arrays: GenericArrayType,
-        out: Union[None, GenericArrayType] = None,
+        *arrays: ArrayType,
+        out: Union[None, ArrayType] = None,
         backend: str = "auto",
         evaluate_constants: bool = False,
-    ) -> GenericArrayType:
+    ) -> ArrayType:
         """Evaluate this expression with a set of arrays.
 
         Parameters:
@@ -920,7 +918,7 @@ class ContractExpression:
         if self._constants_dict and not evaluate_constants:
             # fill in the missing non-constant terms with newly supplied arrays
             ops_var, ops_const = iter(arrays), self._get_evaluated_constants(backend)
-            ops: Sequence[GenericArrayType] = [next(ops_var) if op is None else op for op in ops_const]
+            ops: Sequence[ArrayType] = [next(ops_var) if op is None else op for op in ops_const]
         else:
             ops = arrays
 
@@ -970,7 +968,7 @@ def shape_only(shape: TensorShapeType) -> ArrayShaped:
 @overload
 def contract_expression(
     subscripts: str,
-    *operands: Union[GenericArrayType, TensorShapeType],
+    *operands: Union[ArrayType, TensorShapeType],
     constants: Union[Collection[int], None] = ...,
     use_blas: bool = ...,
     optimize: OptimizeKind = ...,
@@ -982,8 +980,8 @@ def contract_expression(
 # Overlaod for contract(operand, indices, operand, indices, ....)
 @overload
 def contract_expression(
-    subscripts: Union[GenericArrayType, TensorShapeType],
-    *operands: Union[GenericArrayType, TensorShapeType, Collection[int]],
+    subscripts: Union[ArrayType, TensorShapeType],
+    *operands: Union[ArrayType, TensorShapeType, Collection[int]],
     constants: Union[Collection[int], None] = ...,
     use_blas: bool = ...,
     optimize: OptimizeKind = ...,
@@ -993,8 +991,8 @@ def contract_expression(
 
 
 def contract_expression(
-    subscripts: Union[str, GenericArrayType, TensorShapeType],
-    *shapes: Union[GenericArrayType, TensorShapeType, Collection[int]],
+    subscripts: Union[str, ArrayType, TensorShapeType],
+    *shapes: Union[ArrayType, TensorShapeType, Collection[int]],
     constants: Union[Collection[int], None] = None,
     use_blas: bool = True,
     optimize: OptimizeKind = True,

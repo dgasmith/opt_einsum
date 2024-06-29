@@ -14,10 +14,10 @@ from typing import Counter as CounterType
 from typing import Dict, Generator, List, Optional, Tuple, Union
 
 from opt_einsum.parser import alpha_canonicalize, parse_einsum_input
-from opt_einsum.typing import GenericArrayType
+from opt_einsum.typing import ArrayType
 
 CacheKeyType = Union[Tuple[str, str, int, Tuple[int, ...]], Tuple[str, int]]
-CacheType = Dict[CacheKeyType, GenericArrayType]
+CacheType = Dict[CacheKeyType, ArrayType]
 
 __all__ = [
     "currently_sharing",
@@ -90,7 +90,7 @@ def count_cached_ops(cache: CacheType) -> CounterType[str]:
     return Counter(key[0] for key in cache.keys())
 
 
-def _save_tensors(*tensors: GenericArrayType) -> None:
+def _save_tensors(*tensors: ArrayType) -> None:
     """Save tensors in the cache to prevent their ids from being recycled.
     This is needed to prevent false cache lookups.
     """
@@ -99,7 +99,7 @@ def _save_tensors(*tensors: GenericArrayType) -> None:
         cache["tensor", id(tensor)] = tensor
 
 
-def _memoize(key: CacheKeyType, fn: Any, *args: Any, **kwargs: Any) -> GenericArrayType:
+def _memoize(key: CacheKeyType, fn: Any, *args: Any, **kwargs: Any) -> ArrayType:
     """Memoize ``fn(*args, **kwargs)`` using the given ``key``.
     Results will be stored in the innermost ``cache`` yielded by
     :func:`shared_intermediates`.

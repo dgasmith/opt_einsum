@@ -5,10 +5,10 @@ Functions for performing contractions with array elements which are objects.
 import functools
 import operator
 
-from opt_einsum.typing import GenericArrayType
+from opt_einsum.typing import ArrayType
 
 
-def object_einsum(eq: str, *arrays: GenericArrayType) -> GenericArrayType:
+def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
     """A ``einsum`` implementation for ``numpy`` arrays with object dtype.
     The loop is performed in python, meaning the objects themselves need
     only to implement ``__mul__`` and ``__add__`` for the contraction to be
