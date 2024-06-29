@@ -5,7 +5,7 @@ constants.
 """
 
 import importlib
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 from opt_einsum.backends import cupy as _cupy
 from opt_einsum.backends import jax as _jax
@@ -55,7 +55,7 @@ def _import_func(func: str, backend: str, default: Any = None) -> Any:
 
 # manually cache functions as python2 doesn't support functools.lru_cache
 #     other libs will be added to this if needed, but pre-populate with numpy
-_cached_funcs = {
+_cached_funcs: Dict[Tuple[str, str], Any] = {
     ("einsum", "object"): object_arrays.object_einsum,
 }
 

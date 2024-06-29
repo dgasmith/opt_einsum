@@ -6,7 +6,7 @@ from typing import Any, Tuple
 
 import pytest
 
-from opt_einsum.parser import get_symbol, parse_einsum_input, possibly_convert_to_numpy
+from opt_einsum.parser import get_shape, get_symbol, parse_einsum_input
 from opt_einsum.testing import build_arrays_from_tuples
 
 
@@ -37,14 +37,12 @@ def test_parse_einsum_input_shapes_error() -> None:
 
 
 def test_parse_einsum_input_shapes() -> None:
-    np = pytest.importorskip("numpy")
-
     eq = "ab,bc,cd"
     shapes = [(2, 3), (3, 4), (4, 5)]
     input_subscripts, output_subscript, operands = parse_einsum_input([eq, *shapes], shapes=True)
     assert input_subscripts == eq
     assert output_subscript == "ad"
-    assert np.allclose([possibly_convert_to_numpy(shp) for shp in shapes], operands)
+    assert shapes == operands
 
 
 def test_parse_with_ellisis() -> None:
@@ -63,7 +61,7 @@ def test_parse_with_ellisis() -> None:
         [[5, 5], (2,)],
         [(5, 5), (2,)],
         [[[[[[5, 2]]]]], (1, 1, 1, 1, 2)],
-        [[[[[["a", "b"]]]]], (1, 1, 1, 1, 2)],
+        [[[[[["abcdef", "b"]]]]], (1, 1, 1, 1, 2)],
         ["A", tuple()],
         [b"A", tuple()],
         [True, tuple()],
@@ -73,4 +71,4 @@ def test_parse_with_ellisis() -> None:
     ],
 )
 def test_get_shapes(array: Any, shape: Tuple[int]) -> None:
-    assert possibly_convert_to_numpy(array).shape == shape
+    assert get_shape(array) == shape

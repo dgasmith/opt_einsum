@@ -4,7 +4,7 @@ A functionally equivalent parser of the numpy.einsum input parser
 
 import itertools
 from collections.abc import Sequence
-from typing import Any, Dict, Iterator, List, Tuple, Union
+from typing import Any, Dict, Iterator, List, Tuple
 
 from opt_einsum.typing import ArrayType, TensorShapeType
 
@@ -12,6 +12,7 @@ __all__ = [
     "is_valid_einsum_char",
     "has_valid_einsum_chars_only",
     "get_symbol",
+    "get_shape",
     "gen_unused_symbols",
     "convert_to_valid_einsum_chars",
     "alpha_canonicalize",
@@ -172,7 +173,7 @@ def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: 
     return tuple(max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
 
 
-_BaseTypes = Union[bool, int, float, complex, str, bytes]
+_BaseTypes = (bool, int, float, complex, str, bytes)
 
 
 def get_shape(x: Any) -> TensorShapeType:
@@ -254,7 +255,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, Tuple[ArrayType, ...]]:
+def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, ...]]:
     """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
@@ -264,7 +265,6 @@ def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[s
         subscript_list.append(tmp_operands.pop(0))
 
     output_list = tmp_operands[-1] if len(tmp_operands) else None
-    operands = [possibly_convert_to_numpy(x) for x in operand_list]
 
     # build a map from user symbols to single-character symbols based on `get_symbol`
     # The map retains the intrinsic order of user symbols
@@ -289,7 +289,7 @@ def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[s
         subscripts += "->"
         subscripts += convert_subscripts(output_list, symbol_map)
 
-    return subscripts, tuple(operands)
+    return subscripts, tuple(operand_list)
 
 
 def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
@@ -332,16 +332,14 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
                     "shapes is set to True but given at least one operand looks like an array"
                     " (at least one operand has a shape attribute). "
                 )
-            operands = operands[1:]
-        else:
-            operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
+        operands = operands[1:]
     else:
         subscripts, operands = convert_interleaved_input(operands)
 
     if shapes:
         operand_shapes = operands
     else:
-        operand_shapes = [o.shape for o in operands]
+        operand_shapes = [get_shape(o) for o in operands]
 
     # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):

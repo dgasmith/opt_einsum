@@ -305,7 +305,7 @@ def contract_path(
     if shapes:
         input_shapes = operands_prepped
     else:
-        input_shapes = [x.shape for x in operands_prepped]
+        input_shapes = [parser.get_shape(x) for x in operands_prepped]
     output_set = frozenset(output_subscript)
     indices = frozenset(input_subscripts.replace(",", ""))
 
@@ -1066,7 +1066,7 @@ def contract_expression(
             )
 
     if not isinstance(subscripts, str):
-        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)  # type: ignore
+        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)
 
     kwargs["_gen_expression"] = True
 

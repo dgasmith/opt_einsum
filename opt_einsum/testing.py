@@ -2,6 +2,7 @@
 Testing routines for opt_einsum.
 """
 
+import random
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
 
 import pytest
@@ -73,7 +74,10 @@ def build_views(
 
     views = []
     for shape in build_shapes(string, dimension_dict=dimension_dict):
-        views.append(array_function(*shape))
+        if shape:
+            views.append(array_function(*shape))
+        else:
+            views.append(random.random())
     return tuple(views)
 
 

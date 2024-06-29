@@ -2,6 +2,8 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
+from typing import Any, Tuple
+
 import pytest
 
 from opt_einsum import contract, contract_expression, contract_path
@@ -131,3 +133,20 @@ def test_pathinfo_for_empty_contraction() -> None:
     # some info is built lazily, so check repr
     assert repr(info)
     assert info.largest_intermediate == 1
+
+
+@pytest.mark.parametrize(
+    "expression, operands",
+    [
+        [",,->", (5, 5.0, 2.0j)],
+        ["ab,->", ([[5, 5], [2.0, 1]], 2.0j)],
+        ["ab,bc->ac", ([[5, 5], [2.0, 1]], [[2.0, 1], [3.0, 4]])],
+        ["ab,->", ([[5, 5], [2.0, 1]], True)],
+    ],
+)
+def test_contract_with_assumed_shapes(expression: str, operands: Tuple[Any]) -> None:
+    """Test that we can contract with assumed shapes, and that the output is correct. This is required as we need to infer intermediate shape sizes."""
+
+    benchmark = np.einsum(expression, *operands)
+    result = contract(expression, *operands, optimize=True)
+    assert np.allclose(benchmark, result)
