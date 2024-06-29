@@ -17,7 +17,7 @@ try:
     _TF_CONFIG = ConfigProto()
     _TF_CONFIG.gpu_options.allow_growth = True
 except ImportError:
-    raise
+    pass
 
 
 tests = [
