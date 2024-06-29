@@ -7,6 +7,7 @@ dependencies:
   - python >=3.9
   - pytorch::pytorch >=2.0,<3.0.0a
   - pytorch::cpuonly
+  - mkl
 
     # Testing
   - autoflake
