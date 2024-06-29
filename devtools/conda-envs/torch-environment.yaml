@@ -5,7 +5,7 @@ channels:
 dependencies:
     # Base depends
   - python >=3.9
-  - pytorch::pytorch-cpu >=2.0,<3.0.0a
+  - pytorch::pytorch >=2.0,<3.0.0a
   - pytorch::cpuonly
 
     # Testing

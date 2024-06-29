@@ -20,7 +20,7 @@ def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -
 
     Parameters:
         string: List of tensor strings to build
-        dimension_dict: Dictionary of index _sizes
+        dimension_dict: Dictionary of index sizes, defaults to indices size of 2-7
 
     Returns
         The resulting shapes.
@@ -45,13 +45,16 @@ def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -
     return tuple(shapes)
 
 
-def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> Tuple[GenericArrayType]:
+def build_views(
+    string: str, dimension_dict: Optional[Dict[str, int]] = None, array_function: Optional[Any] = None
+) -> Tuple[GenericArrayType]:
     """
     Builds random numpy arrays for testing.
 
     Parameters:
         string: List of tensor strings to build
         dimension_dict: Dictionary of index _sizes
+        array_function: Function to build the arrays, defaults to np.random.rand
 
     Returns
         The resulting views.
@@ -64,10 +67,13 @@ def build_views(string: str, dimension_dict: Optional[Dict[str, int]] = None) ->
         ```
 
     """
-    np = pytest.importorskip("numpy")
+    if array_function is None:
+        np = pytest.importorskip("numpy")
+        array_function = np.random.rand
+
     views = []
     for shape in build_shapes(string, dimension_dict=dimension_dict):
-        views.append(np.random.rand(*shape))
+        views.append(array_function(*shape))
     return tuple(views)
 
 

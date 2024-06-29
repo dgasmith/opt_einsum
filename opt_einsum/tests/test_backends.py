@@ -7,56 +7,18 @@ from opt_einsum.contract import ArrayShaped, infer_backend, parse_backend
 from opt_einsum.testing import build_views
 
 try:
-    import cupy
-
-    found_cupy = True
-except ImportError:
-    found_cupy = False
-
-try:
-    import tensorflow as tf
-
     # needed so tensorflow doesn't allocate all gpu mem
     try:
         from tensorflow import ConfigProto
+        from tensorflow import Session as TFSession
     except ImportError:
-        from tf.compat.v1 import ConfigProto
+        from tensorflow.compat.v1 import ConfigProto
+        from tensorflow.compat.v1 import Session as TFSession
     _TF_CONFIG = ConfigProto()
     _TF_CONFIG.gpu_options.allow_growth = True
-    found_tensorflow = True
 except ImportError:
-    found_tensorflow = False
+    raise
 
-try:
-    import os
-
-    os.environ["MKL_THREADING_LAYER"] = "GNU"
-    import theano
-
-    found_theano = True
-except ImportError:
-    found_theano = False
-
-try:
-    import torch
-
-    found_torch = True
-except ImportError:
-    found_torch = False
-
-try:
-    import jax
-
-    found_jax = True
-except ImportError:
-    found_jax = False
-
-try:
-    import autograd
-
-    found_autograd = True
-except ImportError:
-    found_autograd = False
 
 tests = [
     "ab,bc->ca",
@@ -71,17 +33,11 @@ tests = [
 ]
 
 
-def test_torch_raw() -> None:
-    """Tests torch in the abscence of any other dependancy."""
-    torch = pytest.importorskip("torch")
-    result = contract("ij,jk->ik", torch.rand(6, 5), torch.rand(5, 4))
-    assert result.shape == (6, 4)
-
-
-@pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow(string: str) -> None:
     np = pytest.importorskip("numpy")
+    pytest.importorskip("tensorflow")
+
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     opt = np.empty_like(ein)
@@ -89,7 +45,7 @@ def test_tensorflow(string: str) -> None:
     shps = [v.shape for v in views]
     expr = contract_expression(string, *shps, optimize=True)
 
-    sess = tf.Session(config=_TF_CONFIG)
+    sess = TFSession(config=_TF_CONFIG)
     with sess.as_default():
         expr(*views, backend="tensorflow", out=opt)
     sess.close()
@@ -101,10 +57,11 @@ def test_tensorflow(string: str) -> None:
     expr(*tensorflow_views)
 
 
-@pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_tensorflow_with_constants(constants: Set[int]) -> None:
     np = pytest.importorskip("numpy")
+    tf = pytest.importorskip("tensorflow")
+
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -115,7 +72,7 @@ def test_tensorflow_with_constants(constants: Set[int]) -> None:
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check tensorflow
-    with tf.Session(config=_TF_CONFIG).as_default():
+    with TFSession(config=_TF_CONFIG).as_default():
         res_got = expr(var, backend="tensorflow")
     assert all(
         array is None or infer_backend(array) == "tensorflow" for array in expr._evaluated_constants["tensorflow"]
@@ -131,17 +88,18 @@ def test_tensorflow_with_constants(constants: Set[int]) -> None:
     assert isinstance(res_got3, tf.Tensor)
 
 
-@pytest.mark.skipif(not found_tensorflow, reason="Tensorflow not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow_with_sharing(string: str) -> None:
     np = pytest.importorskip("numpy")
+    tf = pytest.importorskip("tensorflow")
+
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
     shps = [v.shape for v in views]
     expr = contract_expression(string, *shps, optimize=True)
 
-    sess = tf.Session(config=_TF_CONFIG)
+    sess = TFSession(config=_TF_CONFIG)
 
     with sess.as_default(), sharing.shared_intermediates() as cache:
         tfl1 = expr(*views, backend="tensorflow")
@@ -157,10 +115,11 @@ def test_tensorflow_with_sharing(string: str) -> None:
     assert np.allclose(ein, tfl2)
 
 
-@pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano(string: str) -> None:
     np = pytest.importorskip("numpy")
+    theano = pytest.importorskip("theano")
+
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -176,10 +135,11 @@ def test_theano(string: str) -> None:
     assert isinstance(theano_opt, theano.tensor.TensorVariable)
 
 
-@pytest.mark.skipif(not found_theano, reason="theano not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_theano_with_constants(constants: Set[int]) -> None:
     np = pytest.importorskip("numpy")
+    theano = pytest.importorskip("theano")
+
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -203,10 +163,11 @@ def test_theano_with_constants(constants: Set[int]) -> None:
     assert isinstance(res_got3, theano.tensor.TensorVariable)
 
 
-@pytest.mark.skipif(not found_theano, reason="Theano not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_theano_with_sharing(string: str) -> None:
     np = pytest.importorskip("numpy")
+    theano = pytest.importorskip("theano")
+
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
 
@@ -227,10 +188,11 @@ def test_theano_with_sharing(string: str) -> None:
     assert np.allclose(ein, thn2)
 
 
-@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_cupy(string: str) -> None:
     np = pytest.importorskip("numpy")  # pragma: no cover
+    cupy = pytest.importorskip("cupy")
+
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -247,10 +209,11 @@ def test_cupy(string: str) -> None:
     assert np.allclose(ein, cupy.asnumpy(cupy_opt))
 
 
-@pytest.mark.skipif(not found_cupy, reason="Cupy not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_cupy_with_constants(constants: Set[int]) -> None:
     np = pytest.importorskip("numpy")  # pragma: no cover
+    cupy = pytest.importorskip("cupy")
+
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
@@ -276,10 +239,11 @@ def test_cupy_with_constants(constants: Set[int]) -> None:
     assert np.allclose(res_exp, res_got3.get())
 
 
-@pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_jax(string: str) -> None:
     np = pytest.importorskip("numpy")  # pragma: no cover
+    pytest.importorskip("jax")
+
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
     shps = [v.shape for v in views]
@@ -291,15 +255,16 @@ def test_jax(string: str) -> None:
     assert isinstance(opt, np.ndarray)
 
 
-@pytest.mark.skipif(not found_jax, reason="jax not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_jax_with_constants(constants: Set[int]) -> None:
-    np = pytest.importorskip("numpy")  # pragma: no cover
+    jax = pytest.importorskip("jax")
+    key = jax.random.PRNGKey(42)
+
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
-    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
-    var = np.random.rand(*shapes[non_const])
+    ops = [jax.random.uniform(key, shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = jax.random.uniform(key, shapes[non_const])
     res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
 
     expr = contract_expression(eq, *ops, constants=constants)
@@ -308,16 +273,16 @@ def test_jax_with_constants(constants: Set[int]) -> None:
     res_got = expr(var, backend="jax")
     # check jax versions of constants exist
     assert all(array is None or infer_backend(array).startswith("jax") for array in expr._evaluated_constants["jax"])
+    assert jax.numpy.sum(jax.numpy.abs(res_exp - res_got)) < 1e-8
 
-    assert np.allclose(res_exp, res_got)
 
-
-@pytest.mark.skipif(not found_jax, reason="jax not installed.")
 def test_jax_jit_gradient() -> None:
-    np = pytest.importorskip("numpy")
+    jax = pytest.importorskip("jax")
+    key = jax.random.PRNGKey(42)
+
     eq = "ij,jk,kl->"
     shapes = (2, 3), (3, 4), (4, 2)
-    views = [np.random.randn(*s) for s in shapes]
+    views = [jax.random.uniform(key, s) for s in shapes]
     expr = contract_expression(eq, *shapes)
     x0 = expr(*views)
 
@@ -336,9 +301,10 @@ def test_jax_jit_gradient() -> None:
     assert x2 < x1
 
 
-@pytest.mark.skipif(not found_autograd, reason="autograd not installed.")
 def test_autograd_gradient() -> None:
     np = pytest.importorskip("numpy")
+    autograd = pytest.importorskip("autograd")
+
     eq = "ij,jk,kl->"
     shapes = (2, 3), (3, 4), (4, 2)
     views = [np.random.randn(*s) for s in shapes]
@@ -417,54 +383,52 @@ def test_sparse(string: str) -> None:
     assert np.allclose(ein, sparse_opt.todense())
 
 
-@pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("string", tests)
 def test_torch(string: str) -> None:
-    np = pytest.importorskip("numpy")
+    torch = pytest.importorskip("torch")
 
-    views = build_views(string)
-    ein = contract(string, *views, optimize=False, use_blas=False)
+    views = build_views(string, array_function=torch.rand)
+    ein = torch.einsum(string, *views)
+
     shps = [v.shape for v in views]
-
     expr = contract_expression(string, *shps, optimize=True)
 
     opt = expr(*views, backend="torch")
-    assert np.allclose(ein, opt)
+    torch.testing.assert_close(ein, opt)
 
     # test non-conversion mode
     torch_views = [backends.to_torch(view) for view in views]
     torch_opt = expr(*torch_views)
     assert isinstance(torch_opt, torch.Tensor)
-    assert np.allclose(ein, torch_opt.cpu().numpy())
+    torch.testing.assert_close(ein, torch_opt)
 
 
-@pytest.mark.skipif(not found_torch, reason="Torch not installed.")
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_torch_with_constants(constants: Set[int]) -> None:
-    np = pytest.importorskip("numpy")
+    torch = pytest.importorskip("torch")
+
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
     (non_const,) = {0, 1, 2} - constants
-    ops = [np.random.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
-    var = np.random.rand(*shapes[non_const])
-    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)))
+    ops = [torch.rand(*shp) if i in constants else shp for i, shp in enumerate(shapes)]
+    var = torch.rand(*shapes[non_const])
+    res_exp = contract(eq, *(ops[i] if i in constants else var for i in range(3)), backend="torch")
 
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check torch
     res_got = expr(var, backend="torch")
     assert all(array is None or infer_backend(array) == "torch" for array in expr._evaluated_constants["torch"])
-    assert np.allclose(res_exp, res_got)
+    torch.testing.assert_close(res_exp, res_got)
 
     # check can call with numpy still
-    res_got2 = expr(var, backend="numpy")
-    assert np.allclose(res_exp, res_got2)
+    res_got2 = expr(var, backend="torch")
+    torch.testing.assert_close(res_exp, res_got2)
 
     # check torch call returns torch still
     res_got3 = expr(backends.to_torch(var))
     assert isinstance(res_got3, torch.Tensor)
-    res_got3 = res_got3.numpy() if res_got3.device.type == "cpu" else res_got3.cpu().numpy()
-    assert np.allclose(res_exp, res_got3)
+    torch.testing.assert_close(res_exp, res_got3)
 
 
 def test_auto_backend_custom_array_no_tensordot() -> None:
