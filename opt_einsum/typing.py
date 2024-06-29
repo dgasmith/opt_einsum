@@ -3,7 +3,7 @@ Types used in the opt_einsum package
 """
 
 from collections import namedtuple
-from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Protocol, Tuple, Union
+from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Tuple, Union
 
 TensorShapeType = Tuple[int, ...]
 PathType = Collection[TensorShapeType]

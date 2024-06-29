@@ -2,6 +2,8 @@
 Directly tests various parser utility functions.
 """
 
+from typing import Any, Tuple
+
 import pytest
 
 from opt_einsum.parser import get_symbol, parse_einsum_input, possibly_convert_to_numpy
@@ -52,3 +54,23 @@ def test_parse_with_ellisis() -> None:
     assert input_subscripts == "da,ab"
     assert output_subscript == "db"
     assert shapes == operands
+
+
+@pytest.mark.parametrize(
+    "array, shape",
+    [
+        [[5], (1,)],
+        [[5, 5], (2,)],
+        [(5, 5), (2,)],
+        [[[[[[5, 2]]]]], (1, 1, 1, 1, 2)],
+        [[[[[["a", "b"]]]]], (1, 1, 1, 1, 2)],
+        ["A", tuple()],
+        [b"A", tuple()],
+        [True, tuple()],
+        [5, tuple()],
+        [5.0, tuple()],
+        [5.0 + 0j, tuple()],
+    ],
+)
+def test_get_shapes(array: Any, shape: Tuple[int]) -> None:
+    assert possibly_convert_to_numpy(array).shape == shape
