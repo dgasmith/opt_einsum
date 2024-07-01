@@ -22,7 +22,7 @@ jobs:
          - python-version: 3.11
            environment: "full"
          - python-version: 3.12
-           environment: "torch"
+           environment: "torch-only"
 
     runs-on: ubuntu-latest
 
@@ -44,6 +44,11 @@ jobs:
         conda list
         conda config --show-sources
         conda config --show
+
+    - name: Check no NumPy for torch-only environment
+      if: matrix.environment == 'torch-only'
+      run: |
+        python devtools/ci_scripts/check_no_numpy.py
 
     - name: Install
       shell: bash -l {0}
