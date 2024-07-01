@@ -5,8 +5,6 @@ Functions for performing contractions with array elements which are objects.
 import functools
 import operator
 
-import numpy as np
-
 from opt_einsum.typing import ArrayType
 
 
@@ -31,6 +29,7 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
     out : numpy.ndarray
         The output tensor, with ``dtype=object``.
     """
+    import numpy as np
 
     # when called by ``opt_einsum`` we will always be given a full eq
     lhs, output = eq.split("->")

@@ -2,6 +2,7 @@
 Contains the path technology behind opt_einsum in addition to several path helpers
 """
 
+import bisect
 import functools
 import heapq
 import itertools
@@ -12,8 +13,6 @@ from collections import Counter, OrderedDict, defaultdict
 from typing import Any, Callable
 from typing import Counter as CounterType
 from typing import Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tuple, Union
-
-import numpy as np
 
 from opt_einsum.helpers import compute_size_by_dict, flop_count
 from opt_einsum.typing import ArrayIndexType, PathSearchFunctionType, PathType, TensorShapeType
@@ -39,17 +38,13 @@ class PathOptimizer:
     Subclassed optimizers should define a call method with signature:
 
     ```python
-    def __call__(self, inputs, output, size_dict, memory_limit=None):
+    def __call__(self, inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: dict[str, int], memory_limit: int | None = None) -> list[tuple[int, ...]]:
         \"\"\"
         Parameters:
-            inputs : list[set[str]]
-                The indices of each input array.
-            outputs : set[str]
-                The output indices
-            size_dict : dict[str, int]
-                The size of each index
-            memory_limit : int, optional
-                If given, the maximum allowed memory.
+            inputs: The indices of each input array.
+            outputs: The output indices
+            size_dict: The size of each index
+            memory_limit: If given, the maximum allowed memory.
         \"\"\"
         # ... compute path here ...
         return path
@@ -98,13 +93,40 @@ def ssa_to_linear(ssa_path: PathType) -> PathType:
         #> [(0, 3), (1, 2), (0, 1)]
         ```
     """
-    ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
+    # ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)  # type: ignore
+    # path = []
+    # for ssa_ids in ssa_path:
+    #     path.append(tuple(int(ids[ssa_id]) for ssa_id in ssa_ids))
+    #     for ssa_id in ssa_ids:
+    #         ids[ssa_id:] -= 1
+    # return path
+
+    N = sum(map(len, ssa_path)) - len(ssa_path) + 1
+    ids = list(range(N))
     path = []
-    for ssa_ids in ssa_path:
-        path.append(tuple(int(ids[ssa_id]) for ssa_id in ssa_ids))
-        for ssa_id in ssa_ids:
-            ids[ssa_id:] -= 1
-    return path
+    ssa = N
+    for scon in ssa_path:
+        con = sorted([bisect.bisect_left(ids, s) for s in scon])
+        for j in reversed(con):
+            ids.pop(j)
+        ids.append(ssa)
+        path.append(con)
+        ssa += 1
+    return [tuple(x) for x in path]
+
+    # N = sum(map(len, ssa_path)) - len(ssa_path) + 1
+    # ids = list(range(N))
+    # ids = np.arange(1 + max(map(max, ssa_path)), dtype=np.int32)
+    # path = []
+    # ssa = N
+    # for scon in ssa_path:
+    #     con = sorted(map(ids.index, scon))
+    #     for j in reversed(con):
+    #         ids.pop(j)
+    #     ids.append(ssa)
+    #     path.append(con)
+    #     ssa += 1
+    # return path
 
 
 def linear_to_ssa(path: PathType) -> PathType:
@@ -1361,7 +1383,7 @@ def auto_hq(
     how many input arguments there are, but targeting a more generous
     amount of search time than ``'auto'``.
     """
-    from .path_random import random_greedy_128
+    from opt_einsum.path_random import random_greedy_128
 
     N = len(inputs)
     return _AUTO_HQ_CHOICES.get(N, random_greedy_128)(inputs, output, size_dict, memory_limit)

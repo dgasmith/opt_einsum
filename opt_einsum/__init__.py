@@ -9,6 +9,21 @@ from opt_einsum.path_random import RandomGreedy
 from opt_einsum.paths import BranchBound, DynamicProgramming
 from opt_einsum.sharing import shared_intermediates
 
+__all__ = [
+    "blas",
+    "helpers",
+    "path_random",
+    "paths",
+    "contract",
+    "contract_expression",
+    "contract_path",
+    "get_symbol",
+    "RandomGreedy",
+    "BranchBound",
+    "DynamicProgramming",
+    "shared_intermediates",
+]
+
 # Handle versioneer
 from opt_einsum._version import get_versions  # isort:skip
 

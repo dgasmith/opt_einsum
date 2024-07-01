@@ -2,7 +2,6 @@
 Contains the primary optimization and contraction routines.
 """
 
-from collections import namedtuple
 from decimal import Decimal
 from functools import lru_cache
 from typing import Any, Collection, Dict, Iterable, List, Literal, Optional, Sequence, Tuple, Union, overload
@@ -10,6 +9,7 @@ from typing import Any, Collection, Dict, Iterable, List, Literal, Optional, Seq
 from opt_einsum import backends, blas, helpers, parser, paths, sharing
 from opt_einsum.typing import (
     ArrayIndexType,
+    ArrayShaped,
     ArrayType,
     BackendType,
     ContractionListType,
@@ -305,7 +305,7 @@ def contract_path(
     if shapes:
         input_shapes = operands_prepped
     else:
-        input_shapes = [x.shape for x in operands_prepped]
+        input_shapes = [parser.get_shape(x) for x in operands_prepped]
     output_set = frozenset(output_subscript)
     indices = frozenset(input_subscripts.replace(",", ""))
 
@@ -957,14 +957,11 @@ class ContractExpression:
         return "".join(s)
 
 
-Shaped = namedtuple("Shaped", ["shape"])
-
-
-def shape_only(shape: TensorShapeType) -> Shaped:
+def shape_only(shape: TensorShapeType) -> ArrayShaped:
     """Dummy ``numpy.ndarray`` which has a shape only - for generating
     contract expressions.
     """
-    return Shaped(shape)
+    return ArrayShaped(shape)
 
 
 # Overlaod for contract(einsum_string, *operands)
@@ -1069,7 +1066,7 @@ def contract_expression(
             )
 
     if not isinstance(subscripts, str):
-        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)  # type: ignore
+        subscripts, shapes = parser.convert_interleaved_input((subscripts,) + shapes)
 
     kwargs["_gen_expression"] = True
 

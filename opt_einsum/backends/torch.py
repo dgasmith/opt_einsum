@@ -2,10 +2,9 @@
 Required functions for optimized contractions of numpy arrays using pytorch.
 """
 
-import numpy as np
-
-from ..parser import convert_to_valid_einsum_chars
-from ..sharing import to_backend_cache_wrap
+from opt_einsum.helpers import has_array_interface
+from opt_einsum.parser import convert_to_valid_einsum_chars
+from opt_einsum.sharing import to_backend_cache_wrap
 
 __all__ = [
     "transpose",
@@ -104,7 +103,7 @@ def tensordot(x, y, axes=2):
 def to_torch(array):
     torch, device = _get_torch_and_device()
 
-    if isinstance(array, np.ndarray):
+    if has_array_interface(array):
         return torch.from_numpy(array).to(device)
 
     return array

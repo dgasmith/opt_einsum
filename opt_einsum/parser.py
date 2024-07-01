@@ -3,16 +3,16 @@ A functionally equivalent parser of the numpy.einsum input parser
 """
 
 import itertools
-from typing import Any, Dict, Iterator, List, Tuple, Union
+from collections.abc import Sequence
+from typing import Any, Dict, Iterator, List, Tuple
 
-import numpy as np
-
-from .typing import ArrayType, TensorShapeType
+from opt_einsum.typing import ArrayType, TensorShapeType
 
 __all__ = [
     "is_valid_einsum_char",
     "has_valid_einsum_chars_only",
     "get_symbol",
+    "get_shape",
     "gen_unused_symbols",
     "convert_to_valid_einsum_chars",
     "alpha_canonicalize",
@@ -173,6 +173,30 @@ def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: 
     return tuple(max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
 
 
+_BaseTypes = (bool, int, float, complex, str, bytes)
+
+
+def get_shape(x: Any) -> TensorShapeType:
+    """Get the shape of the array-like object `x`. If `x` is not array-like, raise an error.
+
+    Array-like objects are those that have a `shape` attribute, are sequences of BaseTypes, or are BaseTypes.
+    BaseTypes are defined as `bool`, `int`, `float`, `complex`, `str`, and `bytes`.
+    """
+
+    if hasattr(x, "shape"):
+        return x.shape
+    elif isinstance(x, _BaseTypes):
+        return tuple()
+    elif isinstance(x, Sequence):
+        shape = []
+        while isinstance(x, Sequence) and not isinstance(x, _BaseTypes):
+            shape.append(len(x))
+            x = x[0]
+        return tuple(shape)
+    else:
+        raise ValueError(f"Cannot determine the shape of {x}, can only determine the shape of array-like objects.")
+
+
 def possibly_convert_to_numpy(x: Any) -> Any:
     """Convert things without a 'shape' to ndarrays, but leave everything else.
 
@@ -199,6 +223,13 @@ def possibly_convert_to_numpy(x: Any) -> Any:
     """
 
     if not hasattr(x, "shape"):
+        try:
+            import numpy as np
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "numpy is required to convert non-array objects to arrays. This function will be deprecated in the future."
+            )
+
         return np.asanyarray(x)
     else:
         return x
@@ -224,17 +255,16 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[str, Tuple[ArrayType, ...]]:
+def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, ...]]:
     """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
     subscript_list = []
-    for p in range(len(operands) // 2):
+    for _ in range(len(operands) // 2):
         operand_list.append(tmp_operands.pop(0))
         subscript_list.append(tmp_operands.pop(0))
 
     output_list = tmp_operands[-1] if len(tmp_operands) else None
-    operands = [possibly_convert_to_numpy(x) for x in operand_list]
 
     # build a map from user symbols to single-character symbols based on `get_symbol`
     # The map retains the intrinsic order of user symbols
@@ -259,39 +289,36 @@ def convert_interleaved_input(operands: Union[List[Any], Tuple[Any]]) -> Tuple[s
         subscripts += "->"
         subscripts += convert_subscripts(output_list, symbol_map)
 
-    return subscripts, tuple(operands)
+    return subscripts, tuple(operand_list)
 
 
 def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
     """
     A reproduction of einsum c side einsum parsing in python.
 
-    **Parameters:**
-    Intakes the same inputs as `contract_path`, but NOT the keyword args. The only
-    supported keyword argument is:
-    - **shapes** - *(bool, optional)* Whether ``parse_einsum_input`` should assume arrays (the default) or
-        array shapes have been supplied.
+    Parameters:
+        operands: Intakes the same inputs as `contract_path`, but NOT the keyword args. The only
+            supported keyword argument is:
+        shapes: Whether ``parse_einsum_input`` should assume arrays (the default) or
+            array shapes have been supplied.
 
     Returns
-    -------
-    input_strings : str
-        Parsed input strings
-    output_string : str
-        Parsed output string
-    operands : list of array_like
-        The operands to use in the numpy contraction
+        input_strings: Parsed input strings
+        output_string: Parsed output string
+        operands: The operands to use in the numpy contraction
 
-    Examples
-    --------
-    The operand list is simplified to reduce printing:
+    Examples:
+        The operand list is simplified to reduce printing:
 
-    >>> a = np.random.rand(4, 4)
-    >>> b = np.random.rand(4, 4, 4)
-    >>> parse_einsum_input(('...a,...a->...', a, b))
-    ('za,xza', 'xz', [a, b])
+        ```python
+        >>> a = np.random.rand(4, 4)
+        >>> b = np.random.rand(4, 4, 4)
+        >>> parse_einsum_input(('...a,...a->...', a, b))
+        ('za,xza', 'xz', [a, b])
 
-    >>> parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
-    ('za,xza', 'xz', [a, b])
+        >>> parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
+        ('za,xza', 'xz', [a, b])
+        ```
     """
 
     if len(operands) == 0:
@@ -305,14 +332,14 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
                     "shapes is set to True but given at least one operand looks like an array"
                     " (at least one operand has a shape attribute). "
                 )
-        operands = [possibly_convert_to_numpy(x) for x in operands[1:]]
+        operands = operands[1:]
     else:
         subscripts, operands = convert_interleaved_input(operands)
 
     if shapes:
         operand_shapes = operands
     else:
-        operand_shapes = [o.shape for o in operands]
+        operand_shapes = [get_shape(o) for o in operands]
 
     # Check for proper "->"
     if ("-" in subscripts) or (">" in subscripts):

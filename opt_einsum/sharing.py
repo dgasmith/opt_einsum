@@ -13,8 +13,8 @@ from typing import Any
 from typing import Counter as CounterType
 from typing import Dict, Generator, List, Optional, Tuple, Union
 
-from .parser import alpha_canonicalize, parse_einsum_input
-from .typing import ArrayType
+from opt_einsum.parser import alpha_canonicalize, parse_einsum_input
+from opt_einsum.typing import ArrayType
 
 CacheKeyType = Union[Tuple[str, str, int, Tuple[int, ...]], Tuple[str, int]]
 CacheType = Dict[CacheKeyType, ArrayType]
