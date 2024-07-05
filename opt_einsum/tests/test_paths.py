@@ -4,13 +4,13 @@ the various path helper functions.
 """
 
 import itertools
-import sys
+from concurrent.futures import ProcessPoolExecutor
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 import pytest
 
 import opt_einsum as oe
+from opt_einsum.testing import build_shapes, rand_equation
 from opt_einsum.typing import ArrayIndexType, OptimizeKind, PathType, TensorShapeType
 
 explicit_path_tests = {
@@ -127,11 +127,12 @@ def test_flop_cost() -> None:
 
 
 def test_bad_path_option() -> None:
-    with pytest.raises(KeyError):
-        oe.contract("a,b,c", [1], [2], [3], optimize="optimall")  # type: ignore
+    with pytest.raises(TypeError):
+        oe.contract("a,b,c", [1], [2], [3], optimize="optimall", shapes=True)  # type: ignore
 
 
 def test_explicit_path() -> None:
+    pytest.importorskip("numpy")
     x = oe.contract("a,b,c", [1], [2], [3], optimize=[(1, 2), (0, 1)])
     assert x.item() == 6
 
@@ -158,39 +159,39 @@ def test_memory_paths() -> None:
 
     expression = "abc,bdef,fghj,cem,mhk,ljk->adgl"
 
-    views = oe.helpers.build_views(expression)
+    views = build_shapes(expression)
 
     # Test tiny memory limit
-    path_ret = oe.contract_path(expression, *views, optimize="optimal", memory_limit=5)
+    path_ret = oe.contract_path(expression, *views, optimize="optimal", memory_limit=5, shapes=True)
     assert check_path(path_ret[0], [(0, 1, 2, 3, 4, 5)])
 
-    path_ret = oe.contract_path(expression, *views, optimize="greedy", memory_limit=5)
+    path_ret = oe.contract_path(expression, *views, optimize="greedy", memory_limit=5, shapes=True)
     assert check_path(path_ret[0], [(0, 1, 2, 3, 4, 5)])
 
     # Check the possibilities, greedy is capped
-    path_ret = oe.contract_path(expression, *views, optimize="optimal", memory_limit=-1)
+    path_ret = oe.contract_path(expression, *views, optimize="optimal", memory_limit=-1, shapes=True)
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
-    path_ret = oe.contract_path(expression, *views, optimize="greedy", memory_limit=-1)
+    path_ret = oe.contract_path(expression, *views, optimize="greedy", memory_limit=-1, shapes=True)
     assert check_path(path_ret[0], [(0, 3), (0, 4), (0, 2), (0, 2), (0, 1)])
 
 
 @pytest.mark.parametrize("alg,expression,order", path_edge_tests)
 def test_path_edge_cases(alg: OptimizeKind, expression: str, order: PathType) -> None:
-    views = oe.helpers.build_views(expression)
+    views = build_shapes(expression)
 
     # Test tiny memory limit
-    path_ret = oe.contract_path(expression, *views, optimize=alg)
+    path_ret = oe.contract_path(expression, *views, optimize=alg, shapes=True)
     assert check_path(path_ret[0], order)
 
 
 @pytest.mark.parametrize("expression,order", path_scalar_tests)
 @pytest.mark.parametrize("alg", oe.paths._PATH_OPTIONS)
 def test_path_scalar_cases(alg: OptimizeKind, expression: str, order: PathType) -> None:
-    views = oe.helpers.build_views(expression)
+    views = build_shapes(expression)
 
     # Test tiny memory limit
-    path_ret = oe.contract_path(expression, *views, optimize=alg)
+    path_ret = oe.contract_path(expression, *views, optimize=alg, shapes=True)
     # print(path_ret[0])
     assert len(path_ret[0]) == order
 
@@ -199,11 +200,11 @@ def test_optimal_edge_cases() -> None:
 
     # Edge test5
     expression = "a,ac,ab,ad,cd,bd,bc->"
-    edge_test4 = oe.helpers.build_views(expression, dimension_dict={"a": 20, "b": 20, "c": 20, "d": 20})
-    path, path_str = oe.contract_path(expression, *edge_test4, optimize="greedy", memory_limit="max_input")
+    edge_test4 = build_shapes(expression, dimension_dict={"a": 20, "b": 20, "c": 20, "d": 20})
+    path, _ = oe.contract_path(expression, *edge_test4, optimize="greedy", memory_limit="max_input", shapes=True)
     assert check_path(path, [(0, 1), (0, 1, 2, 3, 4, 5)])
 
-    path, path_str = oe.contract_path(expression, *edge_test4, optimize="optimal", memory_limit="max_input")
+    path, _ = oe.contract_path(expression, *edge_test4, optimize="optimal", memory_limit="max_input", shapes=True)
     assert check_path(path, [(0, 1), (0, 1, 2, 3, 4, 5)])
 
 
@@ -211,12 +212,12 @@ def test_greedy_edge_cases() -> None:
 
     expression = "abc,cfd,dbe,efa"
     dim_dict = {k: 20 for k in expression.replace(",", "")}
-    tensors = oe.helpers.build_views(expression, dimension_dict=dim_dict)
+    tensors = build_shapes(expression, dimension_dict=dim_dict)
 
-    path, path_str = oe.contract_path(expression, *tensors, optimize="greedy", memory_limit="max_input")
+    path, _ = oe.contract_path(expression, *tensors, optimize="greedy", memory_limit="max_input", shapes=True)
     assert check_path(path, [(0, 1, 2, 3)])
 
-    path, path_str = oe.contract_path(expression, *tensors, optimize="greedy", memory_limit=-1)
+    path, _ = oe.contract_path(expression, *tensors, optimize="greedy", memory_limit=-1, shapes=True)
     assert check_path(path, [(0, 1), (0, 2), (0, 1)])
 
 
@@ -250,7 +251,7 @@ def test_custom_dp_can_optimize_for_outer_products() -> None:
 
 
 def test_custom_dp_can_optimize_for_size() -> None:
-    eq, shapes = oe.helpers.rand_equation(10, 4, seed=43)
+    eq, shapes = rand_equation(10, 4, seed=43)
 
     opt1 = oe.DynamicProgramming(minimize="flops")
     opt2 = oe.DynamicProgramming(minimize="size")
@@ -263,7 +264,7 @@ def test_custom_dp_can_optimize_for_size() -> None:
 
 
 def test_custom_dp_can_set_cost_cap() -> None:
-    eq, shapes = oe.helpers.rand_equation(5, 3, seed=42)
+    eq, shapes = rand_equation(5, 3, seed=42)
     opt1 = oe.DynamicProgramming(cost_cap=True)
     opt2 = oe.DynamicProgramming(cost_cap=False)
     opt3 = oe.DynamicProgramming(cost_cap=100)
@@ -286,7 +287,7 @@ def test_custom_dp_can_set_cost_cap() -> None:
     ],
 )
 def test_custom_dp_can_set_minimize(minimize: str, cost: int, width: int, path: PathType) -> None:
-    eq, shapes = oe.helpers.rand_equation(10, 4, seed=43)
+    eq, shapes = rand_equation(10, 4, seed=43)
     opt = oe.DynamicProgramming(minimize=minimize)
     info = oe.contract_path(eq, *shapes, shapes=True, optimize=opt)[1]
     assert info.path == path
@@ -295,7 +296,7 @@ def test_custom_dp_can_set_minimize(minimize: str, cost: int, width: int, path: 
 
 
 def test_dp_errors_when_no_contractions_found() -> None:
-    eq, shapes = oe.helpers.rand_equation(10, 3, seed=42)
+    eq, shapes = rand_equation(10, 3, seed=42)
 
     # first get the actual minimum cost
     opt = oe.DynamicProgramming(minimize="size")
@@ -312,9 +313,11 @@ def test_dp_errors_when_no_contractions_found() -> None:
 
 @pytest.mark.parametrize("optimize", ["greedy", "branch-2", "branch-all", "optimal", "dp"])
 def test_can_optimize_outer_products(optimize: OptimizeKind) -> None:
-    a, b, c = [np.random.randn(10, 10) for _ in range(3)]
-    d = np.random.randn(10, 2)
-    assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, optimize=optimize)[0] == [
+
+    a, b, c = [(10, 10) for _ in range(3)]
+    d = (10, 2)
+
+    assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, optimize=optimize, shapes=True)[0] == [
         (2, 3),
         (0, 2),
         (0, 1),
@@ -326,14 +329,16 @@ def test_large_path(num_symbols: int) -> None:
     symbols = "".join(oe.get_symbol(i) for i in range(num_symbols))
     dimension_dict = dict(zip(symbols, itertools.cycle([2, 3, 4])))
     expression = ",".join(symbols[t : t + 2] for t in range(num_symbols - 1))
-    tensors = oe.helpers.build_views(expression, dimension_dict=dimension_dict)
+    tensors = build_shapes(expression, dimension_dict=dimension_dict)
 
     # Check that path construction does not crash
-    oe.contract_path(expression, *tensors, optimize="greedy")
+    oe.contract_path(expression, *tensors, optimize="greedy", shapes=True)
 
 
 def test_custom_random_greedy() -> None:
-    eq, shapes = oe.helpers.rand_equation(10, 4, seed=42)
+    np = pytest.importorskip("numpy")
+
+    eq, shapes = rand_equation(10, 4, seed=42)
     views = list(map(np.ones, shapes))
 
     with pytest.raises(ValueError):
@@ -364,14 +369,16 @@ def test_custom_random_greedy() -> None:
     assert path_info.opt_cost == optimizer.best["flops"]
 
     # check error if we try and reuse the optimizer on a different expression
-    eq, shapes = oe.helpers.rand_equation(10, 4, seed=41)
+    eq, shapes = rand_equation(10, 4, seed=41)
     views = list(map(np.ones, shapes))
     with pytest.raises(ValueError):
         path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
 
 
 def test_custom_branchbound() -> None:
-    eq, shapes = oe.helpers.rand_equation(8, 4, seed=42)
+    np = pytest.importorskip("numpy")
+
+    eq, shapes = rand_equation(8, 4, seed=42)
     views = list(map(np.ones, shapes))
     optimizer = oe.BranchBound(nbranch=2, cutoff_flops_factor=10, minimize="size")
 
@@ -391,7 +398,7 @@ def test_custom_branchbound() -> None:
     assert path_info.opt_cost == optimizer.best["flops"]
 
     # check error if we try and reuse the optimizer on a different expression
-    eq, shapes = oe.helpers.rand_equation(8, 4, seed=41)
+    eq, shapes = rand_equation(8, 4, seed=41)
     views = list(map(np.ones, shapes))
     with pytest.raises(ValueError):
         path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
@@ -402,13 +409,12 @@ def test_branchbound_validation() -> None:
         oe.BranchBound(nbranch=0)
 
 
-@pytest.mark.skipif(sys.version_info < (3, 2), reason="requires python3.2 or higher")
 def test_parallel_random_greedy() -> None:
-    from concurrent.futures import ProcessPoolExecutor
+    np = pytest.importorskip("numpy")
 
     pool = ProcessPoolExecutor(2)
 
-    eq, shapes = oe.helpers.rand_equation(10, 4, seed=42)
+    eq, shapes = rand_equation(10, 4, seed=42)
     views = list(map(np.ones, shapes))
 
     optimizer = oe.RandomGreedy(max_repeats=10, parallel=pool)
@@ -448,6 +454,7 @@ def test_parallel_random_greedy() -> None:
 
 
 def test_custom_path_optimizer() -> None:
+    np = pytest.importorskip("numpy")
 
     class NaiveOptimizer(oe.paths.PathOptimizer):
         def __call__(
@@ -460,7 +467,7 @@ def test_custom_path_optimizer() -> None:
             self.was_used = True
             return [(0, 1)] * (len(inputs) - 1)
 
-    eq, shapes = oe.helpers.rand_equation(5, 3, seed=42, d_max=3)
+    eq, shapes = rand_equation(5, 3, seed=42, d_max=3)
     views = list(map(np.ones, shapes))
 
     exp = oe.contract(eq, *views, optimize=False)
@@ -472,6 +479,8 @@ def test_custom_path_optimizer() -> None:
 
 
 def test_custom_random_optimizer() -> None:
+    np = pytest.importorskip("numpy")
+
     class NaiveRandomOptimizer(oe.path_random.RandomOptimizer):
         @staticmethod
         def random_path(
@@ -497,7 +506,7 @@ def test_custom_random_optimizer() -> None:
             trial_args = (n, inputs, output, size_dict)
             return trial_fn, trial_args
 
-    eq, shapes = oe.helpers.rand_equation(5, 3, seed=42, d_max=3)
+    eq, shapes = rand_equation(5, 3, seed=42, d_max=3)
     views = list(map(np.ones, shapes))
 
     exp = oe.contract(eq, *views, optimize=False)
@@ -527,3 +536,9 @@ def test_optimizer_registration() -> None:
     path, _ = oe.contract_path(eq, *shapes, shapes=True, optimize="custom")  # type: ignore
     assert path == [(0, 1), (0, 1)]
     del oe.paths._PATH_OPTIONS["custom"]
+
+
+def test_path_with_assumed_shapes() -> None:
+
+    path, _ = oe.contract_path("ab,bc,cd", [[5, 3]], [[2], [4]], [[3, 2]])
+    assert path == [(0, 1), (0, 1)]

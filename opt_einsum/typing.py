@@ -2,13 +2,16 @@
 Types used in the opt_einsum package
 """
 
+from collections import namedtuple
 from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Tuple, Union
 
 TensorShapeType = Tuple[int, ...]
 PathType = Collection[TensorShapeType]
 
-ArrayType = Any  # TODO
+ArrayType = Any
+
 ArrayIndexType = FrozenSet[str]
+ArrayShaped = namedtuple("ArrayShaped", ["shape"])
 
 ContractionListType = List[Tuple[Any, ArrayIndexType, str, Optional[Tuple[str, ...]], Union[str, bool]]]
 PathSearchFunctionType = Callable[[List[ArrayIndexType], ArrayIndexType, Dict[str, int], Optional[int]], PathType]

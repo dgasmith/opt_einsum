@@ -5,16 +5,14 @@ constants.
 """
 
 import importlib
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
-import numpy
-
-from . import cupy as _cupy
-from . import jax as _jax
-from . import object_arrays
-from . import tensorflow as _tensorflow
-from . import theano as _theano
-from . import torch as _torch
+from opt_einsum.backends import cupy as _cupy
+from opt_einsum.backends import jax as _jax
+from opt_einsum.backends import object_arrays
+from opt_einsum.backends import tensorflow as _tensorflow
+from opt_einsum.backends import theano as _theano
+from opt_einsum.backends import torch as _torch
 
 __all__ = [
     "get_func",
@@ -57,15 +55,21 @@ def _import_func(func: str, backend: str, default: Any = None) -> Any:
 
 # manually cache functions as python2 doesn't support functools.lru_cache
 #     other libs will be added to this if needed, but pre-populate with numpy
-_cached_funcs = {
-    ("tensordot", "numpy"): numpy.tensordot,
-    ("transpose", "numpy"): numpy.transpose,
-    ("einsum", "numpy"): numpy.einsum,
-    # also pre-populate with the arbitrary object backend
-    ("tensordot", "object"): numpy.tensordot,
-    ("transpose", "object"): numpy.transpose,
+_cached_funcs: Dict[Tuple[str, str], Any] = {
     ("einsum", "object"): object_arrays.object_einsum,
 }
+
+try:
+    import numpy as np
+
+    _cached_funcs[("tensordot", "numpy")] = np.tensordot
+    _cached_funcs[("transpose", "numpy")] = np.transpose
+    _cached_funcs[("einsum", "numpy")] = np.einsum
+    # also pre-populate with the arbitrary object backend
+    _cached_funcs[("tensordot", "object")] = np.tensordot
+    _cached_funcs[("transpose", "object")] = np.transpose
+except ModuleNotFoundError:
+    pass
 
 
 def get_func(func: str, backend: str = "numpy", default: Any = None) -> Any:

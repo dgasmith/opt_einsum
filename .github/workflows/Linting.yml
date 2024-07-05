@@ -47,7 +47,7 @@ jobs:
         mypy opt_einsum
 
   black:
-    name: black
+    name: Black
     runs-on: ubuntu-latest
 
     steps:

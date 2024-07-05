@@ -12,8 +12,8 @@ from random import choices as random_choices
 from random import seed as random_seed
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
-from . import helpers, paths
-from .typing import ArrayIndexType, ArrayType, PathType
+from opt_einsum import helpers, paths
+from opt_einsum.typing import ArrayIndexType, ArrayType, PathType
 
 __all__ = ["RandomGreedy", "random_greedy", "random_greedy_128"]
 
