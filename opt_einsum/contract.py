@@ -63,7 +63,7 @@ class PathInfo:
         self.size_dict = size_dict
 
         self.shapes = [tuple(size_dict[k] for k in ks) for ks in input_subscripts.split(",")]
-        self.eq = "{}->{}".format(input_subscripts, output_subscript)
+        self.eq = f"{input_subscripts}->{output_subscript}"
         self.largest_intermediate = Decimal(max(size_list, default=1))
 
     def __repr__(self) -> str:
@@ -71,13 +71,13 @@ class PathInfo:
         header = ("scaling", "BLAS", "current", "remaining")
 
         path_print = [
-            "  Complete contraction:  {}\n".format(self.eq),
-            "         Naive scaling:  {}\n".format(len(self.indices)),
-            "     Optimized scaling:  {}\n".format(max(self.scale_list, default=0)),
-            "      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
-            "  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
-            "   Theoretical speedup:  {:.3e}\n".format(self.speedup),
-            "  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate),
+            f"  Complete contraction:  {self.eq}\n",
+            f"         Naive scaling:  {len(self.indices)}\n",
+            f"     Optimized scaling:  {max(self.scale_list, default=0)}\n",
+            f"      Naive FLOP count:  {self.naive_cost:.3e}\n",
+            f"  Optimized FLOP count:  {self.opt_cost:.3e}\n",
+            f"   Theoretical speedup:  {self.speedup:.3e}\n",
+            f"  Largest intermediate:  {self.largest_intermediate:.3e} elements\n",
             "-" * 80 + "\n",
             "{:>6} {:>11} {:>22} {:>37}\n".format(*header),
             "-" * 80,
@@ -316,9 +316,7 @@ def contract_path(
 
         if len(sh) != len(term):
             raise ValueError(
-                "Einstein sum subscript '{}' does not contain the " "correct number of indices for operand {}.".format(
-                    input_list[tnum], tnum
-                )
+                f"Einstein sum subscript '{input_list[tnum]}' does not contain the " f"correct number of indices for operand {tnum}."
             )
         for cnum, char in enumerate(term):
             dim = int(sh[cnum])
@@ -329,9 +327,7 @@ def contract_path(
                     size_dict[char] = dim
                 elif dim not in (1, size_dict[char]):
                     raise ValueError(
-                        "Size of label '{}' for operand {} ({}) does not match previous " "terms ({}).".format(
-                            char, tnum, size_dict[char], dim
-                        )
+                        f"Size of label '{char}' for operand {tnum} ({size_dict[char]}) does not match previous " f"terms ({dim})."
                     )
             else:
                 size_dict[char] = dim
@@ -756,7 +752,7 @@ def format_const_einsum_str(einsum_str: str, constants: Iterable[int]) -> str:
     else:
         lhs, rhs, arrow = einsum_str, "", ""
 
-    wrapped_terms = ["[{}]".format(t) if i in constants else t for i, t in enumerate(lhs.split(","))]
+    wrapped_terms = [f"[{t}]" if i in constants else t for i, t in enumerate(lhs.split(","))]
 
     formatted_einsum_str = "{}{}{}".format(",".join(wrapped_terms), arrow, rhs)
 
@@ -910,9 +906,7 @@ class ContractExpression:
 
         if len(arrays) != correct_num_args:
             raise ValueError(
-                "This `ContractExpression` takes exactly {} array arguments " "but received {}.".format(
-                    self.num_args, len(arrays)
-                )
+                f"This `ContractExpression` takes exactly {self.num_args} array arguments " f"but received {len(arrays)}."
             )
 
         if self._constants_dict and not evaluate_constants:
@@ -935,23 +929,23 @@ class ContractExpression:
             msg = (
                 "Internal error while evaluating `ContractExpression`. Note that few checks are performed"
                 " - the number and rank of the array arguments must match the original expression. "
-                "The internal error was: '{}'".format(original_msg),
+                f"The internal error was: '{original_msg}'",
             )
             err.args = msg
             raise
 
     def __repr__(self) -> str:
         if self._constants_dict:
-            constants_repr = ", constants={}".format(sorted(self._constants_dict))
+            constants_repr = f", constants={sorted(self._constants_dict)}"
         else:
             constants_repr = ""
-        return "<ContractExpression('{}'{})>".format(self.contraction, constants_repr)
+        return f"<ContractExpression('{self.contraction}'{constants_repr})>"
 
     def __str__(self) -> str:
         s = [self.__repr__()]
         for i, c in enumerate(self.contraction_list):
-            s.append("\n  {}.  ".format(i + 1))
-            s.append("'{}'".format(c[2]) + (" [{}]".format(c[-1]) if c[-1] else ""))
+            s.append(f"\n  {i + 1}.  ")
+            s.append(f"'{c[2]}'" + (f" [{c[-1]}]" if c[-1] else ""))
             kwargs = {"dtype": self.dtype, "order": self.order, "casting": self.casting}
             s.append(f"\neinsum_kwargs={kwargs}")
         return "".join(s)
@@ -1061,9 +1055,7 @@ def contract_expression(
     for arg in ("out", "backend"):
         if kwargs.get(arg, None) is not None:
             raise ValueError(
-                "'{}' should only be specified when calling a " "`ContractExpression`, not when building it.".format(
-                    arg
-                )
+                f"'{arg}' should only be specified when calling a " "`ContractExpression`, not when building it."
             )
 
     if not isinstance(subscripts, str):

@@ -1401,7 +1401,7 @@ _PATH_OPTIONS: Dict[str, PathSearchFunctionType] = {
 def register_path_fn(name: str, fn: PathSearchFunctionType) -> None:
     """Add path finding function ``fn`` as an option with ``name``."""
     if name in _PATH_OPTIONS:
-        raise KeyError("Path optimizer '{}' already exists.".format(name))
+        raise KeyError(f"Path optimizer '{name}' already exists.")
 
     _PATH_OPTIONS[name.lower()] = fn
 
@@ -1411,7 +1411,7 @@ def get_path_fn(path_type: str) -> PathSearchFunctionType:
     path_type = path_type.lower()
     if path_type not in _PATH_OPTIONS:
         raise KeyError(
-            "Path optimizer '{}' not found, valid options are {}.".format(path_type, set(_PATH_OPTIONS.keys()))
+            f"Path optimizer '{path_type}' not found, valid options are {set(_PATH_OPTIONS.keys())}."
         )
 
     return _PATH_OPTIONS[path_type]

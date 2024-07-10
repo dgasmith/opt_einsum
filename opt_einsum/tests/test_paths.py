@@ -305,7 +305,7 @@ def test_dp_errors_when_no_contractions_found() -> None:
 
 @pytest.mark.parametrize("optimize", ["greedy", "branch-2", "branch-all", "optimal", "dp"])
 def test_can_optimize_outer_products(optimize: OptimizeKind) -> None:
-    a, b, c = [(10, 10) for _ in range(3)]
+    a, b, c = ((10, 10) for _ in range(3))
     d = (10, 2)
 
     assert oe.contract_path("ab,cd,ef,fg", a, b, c, d, optimize=optimize, shapes=True)[0] == [

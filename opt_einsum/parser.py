@@ -409,9 +409,9 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
     # Make sure output subscripts are unique and in the input
     for char in output_subscript:
         if output_subscript.count(char) != 1:
-            raise ValueError("Output character '{}' appeared more than once in the output.".format(char))
+            raise ValueError(f"Output character '{char}' appeared more than once in the output.")
         if char not in input_subscripts:
-            raise ValueError("Output character '{}' did not appear in the input".format(char))
+            raise ValueError(f"Output character '{char}' did not appear in the input")
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(",")) != len(operands):
