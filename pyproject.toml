@@ -1,9 +1,9 @@
 [build-system]
-requires = ['hatchling', 'hatch-fancy-pypi-readme>=22.5.0']
+requires = ['hatchling', 'hatch-fancy-pypi-readme>=22.5.0', 'hatch-vcs']
 build-backend = 'hatchling.build'
 
 [project]
-name = 'pydantic'
+name = 'opt_einsum'
 description = 'Path optimization of einsum functions.'
 authors = [
     {name = 'Daniel Smith', email = 'dgasmith@icloud.com'},
@@ -33,7 +33,8 @@ dependencies = [
 dynamic = ['version', 'readme']
 
 [tool.hatch.version]
-path = 'pydantic/_version.py'
+source = "vcs"
+path = 'opt_einsum/_version.py'
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -45,6 +46,17 @@ fragments = [
     {path = "README.md"},
 ]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.github",
+  "/docs",
+  "paper",
+  "scripts"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["opt_einsum"]
+
 [tool.pytest.ini_options]
 filterwarnings = [
     'ignore::DeprecationWarning:tensorflow',
@@ -54,7 +66,6 @@ filterwarnings = [
 [tool.ruff]
 line-length = 120
 target-version = 'py38'
-extend-exclude = ['pydantic/v1', 'tests/mypy/']
 
 [tool.ruff.lint]
 extend-select = ['Q', 'RUF100', 'UP', 'I', 'D', 'T']
