@@ -1,3 +1,70 @@
-[tool.black]
+[build-system]
+requires = ['hatchling', 'hatch-fancy-pypi-readme>=22.5.0']
+build-backend = 'hatchling.build'
+
+[project]
+name = 'pydantic'
+description = 'Path optimization of einsum functions.'
+authors = [
+    {name = 'Daniel Smith', email = 'dgasmith@icloud.com'},
+]
+license = 'MIT'
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Programming Language :: Python :: Implementation :: PyPy',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: MIT License',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+
+]
+requires-python = '>=3.8'
+dependencies = [
+]
+dynamic = ['version', 'readme']
+
+[tool.hatch.version]
+path = 'pydantic/_version.py'
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = 'text/markdown'
+# construct the PyPI readme from README.md and HISTORY.md
+fragments = [
+    {path = "README.md"},
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    'ignore::DeprecationWarning:tensorflow',
+    'ignore::DeprecationWarning:tensorboard',
+]
+
+[tool.ruff]
 line-length = 120
-target-version = ['py39']
+target-version = 'py39'
+extend-exclude = ['pydantic/v1', 'tests/mypy/']
+
+[tool.ruff.lint]
+# extend-select = ['Q', 'RUF100', 'C90', 'UP', 'I', 'D', 'T']
+# extend-ignore = ['D105', 'D107', 'D205', 'D415']
+isort = { known-first-party = ['opt_einsum', 'tests'] }
+mccabe = { max-complexity = 14 }
+pydocstyle = { convention = 'google' }
+
+[tool.coverage.run]
+source = ['opt_einsum']
+omit = ['*/tests/*', 'opt_einsum/_version.py']
+branch = true
+relative_files = true
