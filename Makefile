@@ -14,12 +14,6 @@ format-check:
 	ruff check opt_einsum
 	ruff format --check opt_einsum
 
-.PHONY: check-dist
-check-dist:
-	python setup.py check -ms
-	python setup.py sdist
-	twine check dist/*
-
 .PHONY: mypy
 mypy:
 	$(mypy)

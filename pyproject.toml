@@ -39,6 +39,9 @@ path = 'opt_einsum/_version.py'
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.hatch.build.hooks.vcs]
+version-file = "opt_einsum/_version.py"
+
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = 'text/markdown'
 # construct the PyPI readme from README.md and HISTORY.md
@@ -49,9 +52,10 @@ fragments = [
 [tool.hatch.build.targets.sdist]
 exclude = [
   "/.github",
+  "/devtools",
   "/docs",
-  "paper",
-  "scripts"
+  "/paper",
+  "/scripts"
 ]
 
 [tool.hatch.build.targets.wheel]
