@@ -8,7 +8,7 @@ __all__ = ["compute_size_by_dict", "find_contraction", "flop_count"]
 
 _valid_chars = "abcdefghijklmopqABC"
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]
-_default_dim_dict = {c: s for c, s in zip(_valid_chars, _sizes)}
+_default_dim_dict = dict(zip(_valid_chars, _sizes))
 
 
 @overload

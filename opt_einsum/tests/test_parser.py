@@ -62,12 +62,12 @@ def test_parse_with_ellisis() -> None:
         [(5, 5), (2,)],
         [[[[[[5, 2]]]]], (1, 1, 1, 1, 2)],
         [[[[[["abcdef", "b"]]]]], (1, 1, 1, 1, 2)],
-        ["A", tuple()],
-        [b"A", tuple()],
-        [True, tuple()],
-        [5, tuple()],
-        [5.0, tuple()],
-        [5.0 + 0j, tuple()],
+        ["A", ()],
+        [b"A", ()],
+        [True, ()],
+        [5, ()],
+        [5.0, ()],
+        [5.0 + 0j, ()],
     ],
 )
 def test_get_shapes(array: Any, shape: Tuple[int]) -> None:

@@ -182,7 +182,7 @@ def get_shape(x: Any) -> TensorShapeType:
     if hasattr(x, "shape"):
         return x.shape
     elif isinstance(x, _BaseTypes):
-        return tuple()
+        return ()
     elif isinstance(x, Sequence):
         shape = []
         while isinstance(x, Sequence) and not isinstance(x, _BaseTypes):
@@ -320,7 +320,7 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
     if isinstance(operands[0], str):
         subscripts = operands[0].replace(" ", "")
         if shapes:
-            if any([hasattr(o, "shape") for o in operands[1:]]):
+            if any(hasattr(o, "shape") for o in operands[1:]):
                 raise ValueError(
                     "shapes is set to True but given at least one operand looks like an array"
                     " (at least one operand has a shape attribute). "

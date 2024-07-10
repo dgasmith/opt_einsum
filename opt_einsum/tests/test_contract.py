@@ -177,7 +177,7 @@ def test_printing():
 @pytest.mark.parametrize("out_spec", [False, True])
 def test_contract_expressions(string: str, optimize: OptimizeKind, use_blas: bool, out_spec: bool) -> None:
     views = build_views(string)
-    shapes = [view.shape if hasattr(view, "shape") else tuple() for view in views]
+    shapes = [view.shape if hasattr(view, "shape") else () for view in views]
     expected = contract(string, *views, optimize=False, use_blas=False)
 
     expr = contract_expression(string, *shapes, optimize=optimize, use_blas=use_blas)
@@ -220,7 +220,7 @@ def test_contract_expression_with_constants(string: str, constants: List[int]) -
     views = build_views(string)
     expected = contract(string, *views, optimize=False, use_blas=False)
 
-    shapes = [view.shape if hasattr(view, "shape") else tuple() for view in views]
+    shapes = [view.shape if hasattr(view, "shape") else () for view in views]
 
     expr_args: List[Any] = []
     ctrc_args = []

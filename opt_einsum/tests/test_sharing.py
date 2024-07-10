@@ -360,7 +360,7 @@ def test_chain_sharing(size: int, backend: BackendType) -> None:
             eq = f"{inputs}->{target}"
             path_info = contract_path(eq, *xs)
             print(path_info[1])
-            expr = contract_expression(eq, *list(x.shape for x in xs))
+            expr = contract_expression(eq, *[x.shape for x in xs])
             expr(*xs, backend=backend)
         num_exprs_sharing = _compute_cost(cache)
 
@@ -374,11 +374,11 @@ def test_multithreaded_sharing() -> None:
     from multiprocessing.pool import ThreadPool
 
     def fn():
-        X, Y, Z = build_views("ab,bc,cd")
+        x, y, z = build_views("ab,bc,cd")
 
         with shared_intermediates():
-            contract("ab,bc,cd->a", X, Y, Z)
-            contract("ab,bc,cd->b", X, Y, Z)
+            contract("ab,bc,cd->a", x, y, z)
+            contract("ab,bc,cd->b", x, y, z)
 
             return len(get_sharing_cache())
 

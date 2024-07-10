@@ -17,7 +17,7 @@ def build_views(string: str) -> list[ArrayType]:
 
     chars = "abcdefghij"
     sizes_array = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
-    sizes = {c: s for c, s in zip(chars, sizes_array)}
+    sizes = dict(zip(chars, sizes_array))
 
     views = []
 
@@ -84,7 +84,7 @@ def test_type_errors() -> None:
         contract(views[0], [Ellipsis, 0], [Ellipsis, ["a"]])
 
     with pytest.raises(TypeError):
-        contract(views[0], [Ellipsis, dict()], [Ellipsis, "a"])
+        contract(views[0], [Ellipsis, {}], [Ellipsis, "a"])
 
 
 @pytest.mark.parametrize("contract_fn", [contract, contract_path])

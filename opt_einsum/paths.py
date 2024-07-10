@@ -97,10 +97,10 @@ def ssa_to_linear(ssa_path: PathType) -> PathType:
     #         ids[ssa_id:] -= 1
     # return path
 
-    N = sum(map(len, ssa_path)) - len(ssa_path) + 1
-    ids = list(range(N))
+    n = sum(map(len, ssa_path)) - len(ssa_path) + 1
+    ids = list(range(n))
     path = []
-    ssa = N
+    ssa = n
     for scon in ssa_path:
         con = sorted([bisect.bisect_left(ids, s) for s in scon])
         for j in reversed(con):
@@ -644,7 +644,7 @@ def ssa_greedy_optimize(
     # used it can be contracted. Since we specialize to binary ops, we only care about
     # ref counts of >=2 or >=3.
     dim_ref_counts = {
-        count: set(dim for dim, keys in dim_to_keys.items() if len(keys) >= count) - output for count in [2, 3]
+        count: {dim for dim, keys in dim_to_keys.items() if len(keys) >= count} - output for count in [2, 3]
     }
 
     # Compute separable part of the objective function for contractions.
@@ -694,7 +694,7 @@ def ssa_greedy_optimize(
 
         # Find new candidate contractions.
         k1 = k12
-        k2s = set(k2 for dim in k1 for k2 in dim_to_keys[dim])
+        k2s = {k2 for dim in k1 for k2 in dim_to_keys[dim]}
         k2s.discard(k1)
         if k2s:
             _push_candidate(
@@ -809,7 +809,7 @@ def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
 
     while len(c) > 0:
         j = c.pop(-1)
-        s.insert(0, tuple())
+        s.insert(0, ())
 
         for i in sorted([i for i in j if type(i) == int]):  # noqa: E721
             s[0] += (sum(1 for q in t if q < i),)
@@ -1218,7 +1218,7 @@ class DynamicProgramming(PathOptimizer):
             # the set of n tensors is represented by a bitmap: if bit j is 1,
             # tensor j is in the set, e.g. 0b100101 = {0,2,5}; set unions
             # (intersections) can then be computed by bitwise or (and);
-            x: List[Any] = [None] * 2 + [dict() for j in range(len(g) - 1)]
+            x: List[Any] = [None] * 2 + [{} for j in range(len(g) - 1)]
             x[1] = OrderedDict((1 << j, (inputs[j], 0, inputs_contractions[j])) for j in g)
 
             # convert set of tensors g to a bitmap set:
@@ -1332,8 +1332,7 @@ def auto(
     """Finds the contraction path by automatically choosing the method based on
     how many input arguments there are.
     """
-    N = len(inputs)
-    return _AUTO_CHOICES.get(N, greedy)(inputs, output, size_dict, memory_limit)
+    return _AUTO_CHOICES.get(len(inputs), greedy)(inputs, output, size_dict, memory_limit)
 
 
 _AUTO_HQ_CHOICES = {}
@@ -1355,8 +1354,7 @@ def auto_hq(
     """
     from opt_einsum.path_random import random_greedy_128
 
-    N = len(inputs)
-    return _AUTO_HQ_CHOICES.get(N, random_greedy_128)(inputs, output, size_dict, memory_limit)
+    return _AUTO_HQ_CHOICES.get(len(inputs), random_greedy_128)(inputs, output, size_dict, memory_limit)
 
 
 _PATH_OPTIONS: Dict[str, PathSearchFunctionType] = {

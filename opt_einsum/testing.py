@@ -10,7 +10,7 @@ from opt_einsum.typing import ArrayType, PathType, TensorShapeType
 
 _valid_chars = "abcdefghijklmopqABC"
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]
-_default_dim_dict = {c: s for c, s in zip(_valid_chars, _sizes)}
+_default_dim_dict = dict(zip(_valid_chars, _sizes))
 
 
 def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> Tuple[TensorShapeType, ...]:
