@@ -72,7 +72,7 @@ line-length = 120
 target-version = 'py38'
 
 [tool.ruff.lint]
-extend-select = ['RUF', 'UP', 'C', 'D', 'I', 'N', 'NPY', 'Q', 'T']
+extend-select = ['RUF100', 'UP', 'C', 'D', 'I', 'N', 'NPY', 'Q', 'T', 'W']
 extend-ignore = ['C901', 'D101', 'D102', 'D103', 'D105', 'D107', 'D205', 'D415']
 isort = { known-first-party = ['opt_einsum'] }
 mccabe = { max-complexity = 14 }
