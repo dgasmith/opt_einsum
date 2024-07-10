@@ -2,10 +2,10 @@ name: Docs
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
@@ -25,7 +25,7 @@ jobs:
     - name: Build Docs
       run: mkdocs build 
 
-    # Only deploy if master, otherwise just build for testing
+    # Only deploy if main, otherwise just build for testing
     - name: Deploy
       if: endsWith(github.ref, '/main')
       run: mkdocs gh-deploy --force
