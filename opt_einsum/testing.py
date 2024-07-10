@@ -1,6 +1,4 @@
-"""
-Testing routines for opt_einsum.
-"""
+"""Testing routines for opt_einsum."""
 
 import random
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
@@ -16,14 +14,13 @@ _default_dim_dict = {c: s for c, s in zip(_valid_chars, _sizes)}
 
 
 def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> Tuple[TensorShapeType, ...]:
-    """
-    Builds random tensor shapes for testing.
+    """Builds random tensor shapes for testing.
 
     Parameters:
         string: List of tensor strings to build
         dimension_dict: Dictionary of index sizes, defaults to indices size of 2-7
 
-    Returns
+    Returns:
         The resulting shapes.
 
     Examples:
@@ -34,7 +31,6 @@ def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -
         ```
 
     """
-
     if dimension_dict is None:
         dimension_dict = _default_dim_dict
 
@@ -49,15 +45,14 @@ def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -
 def build_views(
     string: str, dimension_dict: Optional[Dict[str, int]] = None, array_function: Optional[Any] = None
 ) -> Tuple[ArrayType]:
-    """
-    Builds random numpy arrays for testing.
+    """Builds random numpy arrays for testing.
 
     Parameters:
         string: List of tensor strings to build
         dimension_dict: Dictionary of index _sizes
         array_function: Function to build the arrays, defaults to np.random.rand
 
-    Returns
+    Returns:
         The resulting views.
 
     Examples:
@@ -156,7 +151,6 @@ def rand_equation(
         (9, 5, 3, 3, 9, 5)]
         ```
     """
-
     np = pytest.importorskip("numpy")
     if seed is not None:
         np.random.seed(seed)
@@ -223,7 +217,8 @@ def build_arrays_from_tuples(path: PathType) -> List[Any]:
         path: The path to build arrays from.
 
     Returns:
-        The resulting arrays."""
+    The resulting arrays.
+    """
     np = pytest.importorskip("numpy")
 
     return [np.random.rand(*x) for x in path]

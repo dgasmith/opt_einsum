@@ -1,6 +1,4 @@
-"""
-Support for random optimizers, including the random-greedy path.
-"""
+"""Support for random optimizers, including the random-greedy path."""
 
 import functools
 import heapq
@@ -334,24 +332,23 @@ class RandomGreedy(RandomOptimizer):
         nbranch: int = 8,
         **kwargs: Any,
     ):
-        """
-        Parameters:
-            cost_fn: A function that returns a heuristic 'cost' of a potential contraction
-                    with which to sort candidates. Should have signature
-                    `cost_fn(size12, size1, size2, k12, k1, k2)`.
-            temperature: When choosing a possible contraction, its relative probability will be
-                    proportional to `exp(-cost / temperature)`. Thus the larger
-                    `temperature` is, the further random paths will stray from the normal
-                    'greedy' path. Conversely, if set to zero, only paths with exactly the
-                    same cost as the best at each step will be explored.
-            rel_temperature: Whether to normalize the ``temperature`` at each step to the scale of
-                    the best cost. This is generally beneficial as the magnitude of costs
-                    can vary significantly throughout a contraction. If False, the
-                    algorithm will end up branching when the absolute cost is low, but
-                    stick to the 'greedy' path when the cost is high - this can also be
-                    beneficial.
-            nbranch: How many potential paths to calculate probability for and choose from at each step.
-            kwargs: Supplied to RandomOptimizer.
+        """Parameters:
+        cost_fn: A function that returns a heuristic 'cost' of a potential contraction
+                with which to sort candidates. Should have signature
+                `cost_fn(size12, size1, size2, k12, k1, k2)`.
+        temperature: When choosing a possible contraction, its relative probability will be
+                proportional to `exp(-cost / temperature)`. Thus the larger
+                `temperature` is, the further random paths will stray from the normal
+                'greedy' path. Conversely, if set to zero, only paths with exactly the
+                same cost as the best at each step will be explored.
+        rel_temperature: Whether to normalize the ``temperature`` at each step to the scale of
+                the best cost. This is generally beneficial as the magnitude of costs
+                can vary significantly throughout a contraction. If False, the
+                algorithm will end up branching when the absolute cost is low, but
+                stick to the 'greedy' path when the cost is high - this can also be
+                beneficial.
+        nbranch: How many potential paths to calculate probability for and choose from at each step.
+        kwargs: Supplied to RandomOptimizer.
         """
         self.cost_fn = cost_fn
         self.temperature = temperature
@@ -393,7 +390,7 @@ def random_greedy(
     memory_limit: Optional[int] = None,
     **optimizer_kwargs: Any,
 ) -> ArrayType:
-    """ """
+    """A simple wrapper around the `RandomGreedy` optimizer."""
     optimizer = RandomGreedy(**optimizer_kwargs)
     return optimizer(inputs, output, idx_dict, memory_limit)
 

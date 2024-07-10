@@ -1,6 +1,4 @@
-"""
-Functions for performing contractions with array elements which are objects.
-"""
+"""Functions for performing contractions with array elements which are objects."""
 
 import functools
 import operator
@@ -24,7 +22,7 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
         These can be any indexable arrays as long as addition and
         multiplication is defined on the elements.
 
-    Returns
+    Returns:
     -------
     out : numpy.ndarray
         The output tensor, with ``dtype=object``.

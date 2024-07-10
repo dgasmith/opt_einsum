@@ -1,6 +1,4 @@
-"""
-Contains helper functions for opt_einsum testing scripts
-"""
+"""Contains helper functions for opt_einsum testing scripts."""
 
 from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Tuple, overload
 
@@ -22,8 +20,7 @@ def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> 
 
 
 def compute_size_by_dict(indices: Any, idx_dict: Any) -> int:
-    """
-    Computes the product of the elements in indices based on the dictionary
+    """Computes the product of the elements in indices based on the dictionary
     idx_dict.
 
     Parameters
@@ -33,12 +30,12 @@ def compute_size_by_dict(indices: Any, idx_dict: Any) -> int:
     idx_dict : dictionary
         Dictionary of index _sizes
 
-    Returns
+    Returns:
     -------
     ret : int
         The resulting product.
 
-    Examples
+    Examples:
     --------
     >>> compute_size_by_dict('abbc', {'a': 2, 'b':3, 'c':5})
     90
@@ -55,8 +52,7 @@ def find_contraction(
     input_sets: List[ArrayIndexType],
     output_set: ArrayIndexType,
 ) -> Tuple[FrozenSet[str], List[ArrayIndexType], ArrayIndexType, ArrayIndexType]:
-    """
-    Finds the contraction for a given set of input and output sets.
+    """Finds the contraction for a given set of input and output sets.
 
     Parameters
     ----------
@@ -67,7 +63,7 @@ def find_contraction(
     output_set : set
         Set that represents the rhs side of the overall einsum subscript
 
-    Returns
+    Returns:
     -------
     new_result : set
         The indices of the resulting contraction
@@ -79,9 +75,8 @@ def find_contraction(
     idx_contraction : set
         The indices used in the current contraction
 
-    Examples
+    Examples:
     --------
-
     # A simple dot product test case
     >>> pos = (0, 1)
     >>> isets = [set('ab'), set('bc')]
@@ -96,7 +91,6 @@ def find_contraction(
     >>> find_contraction(pos, isets, oset)
     ({'a', 'c'}, [{'a', 'c'}, {'a', 'c'}], {'b', 'd'}, {'a', 'b', 'c', 'd'})
     """
-
     remaining = list(input_sets)
     inputs = (remaining.pop(i) for i in sorted(positions, reverse=True))
     idx_contract = frozenset.union(*inputs)
@@ -115,8 +109,7 @@ def flop_count(
     num_terms: int,
     size_dictionary: Dict[str, int],
 ) -> int:
-    """
-    Computes the number of FLOPS in the contraction.
+    """Computes the number of FLOPS in the contraction.
 
     Parameters
     ----------
@@ -129,14 +122,13 @@ def flop_count(
     size_dictionary : dict
         The size of each of the indices in idx_contraction
 
-    Returns
+    Returns:
     -------
     flop_count : int
         The total number of FLOPS required for the contraction.
 
-    Examples
+    Examples:
     --------
-
     >>> flop_count('abc', False, 1, {'a': 2, 'b':3, 'c':5})
     30
 
@@ -144,7 +136,6 @@ def flop_count(
     60
 
     """
-
     overall_size = compute_size_by_dict(idx_contraction, size_dictionary)
     op_factor = max(1, num_terms - 1)
     if inner:

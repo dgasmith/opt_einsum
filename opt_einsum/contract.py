@@ -1,6 +1,4 @@
-"""
-Contains the primary optimization and contraction routines.
-"""
+"""Contains the primary optimization and contraction routines."""
 
 from decimal import Decimal
 from functools import lru_cache
@@ -181,8 +179,7 @@ def contract_path(
     shapes: bool = False,
     **kwargs: Any,
 ) -> Tuple[PathType, PathInfo]:
-    """
-      Find a contraction order `path`, without performing the contraction.
+    """Find a contraction order `path`, without performing the contraction.
 
     Parameters:
           subscripts: Specifies the subscripts for summation.
@@ -224,16 +221,16 @@ def contract_path(
 
           shapes: Whether ``contract_path`` should assume arrays (the default) or array shapes have been supplied.
 
-      Returns:
+    Returns:
           path: The optimized einsum contraciton path
           PathInfo: A printable object containing various information about the path found.
 
-      Notes:
+    Notes:
           The resulting path indicates which terms of the input contraction should be
           contracted first, the result of this contraction is then appended to the end of
           the contraction list.
 
-      Examples:
+    Examples:
           We can begin with a chain dot example. In this case, it is optimal to
           contract the b and c tensors represented by the first element of the path (1,
           2). The resulting tensor is added to the end of the contraction and the
@@ -316,7 +313,8 @@ def contract_path(
 
         if len(sh) != len(term):
             raise ValueError(
-                f"Einstein sum subscript '{input_list[tnum]}' does not contain the " f"correct number of indices for operand {tnum}."
+                f"Einstein sum subscript '{input_list[tnum]}' does not contain the "
+                f"correct number of indices for operand {tnum}."
             )
         for cnum, char in enumerate(term):
             dim = int(sh[cnum])
@@ -327,7 +325,8 @@ def contract_path(
                     size_dict[char] = dim
                 elif dim not in (1, size_dict[char]):
                     raise ValueError(
-                        f"Size of label '{char}' for operand {tnum} ({size_dict[char]}) does not match previous " f"terms ({dim})."
+                        f"Size of label '{char}' for operand {tnum} ({size_dict[char]}) does not match previous "
+                        f"terms ({dim})."
                     )
             else:
                 size_dict[char] = dim
@@ -520,8 +519,7 @@ def contract(
     backend: BackendType = "auto",
     **kwargs: Any,
 ) -> ArrayType:
-    """
-    Evaluates the Einstein summation convention on the operands. A drop in
+    """Evaluates the Einstein summation convention on the operands. A drop in
     replacement for NumPy's einsum function that optimizes the order of contraction
     to reduce overall scaling at the cost of several intermediate arrays.
 
@@ -660,7 +658,6 @@ def _core_contract(
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
-
     # Special handling if out is specified
     specified_out = out is not None
 
@@ -899,14 +896,14 @@ class ContractExpression:
         Returns:
             The contracted result.
         """
-
         backend = parse_backend(arrays, backend)
 
         correct_num_args = self._full_num_args if evaluate_constants else self.num_args
 
         if len(arrays) != correct_num_args:
             raise ValueError(
-                f"This `ContractExpression` takes exactly {self.num_args} array arguments " f"but received {len(arrays)}."
+                f"This `ContractExpression` takes exactly {self.num_args} array arguments "
+                f"but received {len(arrays)}."
             )
 
         if self._constants_dict and not evaluate_constants:
@@ -1012,7 +1009,6 @@ def contract_expression(
         Callable with signature `expr(*arrays, out=None, backend='numpy')` where the array's shapes should match `shapes`.
 
     Notes:
-
         The `out` keyword argument should be supplied to the generated expression
         rather than this function.
         The `backend` keyword argument should also be supplied to the generated
@@ -1025,7 +1021,6 @@ def contract_expression(
         backend, then subsequently reused.
 
     Examples:
-
     Basic usage:
 
     ```python

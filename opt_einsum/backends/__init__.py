@@ -1,6 +1,4 @@
-"""
-Compute backends for opt_einsum.
-"""
+"""Compute backends for opt_einsum."""
 
 # Backends
 from opt_einsum.backends.cupy import to_cupy

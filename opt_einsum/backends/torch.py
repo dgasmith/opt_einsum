@@ -1,6 +1,4 @@
-"""
-Required functions for optimized contractions of numpy arrays using pytorch.
-"""
+"""Required functions for optimized contractions of numpy arrays using pytorch."""
 
 from opt_einsum.helpers import has_array_interface
 from opt_einsum.parser import convert_to_valid_einsum_chars

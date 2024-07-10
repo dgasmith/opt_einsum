@@ -1,5 +1,4 @@
-"""
-Handles dispatching array operations to the correct backend library, as well
+"""Handles dispatching array operations to the correct backend library, as well
 as converting arrays to backend formats and then potentially storing them as
 constants.
 """

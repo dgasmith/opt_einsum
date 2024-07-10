@@ -57,12 +57,14 @@ target-version = 'py38'
 extend-exclude = ['pydantic/v1', 'tests/mypy/']
 
 [tool.ruff.lint]
-extend-select = ['Q', 'RUF100', 'UP']
-# extend-select = ['Q', 'RUF100', 'C90', 'UP', 'I', 'D', 'T']
-# extend-ignore = ['D105', 'D107', 'D205', 'D415']
-isort = { known-first-party = ['opt_einsum', 'tests'] }
+extend-select = ['Q', 'RUF100', 'UP', 'I', 'D', 'T']
+extend-ignore = ['D101', 'D102', 'D103', 'D105', 'D107', 'D205', 'D415']
+isort = { known-first-party = ['opt_einsum'] }
 mccabe = { max-complexity = 14 }
 pydocstyle = { convention = 'google' }
+
+[tool.ruff.lint.per-file-ignores]
+"opt_einsum/tests/*" = ["D", "T201"]
 
 [tool.coverage.run]
 source = ['opt_einsum']

@@ -1,6 +1,4 @@
-"""
-Required functions for optimized contractions of numpy arrays using jax.
-"""
+"""Required functions for optimized contractions of numpy arrays using jax."""
 
 from opt_einsum.sharing import to_backend_cache_wrap
 

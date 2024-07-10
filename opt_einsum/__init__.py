@@ -1,6 +1,4 @@
-"""
-Main init function for opt_einsum.
-"""
+"""Main init function for opt_einsum."""
 
 from opt_einsum import blas, helpers, path_random, paths
 from opt_einsum.contract import contract, contract_expression, contract_path
