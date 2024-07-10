@@ -86,3 +86,7 @@ source = ['opt_einsum']
 omit = ['*/tests/*', 'opt_einsum/_version.py']
 branch = true
 relative_files = true
+
+[[tool.mypy.overrides]]
+module = "cupy.*, jax.*, theano.*, tensorflow.*, torch.*"
+ignore_missing_imports = true

@@ -16,7 +16,7 @@ format-check:
 
 .PHONY: mypy
 mypy:
-	$(mypy)
+	mypy opt_einsum
 
 .PHONY: test
 test:

@@ -76,7 +76,7 @@ jobs:
         conda config --show
 
     - name: Lint
-      shell: bash
+      shell: bash -l {0}
       run: |
         set -e
         make format-check
