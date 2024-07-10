@@ -79,13 +79,11 @@ def check_path(test_output: PathType, benchmark: PathType, bypass: bool = False)
 
 
 def assert_contract_order(func: Any, test_data: Any, max_size: int, benchmark: PathType) -> None:
-
     test_output = func(test_data[0], test_data[1], test_data[2], max_size)
     assert check_path(test_output, benchmark)
 
 
 def test_size_by_dict() -> None:
-
     sizes_dict = {}
     for ind, val in zip("abcdez", [2, 5, 9, 11, 13, 0]):
         sizes_dict[ind] = val
@@ -105,7 +103,6 @@ def test_size_by_dict() -> None:
 
 
 def test_flop_cost() -> None:
-
     size_dict = {v: 10 for v in "abcdef"}
 
     # Loop over an array
@@ -138,7 +135,6 @@ def test_explicit_path() -> None:
 
 
 def test_path_optimal() -> None:
-
     test_func = oe.paths.optimal
 
     test_data = explicit_path_tests["GEMM1"]
@@ -147,7 +143,6 @@ def test_path_optimal() -> None:
 
 
 def test_path_greedy() -> None:
-
     test_func = oe.paths.greedy
 
     test_data = explicit_path_tests["GEMM1"]
@@ -156,7 +151,6 @@ def test_path_greedy() -> None:
 
 
 def test_memory_paths() -> None:
-
     expression = "abc,bdef,fghj,cem,mhk,ljk->adgl"
 
     views = build_shapes(expression)
@@ -197,7 +191,6 @@ def test_path_scalar_cases(alg: OptimizeKind, expression: str, order: PathType) 
 
 
 def test_optimal_edge_cases() -> None:
-
     # Edge test5
     expression = "a,ac,ab,ad,cd,bd,bc->"
     edge_test4 = build_shapes(expression, dimension_dict={"a": 20, "b": 20, "c": 20, "d": 20})
@@ -209,7 +202,6 @@ def test_optimal_edge_cases() -> None:
 
 
 def test_greedy_edge_cases() -> None:
-
     expression = "abc,cfd,dbe,efa"
     dim_dict = {k: 20 for k in expression.replace(",", "")}
     tensors = build_shapes(expression, dimension_dict=dim_dict)
@@ -313,7 +305,6 @@ def test_dp_errors_when_no_contractions_found() -> None:
 
 @pytest.mark.parametrize("optimize", ["greedy", "branch-2", "branch-all", "optimal", "dp"])
 def test_can_optimize_outer_products(optimize: OptimizeKind) -> None:
-
     a, b, c = [(10, 10) for _ in range(3)]
     d = (10, 2)
 
@@ -539,6 +530,5 @@ def test_optimizer_registration() -> None:
 
 
 def test_path_with_assumed_shapes() -> None:
-
     path, _ = oe.contract_path("ab,bc,cd", [[5, 3]], [[2], [4]], [[3, 2]])
     assert path == [(0, 1), (0, 1)]

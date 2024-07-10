@@ -316,8 +316,9 @@ def contract_path(
 
         if len(sh) != len(term):
             raise ValueError(
-                "Einstein sum subscript '{}' does not contain the "
-                "correct number of indices for operand {}.".format(input_list[tnum], tnum)
+                "Einstein sum subscript '{}' does not contain the " "correct number of indices for operand {}.".format(
+                    input_list[tnum], tnum
+                )
             )
         for cnum, char in enumerate(term):
             dim = int(sh[cnum])
@@ -328,8 +329,9 @@ def contract_path(
                     size_dict[char] = dim
                 elif dim not in (1, size_dict[char]):
                     raise ValueError(
-                        "Size of label '{}' for operand {} ({}) does not match previous "
-                        "terms ({}).".format(char, tnum, size_dict[char], dim)
+                        "Size of label '{}' for operand {} ({}) does not match previous " "terms ({}).".format(
+                            char, tnum, size_dict[char], dim
+                        )
                     )
             else:
                 size_dict[char] = dim
@@ -445,7 +447,6 @@ def _einsum(*operands: Any, **kwargs: Any) -> ArrayType:
 
     # Do we need to temporarily map indices into [a-z,A-Z] range?
     if not parser.has_valid_einsum_chars_only(einsum_str):
-
         # Explicitly find output str first so as to maintain order
         if "->" not in einsum_str:
             einsum_str += "->" + parser.find_output_str(einsum_str)
@@ -689,7 +690,6 @@ def _core_contract(
 
         # Call tensordot (check if should prefer einsum, but only if available)
         if blas_flag and ("EINSUM" not in blas_flag or no_einsum):  # type: ignore
-
             # Checks have already been handled
             input_str, results_index = einsum_str.split("->")
             input_left, input_right = input_str.split(",")
@@ -714,7 +714,6 @@ def _core_contract(
 
             # Build a new view if needed
             if (tensor_result != results_index) or handle_out:
-
                 transpose = tuple(map(tensor_result.index, results_index))
                 new_view = _transpose(new_view, axes=transpose, backend=backend)
 
@@ -911,8 +910,9 @@ class ContractExpression:
 
         if len(arrays) != correct_num_args:
             raise ValueError(
-                "This `ContractExpression` takes exactly {} array arguments "
-                "but received {}.".format(self.num_args, len(arrays))
+                "This `ContractExpression` takes exactly {} array arguments " "but received {}.".format(
+                    self.num_args, len(arrays)
+                )
             )
 
         if self._constants_dict and not evaluate_constants:
@@ -1061,8 +1061,9 @@ def contract_expression(
     for arg in ("out", "backend"):
         if kwargs.get(arg, None) is not None:
             raise ValueError(
-                "'{}' should only be specified when calling a "
-                "`ContractExpression`, not when building it.".format(arg)
+                "'{}' should only be specified when calling a " "`ContractExpression`, not when building it.".format(
+                    arg
+                )
             )
 
     if not isinstance(subscripts, str):

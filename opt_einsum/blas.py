@@ -6,7 +6,7 @@ from typing import List, Sequence, Tuple, Union
 
 from opt_einsum.typing import ArrayIndexType
 
-__all__ = ["can_blas", "tensor_blas"]
+__all__ = ["can_blas"]
 
 
 def can_blas(

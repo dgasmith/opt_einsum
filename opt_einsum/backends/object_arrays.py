@@ -47,7 +47,6 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
     inner_size = tuple(sizes[k] for k in inner)
 
     for coo_o in np.ndindex(*out_size):
-
         coord = dict(zip(output, coo_o))
 
         def gen_inner_sum():

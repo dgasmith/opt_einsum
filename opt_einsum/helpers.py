@@ -6,7 +6,7 @@ from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Tuple, over
 
 from opt_einsum.typing import ArrayIndexType, ArrayType
 
-__all__ = ["build_views", "compute_size_by_dict", "find_contraction", "flop_count"]
+__all__ = ["compute_size_by_dict", "find_contraction", "flop_count"]
 
 _valid_chars = "abcdefghijklmopqABC"
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]

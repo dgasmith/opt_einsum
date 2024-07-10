@@ -72,7 +72,6 @@ class RandomOptimizer(paths.PathOptimizer):
         parallel: Union[bool, Decimal, int] = False,
         pre_dispatch: int = 128,
     ):
-
         if minimize not in ("flops", "size"):
             raise ValueError("`minimize` should be one of {'flops', 'size'}.")
 
@@ -186,7 +185,6 @@ class RandomOptimizer(paths.PathOptimizer):
 
         # assess the trials
         for ssa_path, cost, size in trials:
-
             # keep track of all costs and sizes
             self.costs.append(cost)
             self.sizes.append(size)
@@ -328,7 +326,6 @@ def _trial_greedy_ssa_path_and_cost(
 
 
 class RandomGreedy(RandomOptimizer):
-
     def __init__(
         self,
         cost_fn: str = "memory-removed-jitter",

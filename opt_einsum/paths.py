@@ -243,7 +243,6 @@ def optimal(
     result_cache: Dict[Tuple[ArrayIndexType, ArrayIndexType], Tuple[FrozenSet[str], int]] = {}
 
     def _optimal_iterate(path, remaining, inputs, flops):
-
         # reached end of path (only ever get here if flops is best found so far)
         if len(remaining) == 1:
             best_flops["flops"] = flops
@@ -417,7 +416,6 @@ class BranchBound(PathOptimizer):
         result_cache: Dict[Tuple[FrozenSet[str], FrozenSet[str]], Tuple[FrozenSet[str], int]] = {}
 
         def _branch_iterate(path, inputs, remaining, flops, size):
-
             # reached end of path (only ever get here if flops is best found so far)
             if len(remaining) == 1:
                 self.best["size"] = size
@@ -687,7 +685,6 @@ def ssa_greedy_optimize(
 
     # Greedily contract pairs of tensors.
     while queue:
-
         con = choose_fn(queue, remaining)
         if con is None:
             continue  # allow choose_fn to flag all candidates obsolete
@@ -821,7 +818,7 @@ def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
     #
     # this function iterates through the table shown above from right to left;
 
-    if type(tree) == int:
+    if type(tree) == int:  # noqa: E721
         return []
 
     c: List[Tuple[Any, ...]] = [tree]  # list of remaining contractions (lower part of columns shown above)
@@ -832,11 +829,11 @@ def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
         j = c.pop(-1)
         s.insert(0, tuple())
 
-        for i in sorted([i for i in j if type(i) == int]):
+        for i in sorted([i for i in j if type(i) == int]):  # noqa: E721
             s[0] += (sum(1 for q in t if q < i),)
             t.insert(s[0][-1], i)
 
-        for i_tup in [i_tup for i_tup in j if type(i_tup) != int]:
+        for i_tup in [i_tup for i_tup in j if type(i_tup) != int]:  # noqa: E721
             s[0] += (len(t) + len(c),)
             c.append(i_tup)
 
@@ -1240,7 +1237,6 @@ class DynamicProgramming(PathOptimizer):
         all_tensors = (1 << len(inputs)) - 1
 
         for g in subgraphs:
-
             # dynamic programming approach to compute x[n] for subgraph g;
             # x[n][set of n tensors] = (indices, cost, contraction)
             # the set of n tensors is represented by a bitmap: if bit j is 1,
@@ -1277,7 +1273,6 @@ class DynamicProgramming(PathOptimizer):
                     for m in range(1, n // 2 + 1):
                         for s1, (i1, cost1, contract1) in x[m].items():
                             for s2, (i2, cost2, contract2) in x[n - m].items():
-
                                 # can only merge if s1 and s2 are disjoint
                                 # and avoid e.g. s1={0}, s2={1} and s1={1}, s2={0}
                                 if (not s1 & s2) and (m != n - m or s1 < s2):
@@ -1285,7 +1280,6 @@ class DynamicProgramming(PathOptimizer):
 
                                     # maybe ignore outer products:
                                     if _check_outer(i1_cut_i2_wo_output):
-
                                         i1_union_i2 = i1 | i2
                                         _check_contraction(
                                             cost1,
