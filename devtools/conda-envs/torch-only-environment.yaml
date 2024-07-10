@@ -4,16 +4,14 @@ channels:
   - conda-forge
 dependencies:
     # Base depends
-  - python >=3.9
+  - python >=3.8
   - pytorch::pytorch >=2.0,<3.0.0a
   - pytorch::cpuonly
   - mkl
 
     # Testing
-  - autoflake
-  - black 
   - codecov
-  - isort
   - mypy
   - pytest
   - pytest-cov
+  - ruff ==0.5.*
