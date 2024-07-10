@@ -88,5 +88,5 @@ branch = true
 relative_files = true
 
 [[tool.mypy.overrides]]
-module = "cupy.*, jax.*, theano.*, tensorflow.*, torch.*"
+module = "cupy.*, jax.*, numpy.*, theano.*, tensorflow.*, torch.*"
 ignore_missing_imports = true

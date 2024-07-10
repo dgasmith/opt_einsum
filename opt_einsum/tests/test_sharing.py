@@ -30,7 +30,7 @@ except ImportError:
     cupy_if_found = pytest.param("cupy", marks=[pytest.mark.skip(reason="CuPy not installed.")])  # type: ignore
 
 try:
-    import torch  # noqa
+    import torch  # type: ignore # noqa
 
     torch_if_found = "torch"
 except ImportError:

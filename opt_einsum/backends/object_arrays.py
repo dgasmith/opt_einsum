@@ -27,7 +27,7 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
     out : numpy.ndarray
         The output tensor, with ``dtype=object``.
     """
-    import numpy as np
+    import numpy as np  # type: ignore
 
     # when called by ``opt_einsum`` we will always be given a full eq
     lhs, output = eq.split("->")

@@ -12,7 +12,7 @@ def _get_tensorflow_and_device():
     global _CACHED_TF_DEVICE
 
     if _CACHED_TF_DEVICE is None:
-        import tensorflow as tf
+        import tensorflow as tf  # type: ignore
 
         try:
             eager = tf.executing_eagerly()

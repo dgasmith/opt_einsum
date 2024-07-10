@@ -59,7 +59,7 @@ _cached_funcs: Dict[Tuple[str, str], Any] = {
 }
 
 try:
-    import numpy as np
+    import numpy as np  # type: ignore
 
     _cached_funcs[("tensordot", "numpy")] = np.tensordot
     _cached_funcs[("transpose", "numpy")] = np.transpose

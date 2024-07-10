@@ -10,7 +10,7 @@ _JAX = None
 def _get_jax_and_to_jax():
     global _JAX
     if _JAX is None:
-        import jax
+        import jax  # type: ignore
 
         @to_backend_cache_wrap
         @jax.jit
@@ -29,7 +29,7 @@ def build_expression(_, expr):  # pragma: no cover
     jax_expr = jax.jit(expr._contract)
 
     def jax_contract(*arrays):
-        import numpy as np
+        import numpy as np  # type: ignore
 
         return np.asarray(jax_expr(arrays))
 

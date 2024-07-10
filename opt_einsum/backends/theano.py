@@ -9,7 +9,7 @@ __all__ = ["to_theano", "build_expression", "evaluate_constants"]
 @to_backend_cache_wrap(constants=True)
 def to_theano(array, constant=False):
     """Convert a numpy array to ``theano.tensor.TensorType`` instance."""
-    import theano
+    import theano  # type: ignore
 
     if has_array_interface(array):
         if constant:

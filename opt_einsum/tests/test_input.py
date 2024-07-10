@@ -2,7 +2,7 @@
 Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 """
 
-from typing import Any
+from typing import Any, List
 
 import pytest
 
@@ -12,7 +12,7 @@ from opt_einsum.typing import ArrayType
 np = pytest.importorskip("numpy")
 
 
-def build_views(string: str) -> list[ArrayType]:
+def build_views(string: str) -> List[ArrayType]:
     """Builds random numpy arrays for testing by using a fixed size dictionary and an input string."""
 
     chars = "abcdefghij"

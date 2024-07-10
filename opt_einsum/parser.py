@@ -1,8 +1,7 @@
 """A functionally equivalent parser of the numpy.einsum input parser."""
 
 import itertools
-from collections.abc import Sequence
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Sequence, Tuple
 
 from opt_einsum.typing import ArrayType, TensorShapeType
 
@@ -219,7 +218,7 @@ def possibly_convert_to_numpy(x: Any) -> Any:
     """
     if not hasattr(x, "shape"):
         try:
-            import numpy as np
+            import numpy as np  # type: ignore
         except ModuleNotFoundError:
             raise ModuleNotFoundError(
                 "numpy is required to convert non-array objects to arrays. This function will be deprecated in the future."
