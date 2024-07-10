@@ -7,7 +7,7 @@ import itertools
 import operator
 import random
 import re
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, defaultdict
 from typing import Any, Callable, Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tuple, Union
 from typing import Counter as CounterType
 
@@ -1219,7 +1219,7 @@ class DynamicProgramming(PathOptimizer):
             # tensor j is in the set, e.g. 0b100101 = {0,2,5}; set unions
             # (intersections) can then be computed by bitwise or (and);
             x: List[Any] = [None] * 2 + [{} for j in range(len(g) - 1)]
-            x[1] = OrderedDict((1 << j, (inputs[j], 0, inputs_contractions[j])) for j in g)
+            x[1] = {1 << j: (inputs[j], 0, inputs_contractions[j]) for j in g}
 
             # convert set of tensors g to a bitmap set:
             bitmap_g = functools.reduce(lambda x, y: x | y, (1 << j for j in g))
