@@ -1,12 +1,10 @@
-"""
-Determines if a contraction can use BLAS or not
-"""
+"""Determines if a contraction can use BLAS or not."""
 
 from typing import List, Sequence, Tuple, Union
 
 from opt_einsum.typing import ArrayIndexType
 
-__all__ = ["can_blas", "tensor_blas"]
+__all__ = ["can_blas"]
 
 
 def can_blas(
@@ -15,8 +13,7 @@ def can_blas(
     idx_removed: ArrayIndexType,
     shapes: Union[Sequence[Tuple[int]], None] = None,
 ) -> Union[str, bool]:
-    """
-    Checks if we can use a BLAS call.
+    """Checks if we can use a BLAS call.
 
     Parameters
     ----------
@@ -29,19 +26,19 @@ def can_blas(
     shapes : sequence of tuple[int], optional
         If given, check also that none of the indices are broadcast dimensions.
 
-    Returns
+    Returns:
     -------
     type : str or bool
         The type of BLAS call to be used or False if none.
 
-    Notes
+    Notes:
     -----
     We assume several operations are not efficient such as a transposed
     DDOT, therefore 'ijk,jki->' should prefer einsum. These return the blas
     type appended with "/EINSUM" to differentiate when they can still be done
     with tensordot if required, e.g. when a backend has no einsum.
 
-    Examples
+    Examples:
     --------
     >>> can_blas(['ij', 'jk'], 'ik', set('j'))
     'GEMM'

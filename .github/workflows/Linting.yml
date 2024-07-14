@@ -2,9 +2,9 @@ name: Linting
 
 on:
   push:
-    branches: master
+    branches: main
   pull_request:
-    branches: master
+    branches: main
 
 jobs:
   mypy:
@@ -46,26 +46,37 @@ jobs:
       run: |
         mypy opt_einsum
 
-  black:
-    name: Black
+  ruff:
+    name: Ruff
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.12]
+        environment: ["min-deps"]
+
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Python Setup
-      uses: actions/setup-python@v2.2.1
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: 3.8
+        python-version: ${{ matrix.python-version }}
+        mamba-version: "*"
+        channel-priority: true
+        activate-environment: test
+        environment-file: devtools/conda-envs/${{ matrix.environment }}-environment.yaml
 
-    - name: Create Environment
-      shell: bash
+    - name: Environment Information
+      shell: bash -l {0}
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install black
+        conda info
+        conda list
+        conda config --show-sources
+        conda config --show
 
     - name: Lint
-      shell: bash
+      shell: bash -l {0}
       run: |
         set -e
-        black opt_einsum --check
+        make format-check

@@ -2,7 +2,7 @@
 Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 """
 
-from typing import Any
+from typing import Any, List
 
 import pytest
 
@@ -12,12 +12,12 @@ from opt_einsum.typing import ArrayType
 np = pytest.importorskip("numpy")
 
 
-def build_views(string: str) -> list[ArrayType]:
+def build_views(string: str) -> List[ArrayType]:
     """Builds random numpy arrays for testing by using a fixed size dictionary and an input string."""
 
     chars = "abcdefghij"
     sizes_array = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
-    sizes = {c: s for c, s in zip(chars, sizes_array)}
+    sizes = dict(zip(chars, sizes_array))
 
     views = []
 
@@ -84,7 +84,7 @@ def test_type_errors() -> None:
         contract(views[0], [Ellipsis, 0], [Ellipsis, ["a"]])
 
     with pytest.raises(TypeError):
-        contract(views[0], [Ellipsis, dict()], [Ellipsis, "a"])
+        contract(views[0], [Ellipsis, {}], [Ellipsis, "a"])
 
 
 @pytest.mark.parametrize("contract_fn", [contract, contract_path])

@@ -1,6 +1,4 @@
-"""
-Types used in the opt_einsum package
-"""
+"""Types used in the opt_einsum package."""
 
 from collections import namedtuple
 from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Tuple, Union

@@ -9,10 +9,10 @@ from opt_einsum.testing import build_views
 try:
     # needed so tensorflow doesn't allocate all gpu mem
     try:
-        from tensorflow import ConfigProto
+        from tensorflow import ConfigProto  # type: ignore
         from tensorflow import Session as TFSession
     except ImportError:
-        from tensorflow.compat.v1 import ConfigProto
+        from tensorflow.compat.v1 import ConfigProto  # type: ignore
         from tensorflow.compat.v1 import Session as TFSession
     _TF_CONFIG = ConfigProto()
     _TF_CONFIG.gpu_options.allow_growth = True

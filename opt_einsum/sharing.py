@@ -1,5 +1,4 @@
-"""
-A module for sharing intermediates between contractions.
+"""A module for sharing intermediates between contractions.
 
 Copyright (c) 2018 Uber Technologies
 """
@@ -9,9 +8,8 @@ import functools
 import numbers
 import threading
 from collections import Counter, defaultdict
-from typing import Any
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 from typing import Counter as CounterType
-from typing import Dict, Generator, List, Optional, Tuple, Union
 
 from opt_einsum.parser import alpha_canonicalize, parse_einsum_input
 from opt_einsum.typing import ArrayType

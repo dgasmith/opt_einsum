@@ -1,6 +1,4 @@
-"""
-Required functions for optimized contractions of numpy arrays using pytorch.
-"""
+"""Required functions for optimized contractions of numpy arrays using pytorch."""
 
 from opt_einsum.helpers import has_array_interface
 from opt_einsum.parser import convert_to_valid_einsum_chars
@@ -26,7 +24,7 @@ def _get_torch_and_device():
     global _TORCH_HAS_TENSORDOT
 
     if _TORCH_DEVICE is None:
-        import torch
+        import torch  # type: ignore
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         _TORCH_DEVICE = torch, device

@@ -1,6 +1,4 @@
-"""
-Contains the primary optimization and contraction routines.
-"""
+"""Contains the primary optimization and contraction routines."""
 
 from decimal import Decimal
 from functools import lru_cache
@@ -63,7 +61,7 @@ class PathInfo:
         self.size_dict = size_dict
 
         self.shapes = [tuple(size_dict[k] for k in ks) for ks in input_subscripts.split(",")]
-        self.eq = "{}->{}".format(input_subscripts, output_subscript)
+        self.eq = f"{input_subscripts}->{output_subscript}"
         self.largest_intermediate = Decimal(max(size_list, default=1))
 
     def __repr__(self) -> str:
@@ -71,13 +69,13 @@ class PathInfo:
         header = ("scaling", "BLAS", "current", "remaining")
 
         path_print = [
-            "  Complete contraction:  {}\n".format(self.eq),
-            "         Naive scaling:  {}\n".format(len(self.indices)),
-            "     Optimized scaling:  {}\n".format(max(self.scale_list, default=0)),
-            "      Naive FLOP count:  {:.3e}\n".format(self.naive_cost),
-            "  Optimized FLOP count:  {:.3e}\n".format(self.opt_cost),
-            "   Theoretical speedup:  {:.3e}\n".format(self.speedup),
-            "  Largest intermediate:  {:.3e} elements\n".format(self.largest_intermediate),
+            f"  Complete contraction:  {self.eq}\n",
+            f"         Naive scaling:  {len(self.indices)}\n",
+            f"     Optimized scaling:  {max(self.scale_list, default=0)}\n",
+            f"      Naive FLOP count:  {self.naive_cost:.3e}\n",
+            f"  Optimized FLOP count:  {self.opt_cost:.3e}\n",
+            f"   Theoretical speedup:  {self.speedup:.3e}\n",
+            f"  Largest intermediate:  {self.largest_intermediate:.3e} elements\n",
             "-" * 80 + "\n",
             "{:>6} {:>11} {:>22} {:>37}\n".format(*header),
             "-" * 80,
@@ -181,8 +179,7 @@ def contract_path(
     shapes: bool = False,
     **kwargs: Any,
 ) -> Tuple[PathType, PathInfo]:
-    """
-      Find a contraction order `path`, without performing the contraction.
+    """Find a contraction order `path`, without performing the contraction.
 
     Parameters:
           subscripts: Specifies the subscripts for summation.
@@ -224,16 +221,16 @@ def contract_path(
 
           shapes: Whether ``contract_path`` should assume arrays (the default) or array shapes have been supplied.
 
-      Returns:
+    Returns:
           path: The optimized einsum contraciton path
           PathInfo: A printable object containing various information about the path found.
 
-      Notes:
+    Notes:
           The resulting path indicates which terms of the input contraction should be
           contracted first, the result of this contraction is then appended to the end of
           the contraction list.
 
-      Examples:
+    Examples:
           We can begin with a chain dot example. In this case, it is optimal to
           contract the b and c tensors represented by the first element of the path (1,
           2). The resulting tensor is added to the end of the contraction and the
@@ -316,8 +313,8 @@ def contract_path(
 
         if len(sh) != len(term):
             raise ValueError(
-                "Einstein sum subscript '{}' does not contain the "
-                "correct number of indices for operand {}.".format(input_list[tnum], tnum)
+                f"Einstein sum subscript '{input_list[tnum]}' does not contain the "
+                f"correct number of indices for operand {tnum}."
             )
         for cnum, char in enumerate(term):
             dim = int(sh[cnum])
@@ -328,8 +325,8 @@ def contract_path(
                     size_dict[char] = dim
                 elif dim not in (1, size_dict[char]):
                     raise ValueError(
-                        "Size of label '{}' for operand {} ({}) does not match previous "
-                        "terms ({}).".format(char, tnum, size_dict[char], dim)
+                        f"Size of label '{char}' for operand {tnum} ({size_dict[char]}) does not match previous "
+                        f"terms ({dim})."
                     )
             else:
                 size_dict[char] = dim
@@ -368,7 +365,7 @@ def contract_path(
     # Build contraction tuple (positions, gemm, einsum_str, remaining)
     for cnum, contract_inds in enumerate(path_tuple):
         # Make sure we remove inds from right to left
-        contract_inds = tuple(sorted(list(contract_inds), reverse=True))
+        contract_inds = tuple(sorted(contract_inds, reverse=True))
 
         contract_tuple = helpers.find_contraction(contract_inds, input_sets, output_set)
         out_inds, input_sets, idx_removed, idx_contract = contract_tuple
@@ -445,7 +442,6 @@ def _einsum(*operands: Any, **kwargs: Any) -> ArrayType:
 
     # Do we need to temporarily map indices into [a-z,A-Z] range?
     if not parser.has_valid_einsum_chars_only(einsum_str):
-
         # Explicitly find output str first so as to maintain order
         if "->" not in einsum_str:
             einsum_str += "->" + parser.find_output_str(einsum_str)
@@ -523,8 +519,7 @@ def contract(
     backend: BackendType = "auto",
     **kwargs: Any,
 ) -> ArrayType:
-    """
-    Evaluates the Einstein summation convention on the operands. A drop in
+    """Evaluates the Einstein summation convention on the operands. A drop in
     replacement for NumPy's einsum function that optimizes the order of contraction
     to reduce overall scaling at the cost of several intermediate arrays.
 
@@ -663,7 +658,6 @@ def _core_contract(
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
-
     # Special handling if out is specified
     specified_out = out is not None
 
@@ -689,7 +683,6 @@ def _core_contract(
 
         # Call tensordot (check if should prefer einsum, but only if available)
         if blas_flag and ("EINSUM" not in blas_flag or no_einsum):  # type: ignore
-
             # Checks have already been handled
             input_str, results_index = einsum_str.split("->")
             input_left, input_right = input_str.split(",")
@@ -714,7 +707,6 @@ def _core_contract(
 
             # Build a new view if needed
             if (tensor_result != results_index) or handle_out:
-
                 transpose = tuple(map(tensor_result.index, results_index))
                 new_view = _transpose(new_view, axes=transpose, backend=backend)
 
@@ -757,7 +749,7 @@ def format_const_einsum_str(einsum_str: str, constants: Iterable[int]) -> str:
     else:
         lhs, rhs, arrow = einsum_str, "", ""
 
-    wrapped_terms = ["[{}]".format(t) if i in constants else t for i, t in enumerate(lhs.split(","))]
+    wrapped_terms = [f"[{t}]" if i in constants else t for i, t in enumerate(lhs.split(","))]
 
     formatted_einsum_str = "{}{}{}".format(",".join(wrapped_terms), arrow, rhs)
 
@@ -904,15 +896,14 @@ class ContractExpression:
         Returns:
             The contracted result.
         """
-
         backend = parse_backend(arrays, backend)
 
         correct_num_args = self._full_num_args if evaluate_constants else self.num_args
 
         if len(arrays) != correct_num_args:
             raise ValueError(
-                "This `ContractExpression` takes exactly {} array arguments "
-                "but received {}.".format(self.num_args, len(arrays))
+                f"This `ContractExpression` takes exactly {self.num_args} array arguments "
+                f"but received {len(arrays)}."
             )
 
         if self._constants_dict and not evaluate_constants:
@@ -935,23 +926,23 @@ class ContractExpression:
             msg = (
                 "Internal error while evaluating `ContractExpression`. Note that few checks are performed"
                 " - the number and rank of the array arguments must match the original expression. "
-                "The internal error was: '{}'".format(original_msg),
+                f"The internal error was: '{original_msg}'",
             )
             err.args = msg
             raise
 
     def __repr__(self) -> str:
         if self._constants_dict:
-            constants_repr = ", constants={}".format(sorted(self._constants_dict))
+            constants_repr = f", constants={sorted(self._constants_dict)}"
         else:
             constants_repr = ""
-        return "<ContractExpression('{}'{})>".format(self.contraction, constants_repr)
+        return f"<ContractExpression('{self.contraction}'{constants_repr})>"
 
     def __str__(self) -> str:
         s = [self.__repr__()]
         for i, c in enumerate(self.contraction_list):
-            s.append("\n  {}.  ".format(i + 1))
-            s.append("'{}'".format(c[2]) + (" [{}]".format(c[-1]) if c[-1] else ""))
+            s.append(f"\n  {i + 1}.  ")
+            s.append(f"'{c[2]}'" + (f" [{c[-1]}]" if c[-1] else ""))
             kwargs = {"dtype": self.dtype, "order": self.order, "casting": self.casting}
             s.append(f"\neinsum_kwargs={kwargs}")
         return "".join(s)
@@ -1018,7 +1009,6 @@ def contract_expression(
         Callable with signature `expr(*arrays, out=None, backend='numpy')` where the array's shapes should match `shapes`.
 
     Notes:
-
         The `out` keyword argument should be supplied to the generated expression
         rather than this function.
         The `backend` keyword argument should also be supplied to the generated
@@ -1031,7 +1021,6 @@ def contract_expression(
         backend, then subsequently reused.
 
     Examples:
-
     Basic usage:
 
     ```python
@@ -1061,8 +1050,7 @@ def contract_expression(
     for arg in ("out", "backend"):
         if kwargs.get(arg, None) is not None:
             raise ValueError(
-                "'{}' should only be specified when calling a "
-                "`ContractExpression`, not when building it.".format(arg)
+                f"'{arg}' should only be specified when calling a " "`ContractExpression`, not when building it."
             )
 
     if not isinstance(subscripts, str):
@@ -1071,7 +1059,7 @@ def contract_expression(
     kwargs["_gen_expression"] = True
 
     # build dict of constant indices mapped to arrays
-    constants = constants or tuple()
+    constants = constants or ()
     constants_dict = {i: shapes[i] for i in constants}
     kwargs["_constants_dict"] = constants_dict
 

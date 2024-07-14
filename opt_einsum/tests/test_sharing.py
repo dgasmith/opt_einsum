@@ -16,7 +16,7 @@ from opt_einsum.typing import BackendType
 pytest.importorskip("numpy")
 
 try:
-    import numpy as np  # noqa # type: ignore
+    import numpy as np  # type: ignore
 
     numpy_if_found = "numpy"
 except ImportError:
@@ -30,7 +30,7 @@ except ImportError:
     cupy_if_found = pytest.param("cupy", marks=[pytest.mark.skip(reason="CuPy not installed.")])  # type: ignore
 
 try:
-    import torch  # noqa
+    import torch  # type: ignore # noqa
 
     torch_if_found = "torch"
 except ImportError:
@@ -89,8 +89,8 @@ def test_complete_sharing(backend: BackendType) -> None:
         actual = count_cached_ops(cache)
 
     print("-" * 40)
-    print("Without sharing: {} expressions".format(expected))
-    print("With sharing: {} expressions".format(actual))
+    print(f"Without sharing: {expected} expressions")
+    print(f"With sharing: {actual} expressions")
     assert actual == expected
 
 
@@ -115,8 +115,8 @@ def test_sharing_reused_cache(backend: BackendType) -> None:
         actual = count_cached_ops(cache)
 
     print("-" * 40)
-    print("Without sharing: {} expressions".format(expected))
-    print("With sharing: {} expressions".format(actual))
+    print(f"Without sharing: {expected} expressions")
+    print(f"With sharing: {actual} expressions")
     assert actual == expected
 
 
@@ -143,8 +143,8 @@ def test_no_sharing_separate_cache(backend: BackendType) -> None:
         actual.update(count_cached_ops(cache2))
 
     print("-" * 40)
-    print("Without sharing: {} expressions".format(expected))
-    print("With sharing: {} expressions".format(actual))
+    print(f"Without sharing: {expected} expressions")
+    print(f"With sharing: {actual} expressions")
     assert actual == expected
 
 
@@ -211,8 +211,8 @@ def test_sharing_modulo_commutativity(eq: str, backend: BackendType) -> None:
         actual = count_cached_ops(cache)
 
     print("-" * 40)
-    print("Without sharing: {} expressions".format(expected))
-    print("With sharing: {} expressions".format(actual))
+    print(f"Without sharing: {expected} expressions")
+    print(f"With sharing: {actual} expressions")
     assert actual == expected
 
 
@@ -241,8 +241,8 @@ def test_partial_sharing(backend: BackendType) -> None:
         num_exprs_sharing = count_cached_ops(cache)
 
     print("-" * 40)
-    print("Without sharing: {} expressions".format(num_exprs_nosharing))
-    print("With sharing: {} expressions".format(num_exprs_sharing))
+    print(f"Without sharing: {num_exprs_nosharing} expressions")
+    print(f"With sharing: {num_exprs_sharing} expressions")
     assert num_exprs_nosharing["einsum"] > num_exprs_sharing["einsum"]
 
 
@@ -278,7 +278,7 @@ def test_chain(size: int, backend: BackendType) -> None:
         print(inputs)
         for i in range(size + 1):
             target = alphabet[i]
-            eq = "{}->{}".format(inputs, target)
+            eq = f"{inputs}->{target}"
             path_info = contract_path(eq, *xs)
             print(path_info[1])
             expr = contract_expression(eq, *shapes)
@@ -299,7 +299,7 @@ def test_chain_2(size: int, backend: BackendType) -> None:
         print(inputs)
         for i in range(size):
             target = alphabet[i : i + 2]
-            eq = "{}->{}".format(inputs, target)
+            eq = f"{inputs}->{target}"
             path_info = contract_path(eq, *xs)
             print(path_info[1])
             expr = contract_expression(eq, *shapes)
@@ -325,15 +325,15 @@ def test_chain_2_growth(backend: BackendType) -> None:
         with shared_intermediates() as cache:
             for i in range(size):
                 target = alphabet[i : i + 2]
-                eq = "{}->{}".format(inputs, target)
+                eq = f"{inputs}->{target}"
                 expr = contract_expression(eq, *(x.shape for x in xs))
                 expr(*xs, backend=backend)
             costs.append(_compute_cost(cache))
 
-    print("sizes = {}".format(repr(sizes)))
-    print("costs = {}".format(repr(costs)))
+    print(f"sizes = {repr(sizes)}")
+    print(f"costs = {repr(costs)}")
     for size, cost in zip(sizes, costs):
-        print("{}\t{}".format(size, cost))
+        print(f"{size}\t{cost}")
 
 
 @pytest.mark.parametrize("size", [3, 4, 5])
@@ -348,7 +348,7 @@ def test_chain_sharing(size: int, backend: BackendType) -> None:
     for i in range(size + 1):
         with shared_intermediates() as cache:
             target = alphabet[i]
-            eq = "{}->{}".format(inputs, target)
+            eq = f"{inputs}->{target}"
             expr = contract_expression(eq, *tuple(x.shape for x in xs))
             expr(*xs, backend=backend)
             num_exprs_nosharing += _compute_cost(cache)
@@ -357,16 +357,16 @@ def test_chain_sharing(size: int, backend: BackendType) -> None:
         print(inputs)
         for i in range(size + 1):
             target = alphabet[i]
-            eq = "{}->{}".format(inputs, target)
+            eq = f"{inputs}->{target}"
             path_info = contract_path(eq, *xs)
             print(path_info[1])
-            expr = contract_expression(eq, *list(x.shape for x in xs))
+            expr = contract_expression(eq, *[x.shape for x in xs])
             expr(*xs, backend=backend)
         num_exprs_sharing = _compute_cost(cache)
 
     print("-" * 40)
-    print("Without sharing: {} expressions".format(num_exprs_nosharing))
-    print("With sharing: {} expressions".format(num_exprs_sharing))
+    print(f"Without sharing: {num_exprs_nosharing} expressions")
+    print(f"With sharing: {num_exprs_sharing} expressions")
     assert num_exprs_nosharing > num_exprs_sharing
 
 
@@ -374,11 +374,11 @@ def test_multithreaded_sharing() -> None:
     from multiprocessing.pool import ThreadPool
 
     def fn():
-        X, Y, Z = build_views("ab,bc,cd")
+        x, y, z = build_views("ab,bc,cd")
 
         with shared_intermediates():
-            contract("ab,bc,cd->a", X, Y, Z)
-            contract("ab,bc,cd->b", X, Y, Z)
+            contract("ab,bc,cd->a", x, y, z)
+            contract("ab,bc,cd->b", x, y, z)
 
             return len(get_sharing_cache())
 

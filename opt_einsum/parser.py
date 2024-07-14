@@ -1,10 +1,7 @@
-"""
-A functionally equivalent parser of the numpy.einsum input parser
-"""
+"""A functionally equivalent parser of the numpy.einsum input parser."""
 
 import itertools
-from collections.abc import Sequence
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Sequence, Tuple
 
 from opt_einsum.typing import ArrayType, TensorShapeType
 
@@ -107,7 +104,7 @@ def convert_to_valid_einsum_chars(einsum_str: str) -> str:
     valid for numpy einsum. If there are too many symbols, let the backend
     throw an error.
 
-    Examples
+    Examples:
     --------
     >>> oe.parser.convert_to_valid_einsum_chars("Ĥěļļö")
     'cbdda'
@@ -120,7 +117,7 @@ def convert_to_valid_einsum_chars(einsum_str: str) -> str:
 def alpha_canonicalize(equation: str) -> str:
     """Alpha convert an equation in an order-independent canonical way.
 
-    Examples
+    Examples:
     --------
     >>> oe.parser.alpha_canonicalize("dcba")
     'abcd'
@@ -138,11 +135,10 @@ def alpha_canonicalize(equation: str) -> str:
 
 
 def find_output_str(subscripts: str) -> str:
-    """
-    Find the output string for the inputs ``subscripts`` under canonical einstein summation rules.
+    """Find the output string for the inputs ``subscripts`` under canonical einstein summation rules.
     That is, repeated indices are summed over by default.
 
-    Examples
+    Examples:
     --------
     >>> oe.parser.find_output_str("ab,bc")
     'ac'
@@ -161,7 +157,7 @@ def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: 
     """Find the output shape for given inputs, shapes and output string, taking
     into account broadcasting.
 
-    Examples
+    Examples:
     --------
     >>> oe.parser.find_output_shape(["ab", "bc"], [(2, 3), (3, 4)], "ac")
     (2, 4)
@@ -182,11 +178,10 @@ def get_shape(x: Any) -> TensorShapeType:
     Array-like objects are those that have a `shape` attribute, are sequences of BaseTypes, or are BaseTypes.
     BaseTypes are defined as `bool`, `int`, `float`, `complex`, `str`, and `bytes`.
     """
-
     if hasattr(x, "shape"):
         return x.shape
     elif isinstance(x, _BaseTypes):
-        return tuple()
+        return ()
     elif isinstance(x, Sequence):
         shape = []
         while isinstance(x, Sequence) and not isinstance(x, _BaseTypes):
@@ -200,7 +195,7 @@ def get_shape(x: Any) -> TensorShapeType:
 def possibly_convert_to_numpy(x: Any) -> Any:
     """Convert things without a 'shape' to ndarrays, but leave everything else.
 
-    Examples
+    Examples:
     --------
     >>> oe.parser.possibly_convert_to_numpy(5)
     array(5)
@@ -221,10 +216,9 @@ def possibly_convert_to_numpy(x: Any) -> Any:
     >>> oe.parser.possibly_convert_to_numpy(myshape)
     <__main__.Shape object at 0x10f850710>
     """
-
     if not hasattr(x, "shape"):
         try:
-            import numpy as np
+            import numpy as np  # type: ignore
         except ModuleNotFoundError:
             raise ModuleNotFoundError(
                 "numpy is required to convert non-array objects to arrays. This function will be deprecated in the future."
@@ -238,7 +232,7 @@ def possibly_convert_to_numpy(x: Any) -> Any:
 def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     """Convert user custom subscripts list to subscript string according to `symbol_map`.
 
-    Examples
+    Examples:
     --------
     >>>  oe.parser.convert_subscripts(['abc', 'def'], {'abc':'a', 'def':'b'})
     'ab'
@@ -293,8 +287,7 @@ def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, 
 
 
 def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
-    """
-    A reproduction of einsum c side einsum parsing in python.
+    """A reproduction of einsum c side einsum parsing in python.
 
     Parameters:
         operands: Intakes the same inputs as `contract_path`, but NOT the keyword args. The only
@@ -302,7 +295,7 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
         shapes: Whether ``parse_einsum_input`` should assume arrays (the default) or
             array shapes have been supplied.
 
-    Returns
+    Returns:
         input_strings: Parsed input strings
         output_string: Parsed output string
         operands: The operands to use in the numpy contraction
@@ -320,14 +313,13 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
         ('za,xza', 'xz', [a, b])
         ```
     """
-
     if len(operands) == 0:
         raise ValueError("No input operands")
 
     if isinstance(operands[0], str):
         subscripts = operands[0].replace(" ", "")
         if shapes:
-            if any([hasattr(o, "shape") for o in operands[1:]]):
+            if any(hasattr(o, "shape") for o in operands[1:]):
                 raise ValueError(
                     "shapes is set to True but given at least one operand looks like an array"
                     " (at least one operand has a shape attribute). "
@@ -409,9 +401,9 @@ def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, L
     # Make sure output subscripts are unique and in the input
     for char in output_subscript:
         if output_subscript.count(char) != 1:
-            raise ValueError("Output character '{}' appeared more than once in the output.".format(char))
+            raise ValueError(f"Output character '{char}' appeared more than once in the output.")
         if char not in input_subscripts:
-            raise ValueError("Output character '{}' did not appear in the input".format(char))
+            raise ValueError(f"Output character '{char}' did not appear in the input")
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(",")) != len(operands):

@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: master
+    branches: main
   pull_request:
-    branches: master
+    branches: main
 
 jobs:
   miniconda-setup:
@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-         - python-version: 3.9
+         - python-version: 3.8
            environment: "min-deps"
          - python-version: 3.12
            environment: "min-deps"
