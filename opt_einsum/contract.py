@@ -281,7 +281,7 @@ def contract_path(
       #>    5               defg,hd->efgh                               efgh->efgh
       ```
     """
-    if optimize is True:
+    if (optimize is True) or (optimize is None):
         optimize = "auto"
 
     # Hidden option, only einsum should call this
@@ -341,9 +341,11 @@ def contract_path(
     naive_cost = helpers.flop_count(indices, inner_product, num_ops, size_dict)
 
     # Compute the path
-    if not isinstance(optimize, (str, paths.PathOptimizer)):
+    if optimize is False:
+        path_tuple: PathType = [tuple(range(num_ops))]
+    elif not isinstance(optimize, (str, paths.PathOptimizer)):
         # Custom path supplied
-        path_tuple: PathType = optimize  # type: ignore
+        path_tuple = optimize  # type: ignore
     elif num_ops <= 2:
         # Nothing to be optimized
         path_tuple = [tuple(range(num_ops))]
@@ -536,11 +538,12 @@ def contract(
             - `'branch-2'` An even more restricted version of 'branch-all' that
             only searches the best two options at each step. Scales exponentially
             with the number of terms in the contraction.
-            - `'auto'` Choose the best of the above algorithms whilst aiming to
+            - `'auto', None, True` Choose the best of the above algorithms whilst aiming to
             keep the path finding time below 1ms.
             - `'auto-hq'` Aim for a high quality contraction, choosing the best
             of the above algorithms whilst aiming to keep the path finding time
             below 1sec.
+            - `False` will not optimize the contraction.
 
         memory_limit:- Give the upper bound of the largest intermediate tensor contract will build.
             - None or -1 means there is no limit.
@@ -571,7 +574,7 @@ def contract(
         performed optimally. When NumPy is linked to a threaded BLAS, potential
         speedups are on the order of 20-100 for a six core machine.
     """
-    if optimize is True:
+    if (optimize is True) or (optimize is None):
         optimize = "auto"
 
     operands_list = [subscripts] + list(operands)
