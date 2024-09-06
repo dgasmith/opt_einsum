@@ -499,9 +499,10 @@ def branch(
     output: ArrayIndexType,
     size_dict: Dict[str, int],
     memory_limit: Optional[int] = None,
+    nbranch: Optional[int] = None,
     **optimizer_kwargs: Dict[str, Any],
 ) -> PathType:
-    optimizer = BranchBound(**optimizer_kwargs)  # type: ignore
+    optimizer = BranchBound(nbarnch=nbranch, **optimizer_kwargs)  # type: ignore
     return optimizer(inputs, output, size_dict, memory_limit)
 
 

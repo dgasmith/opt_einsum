@@ -8,7 +8,7 @@ NumPy has been removed from `opt_einsum` as a dependancy allowing for more flexi
 **New Features**
 
  - [\#160](https://github.com/dgasmith/opt_einsum/pull/160) Migrates docs to MkDocs Material and GitHub pages hosting.
- - [\#161](https://github.com/dgasmith/opt_einsum/pull/161) Add type annotations to the code base.
+ - [\#161](https://github.com/dgasmith/opt_einsum/pull/161) Adds Python type annotations to the code base.
  - [\#204](https://github.com/dgasmith/opt_einsum/pull/204) Removes NumPy as a hard dependancy.
 
 **Enhancements**
