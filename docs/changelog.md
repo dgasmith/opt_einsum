@@ -1,6 +1,35 @@
 Changelog
 =========
 
+## 3.4.0 / 2024-09-XX
+
+NumPy has been removed from `opt_einsum` as a dependancy allowing for more flexible installs.
+
+**New Features**
+
+ - [\#160](https://github.com/dgasmith/opt_einsum/pull/160) Migrates docs to MkDocs Material and GitHub pages hosting.
+ - [\#161](https://github.com/dgasmith/opt_einsum/pull/161) Add type annotations to the code base.
+ - [\#204](https://github.com/dgasmith/opt_einsum/pull/204) Removes NumPy as a hard dependancy.
+
+**Enhancements**
+
+- [\#154](https://github.com/dgasmith/opt_einsum/pull/154) Prevents an infinite recursion error when the `memory_limit` was set very low for the `dp` algorithm. 
+- [\#155](https://github.com/dgasmith/opt_einsum/pull/155) Adds flake8 spell check to the doc strings
+- [\#159](https://github.com/dgasmith/opt_einsum/pull/159) Migrates to GitHub actions for CI.
+- [\#174](https://github.com/dgasmith/opt_einsum/pull/174) Prevents double contracts of floats in dynamic paths.
+- [\#196](https://github.com/dgasmith/opt_einsum/pull/196) Allows `backend=None` which is equivalent to `backend='auto'`
+- [\#208](https://github.com/dgasmith/opt_einsum/pull/208) Switches to `ConfigParser` insetad of `SafeConfigParser` for Python 3.12 compatability. 
+- [\#228](https://github.com/dgasmith/opt_einsum/pull/228) `backend='jaxlib'` is now an alias for the `jax` library
+- [\#237](https://github.com/dgasmith/opt_einsum/pull/237) Switches to `ruff` for formatting and linting.
+- [\#238](https://github.com/dgasmith/opt_einsum/pull/238) Removes `numpy`-specific keyword args from being explicitly defined in `contract` and uses `**kwargs` instead.
+
+**Bug Fixes**
+
+- [\#195](https://github.com/dgasmith/opt_einsum/pull/195) Fixes a bug where `dp` would not work for scalar-only contractions.
+- [\#200](https://github.com/dgasmith/opt_einsum/pull/200) Fixes a bug where `parse_einsum_input` would not correctly respect shape-only contractions.
+- [\#222](https://github.com/dgasmith/opt_einsum/pull/222) Fixes an erorr in `parse_einsum_input` where an output subscript specified multiple times was not correctly caught. 
+- [\#229](https://github.com/dgasmith/opt_einsum/pull/229) Fixes a bug where empty contraction lists in `PathInfo` would cause an error.
+
 ## 3.3.0 / 2020-07-19
 
 Adds a `object` backend for optimized contractions on arbitrary Python objects.
