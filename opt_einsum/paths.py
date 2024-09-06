@@ -502,7 +502,7 @@ def branch(
     nbranch: Optional[int] = None,
     **optimizer_kwargs: Dict[str, Any],
 ) -> PathType:
-    optimizer = BranchBound(nbarnch=nbranch, **optimizer_kwargs)  # type: ignore
+    optimizer = BranchBound(nbranch=nbranch, **optimizer_kwargs)  # type: ignore
     return optimizer(inputs, output, size_dict, memory_limit)
 
 
