@@ -3,7 +3,7 @@ Changelog
 
 ## 3.4.0 / 2024-09-XX
 
-NumPy has been removed from `opt_einsum` as a dependancy allowing for more flexible installs.
+NumPy has been removed from `opt_einsum` as a dependency allowing for more flexible installs.
 
 **New Features**
 
