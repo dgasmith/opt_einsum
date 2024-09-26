@@ -16,6 +16,9 @@ jobs:
         environment: ["min-deps"]
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
 
     steps:
     - uses: actions/checkout@v4
@@ -29,7 +32,6 @@ jobs:
         environment-file: devtools/conda-envs/${{ matrix.environment }}-environment.yaml
 
     - name: Environment Information
-      shell: bash -l {0}
       run: |
         conda info
         conda list
@@ -37,14 +39,10 @@ jobs:
         conda config --show
 
     - name: Install
-      shell: bash -l {0}
-      run: |
-        python -m pip install . --no-deps
+      run: python -m pip install . --no-deps
 
     - name: MyPy
-      shell: bash -l {0}
-      run: |
-        mypy opt_einsum
+      run: mypy opt_einsum
 
   ruff:
     name: Ruff
@@ -55,6 +53,9 @@ jobs:
         environment: ["min-deps"]
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
 
     steps:
     - uses: actions/checkout@v2
@@ -68,7 +69,6 @@ jobs:
         environment-file: devtools/conda-envs/${{ matrix.environment }}-environment.yaml
 
     - name: Environment Information
-      shell: bash -l {0}
       run: |
         conda info
         conda list
@@ -76,7 +76,6 @@ jobs:
         conda config --show
 
     - name: Lint
-      shell: bash -l {0}
       run: |
         set -e
         make format-check

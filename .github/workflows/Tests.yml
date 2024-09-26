@@ -25,6 +25,9 @@ jobs:
            environment: "torch-only"
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
 
     steps:
     - uses: actions/checkout@v4
@@ -38,7 +41,6 @@ jobs:
         environment-file: devtools/conda-envs/${{ matrix.environment }}-environment.yaml
 
     - name: Environment Information
-      shell: bash -l {0}
       run: |
         conda info
         conda list
@@ -51,17 +53,14 @@ jobs:
         python devtools/ci_scripts/check_no_numpy.py
 
     - name: Install
-      shell: bash -l {0}
       run: |
         python -m pip install . --no-deps
 
     - name: Test
-      shell: bash -l {0}
       run: |
         pytest -v --cov=opt_einsum opt_einsum/ --cov-report=xml
 
     - name: Coverage
-      shell: bash -l {0}
       run: |
         coverage report
 
