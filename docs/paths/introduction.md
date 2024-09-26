@@ -3,7 +3,7 @@
 Performing an optimized tensor contraction to speed up `einsum` involves two
 key stages:
 
-1. Finding a pairwise contraction order, or **'path'**.
+1. Finding a pairwise contraction order, or `path`.
 2. Performing the sequence of contractions given this path.
 
 The better the quality of path found in the first step, the quicker the actual
