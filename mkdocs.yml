@@ -63,6 +63,7 @@ extra:
   version:
     provider: mike
     default: stable
+    javascript_dir: javascript
 
 extra_javascript:
   - javascript/config.js
