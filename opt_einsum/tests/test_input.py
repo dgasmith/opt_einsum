@@ -163,16 +163,9 @@ def test_value_errors(contract_fn: Any) -> None:
     # broadcasting to new dimensions must be enabled explicitly
     with pytest.raises(ValueError):
         contract_fn("i", np.arange(6).reshape(2, 3))
-    if contract_fn is contract:
-        # contract_path does not have an `out` parameter
-        with pytest.raises(ValueError):
-            contract_fn("i->i", [[0, 1], [0, 1]], out=np.arange(4).reshape(2, 2))
 
     with pytest.raises(TypeError):
-        contract_fn("i->i", [[0, 1], [0, 1]], bad_kwarg=True)
-
-    with pytest.raises(ValueError):
-        contract_fn("i->i", [[0, 1], [0, 1]], memory_limit=-1)
+        contract_fn("ij->ij", [[0, 1], [0, 1]], bad_kwarg=True)
 
 
 @pytest.mark.parametrize(

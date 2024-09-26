@@ -14,6 +14,7 @@ from opt_einsum.typing import OptimizeKind
 # NumPy is required for the majority of this file
 np = pytest.importorskip("numpy")
 
+
 tests = [
     # Test scalar-like operations
     "a,->a",
@@ -97,6 +98,18 @@ tests = [
     "dba,ead,cad->bce",
     "aef,fbc,dca->bde",
 ]
+
+
+@pytest.mark.parametrize("optimize", (True, False, None))
+def test_contract_plain_types(optimize: OptimizeKind) -> None:
+    expr = "ij,jk,kl->il"
+    ops = [np.random.rand(2, 2), np.random.rand(2, 2), np.random.rand(2, 2)]
+
+    path = contract_path(expr, *ops, optimize=optimize)
+    assert len(path) == 2
+
+    result = contract(expr, *ops, optimize=optimize)
+    assert result.shape == (2, 2)
 
 
 @pytest.mark.parametrize("string", tests)

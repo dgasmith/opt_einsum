@@ -7,7 +7,7 @@ dependencies:
 
     # Testing
   - codecov
-  - mypy
+  - mypy ==1.11*
   - pytest
   - pytest-cov
-  - ruff ==0.5.*
+  - ruff ==0.6.*
