@@ -76,4 +76,4 @@ jobs:
     - name: Lint
       run: |
         set -e
-        make format-check
+        make fmt-check
