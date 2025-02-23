@@ -8,17 +8,24 @@ import pytest
 from opt_einsum.parser import get_symbol
 from opt_einsum.typing import ArrayType, PathType, TensorShapeType
 
-_valid_chars = "abcdefghijklmopqABC"
-_sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4]
+_no_collision_chars = "".join(chr(i) for i in range(7000, 7007))
+_valid_chars = "abcdefghijklmnopqABC" + _no_collision_chars
+_sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4, 9, 10, 2, 4, 5, 3, 2, 6]
 _default_dim_dict = dict(zip(_valid_chars, _sizes))
+assert len(_valid_chars) == len(
+    _sizes
+), f"Valid characters and sizes must be the same length: {len(_valid_chars)} != {len(_sizes)}"
 
 
-def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -> Tuple[TensorShapeType, ...]:
+def build_shapes(
+    string: str, dimension_dict: Optional[Dict[str, int]] = None, replace_ellipsis: bool = False
+) -> Tuple[TensorShapeType, ...]:
     """Builds random tensor shapes for testing.
 
     Parameters:
         string: List of tensor strings to build
         dimension_dict: Dictionary of index sizes, defaults to indices size of 2-7
+        replace_ellipsis: Replace ellipsis with a string of no collision characters
 
     Returns:
         The resulting shapes.
@@ -34,6 +41,14 @@ def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -
     if dimension_dict is None:
         dimension_dict = _default_dim_dict
 
+    if "..." in string:
+        if replace_ellipsis is False:
+            raise ValueError(
+                "Ellipsis found in string but `replace_ellipsis=False`, use `replace_ellipsis=True` if this behavior is desired."
+            )
+        ellipse_replace = _no_collision_chars[:3]
+        string = string.replace("...", ellipse_replace)
+
     shapes = []
     terms = string.split("->")[0].split(",")
     for term in terms:
@@ -43,7 +58,10 @@ def build_shapes(string: str, dimension_dict: Optional[Dict[str, int]] = None) -
 
 
 def build_views(
-    string: str, dimension_dict: Optional[Dict[str, int]] = None, array_function: Optional[Any] = None
+    string: str,
+    dimension_dict: Optional[Dict[str, int]] = None,
+    array_function: Optional[Any] = None,
+    replace_ellipsis: bool = False,
 ) -> Tuple[ArrayType]:
     """Builds random numpy arrays for testing.
 
@@ -51,6 +69,7 @@ def build_views(
         string: List of tensor strings to build
         dimension_dict: Dictionary of index _sizes
         array_function: Function to build the arrays, defaults to np.random.rand
+        replace_ellipsis: Replace ellipsis with a string of no collision characters
 
     Returns:
         The resulting views.
@@ -68,7 +87,7 @@ def build_views(
         array_function = np.random.rand
 
     views = []
-    for shape in build_shapes(string, dimension_dict=dimension_dict):
+    for shape in build_shapes(string, dimension_dict=dimension_dict, replace_ellipsis=replace_ellipsis):
         if shape:
             views.append(array_function(*shape))
         else:

@@ -4,13 +4,18 @@
 install:
 	pip install -e .
 
-.PHONY: format
-format:
+.PHONY: fmt
+fmt:
 	ruff check opt_einsum --fix
 	ruff format opt_einsum
 
-.PHONY: format-check
-format-check:
+.PHONY: fmt-unsafe
+fmt-unsafe:
+	ruff check opt_einsum --fix --unsafe-fixes
+	ruff format opt_einsum
+
+.PHONY: fmt-check
+fmt-check:
 	ruff check opt_einsum
 	ruff format --check opt_einsum
 

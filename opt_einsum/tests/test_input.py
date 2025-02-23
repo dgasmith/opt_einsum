@@ -2,32 +2,14 @@
 Tests the input parsing for opt_einsum. Duplicates the np.einsum input tests.
 """
 
-from typing import Any, List
+from typing import Any
 
 import pytest
 
 from opt_einsum import contract, contract_path
-from opt_einsum.typing import ArrayType
+from opt_einsum.testing import build_views
 
 np = pytest.importorskip("numpy")
-
-
-def build_views(string: str) -> List[ArrayType]:
-    """Builds random numpy arrays for testing by using a fixed size dictionary and an input string."""
-
-    chars = "abcdefghij"
-    sizes_array = np.array([2, 3, 4, 5, 4, 3, 2, 6, 5, 4])
-    sizes = dict(zip(chars, sizes_array))
-
-    views = []
-
-    string = string.replace("...", "ij")
-
-    terms = string.split("->")[0].split(",")
-    for term in terms:
-        dims = [sizes[x] for x in term]
-        views.append(np.random.rand(*dims))
-    return views
 
 
 def test_type_errors() -> None:
@@ -77,7 +59,7 @@ def test_type_errors() -> None:
 
     # Catch ellipsis errors
     string = "...a->...a"
-    views = build_views(string)
+    views = build_views(string, replace_ellipsis=True)
 
     # Subscript list must contain Ellipsis or (hashable && comparable) object
     with pytest.raises(TypeError):
@@ -181,7 +163,7 @@ def test_value_errors(contract_fn: Any) -> None:
     ],
 )
 def test_compare(string: str) -> None:
-    views = build_views(string)
+    views = build_views(string, replace_ellipsis=True)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(string, *views)
@@ -193,7 +175,7 @@ def test_compare(string: str) -> None:
 
 def test_ellipse_input1() -> None:
     string = "...a->..."
-    views = build_views(string)
+    views = build_views(string, replace_ellipsis=True)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(views[0], [Ellipsis, 0], [Ellipsis])
@@ -202,7 +184,7 @@ def test_ellipse_input1() -> None:
 
 def test_ellipse_input2() -> None:
     string = "...a"
-    views = build_views(string)
+    views = build_views(string, replace_ellipsis=True)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(views[0], [Ellipsis, 0])
@@ -211,7 +193,7 @@ def test_ellipse_input2() -> None:
 
 def test_ellipse_input3() -> None:
     string = "...a->...a"
-    views = build_views(string)
+    views = build_views(string, replace_ellipsis=True)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(views[0], [Ellipsis, 0], [Ellipsis, 0])
@@ -220,7 +202,7 @@ def test_ellipse_input3() -> None:
 
 def test_ellipse_input4() -> None:
     string = "...b,...a->..."
-    views = build_views(string)
+    views = build_views(string, replace_ellipsis=True)
 
     ein = contract(string, *views, optimize=False)
     opt = contract(views[0], [Ellipsis, 1], views[1], [Ellipsis, 0], [Ellipsis])
