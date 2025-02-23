@@ -150,6 +150,18 @@ def test_value_errors(contract_fn: Any) -> None:
         contract_fn("ij->ij", [[0, 1], [0, 1]], bad_kwarg=True)
 
 
+def test_input_formats_shapes():
+    """
+    Test that the shapes are the same for the bench and interleved input formats
+    """
+    shape1 = (2, 3, 4)
+    shape2 = (3, 4, 5)
+
+    bench = contract_path("abc,bcd->da", shape1, shape2, shapes=True)
+    interleved = contract_path(shape1, [1, 2, 3], shape2, [2, 3, 4], [4, 1], shapes=True)
+    assert bench[0] == interleved[0]
+
+
 @pytest.mark.parametrize(
     "string",
     [
