@@ -62,7 +62,7 @@ def build_views(
     dimension_dict: Optional[Dict[str, int]] = None,
     array_function: Optional[Any] = None,
     replace_ellipsis: bool = False,
-) -> Tuple[ArrayType]:
+) -> Tuple[ArrayType, ...]:
     """Builds random numpy arrays for testing.
 
     Parameters:
