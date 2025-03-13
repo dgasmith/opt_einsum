@@ -28,4 +28,4 @@ jobs:
     # Only deploy if main, otherwise just build for testing
     - name: Deploy
       if: endsWith(github.ref, '/main')
-      run: mkdocs gh-deploy --force
+      run: mike deploy --push --update-aliases latest
