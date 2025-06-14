@@ -1,0 +1,2493 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../examples/large_expr_with_greedy/">
+      
+      
+        <link rel="next" href="../changelog/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>API Reference - Optimized Einsum</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../css/custom.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-documentation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Optimized Einsum" class="md-header__button md-logo" aria-label="Optimized Einsum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Optimized Einsum
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dgasmith/opt_einsum" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dgasmith/opt_einsum
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Optimized Einsum" class="md-nav__button md-logo" aria-label="Optimized Einsum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Optimized Einsum
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dgasmith/opt_einsum" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dgasmith/opt_einsum
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/input_format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Input Format
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/backends/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Backends & GPU Support
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/reusing_paths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reusing Paths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/sharing_intermediates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Sharing Intermediates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Path Information
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Path Information
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/optimal_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Optimal Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/branching_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Branching Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/greedy_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Greedy Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/random_greedy_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Random-Greedy Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/dp_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Dynamic Programming Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/custom_paths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom Path Optimizers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/dask_reusing_intermediaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reusing Intermediaries with Dask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/large_expr_with_greedy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Large Expressions with Greedy
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+      </a>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api-documentation">API Documentation</h1>
+<h3 id="opt_einsumcontract"><code>opt_einsum.contract</code></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h1 id="opt_einsum.contract.contract" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">contract</span>
+
+
+</h1>
+          <div class="doc-overloads">
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="subscripts (opt_einsum.contract.contract(subscripts))" href="#opt_einsum.contract.contract(subscripts)">subscripts</a></span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+    <span class="o">*</span><span class="n"><a class="autorefs autorefs-internal" title="*operands (opt_einsum.contract.contract(*operands))" href="#opt_einsum.contract.contract(*operands)">operands</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="out (opt_einsum.contract.contract(out))" href="#opt_einsum.contract.contract(out)">out</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="use_blas (opt_einsum.contract.contract(use_blas))" href="#opt_einsum.contract.contract(use_blas)">use_blas</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="optimize (opt_einsum.contract.contract(optimize))" href="#opt_einsum.contract.contract(optimize)">optimize</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="memory_limit (opt_einsum.contract.contract(memory_limit))" href="#opt_einsum.contract.contract(memory_limit)">memory_limit</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="backend (opt_einsum.contract.contract(backend))" href="#opt_einsum.contract.contract(backend)">backend</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.BackendType">BackendType</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span>
+</code></pre></div><div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="subscripts (opt_einsum.contract.contract(subscripts))" href="#opt_einsum.contract.contract(subscripts)">subscripts</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span>
+    <span class="o">*</span><span class="n"><a class="autorefs autorefs-internal" title="*operands (opt_einsum.contract.contract(*operands))" href="#opt_einsum.contract.contract(*operands)">operands</a></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span> <span class="n"><span title="typing.Collection">Collection</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]],</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="out (opt_einsum.contract.contract(out))" href="#opt_einsum.contract.contract(out)">out</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="use_blas (opt_einsum.contract.contract(use_blas))" href="#opt_einsum.contract.contract(use_blas)">use_blas</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="optimize (opt_einsum.contract.contract(optimize))" href="#opt_einsum.contract.contract(optimize)">optimize</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="memory_limit (opt_einsum.contract.contract(memory_limit))" href="#opt_einsum.contract.contract(memory_limit)">memory_limit</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="backend (opt_einsum.contract.contract(backend))" href="#opt_einsum.contract.contract(backend)">backend</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.BackendType">BackendType</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span>
+</code></pre></div>          </div>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="subscripts (opt_einsum.contract.contract(subscripts))" href="#opt_einsum.contract.contract(subscripts)">subscripts</a></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">],</span>
+    <span class="o">*</span><span class="n"><a class="autorefs autorefs-internal" title="*operands (opt_einsum.contract.contract(*operands))" href="#opt_einsum.contract.contract(*operands)">operands</a></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span> <span class="n"><span title="typing.Collection">Collection</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]],</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="out (opt_einsum.contract.contract(out))" href="#opt_einsum.contract.contract(out)">out</a></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="use_blas (opt_einsum.contract.contract(use_blas))" href="#opt_einsum.contract.contract(use_blas)">use_blas</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="optimize (opt_einsum.contract.contract(optimize))" href="#opt_einsum.contract.contract(optimize)">optimize</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="memory_limit (opt_einsum.contract.contract(memory_limit))" href="#opt_einsum.contract.contract(memory_limit)">memory_limit</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="backend (opt_einsum.contract.contract(backend))" href="#opt_einsum.contract.contract(backend)">backend</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.BackendType">BackendType</span></span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Evaluates the Einstein summation convention on the operands. A drop in
+replacement for NumPy's einsum function that optimizes the order of contraction
+to reduce overall scaling at the cost of several intermediate arrays.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract(subscripts)" class="doc doc-heading doc-heading-parameter">              <b><code>subscripts</code></b>
+</h2>              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="opt_einsum.typing.ArrayType">ArrayType</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Specifies the subscripts for summation.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract(*operands)" class="doc doc-heading doc-heading-parameter">              <b><code>*operands</code></b>
+</h2>              (<code><span title="typing.Union">Union</span>[<span title="opt_einsum.typing.ArrayType">ArrayType</span>, <span title="typing.Collection">Collection</span>[<span title="int">int</span>]]</code>, default:
+                  <code>()</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>These are the arrays for the operation.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract(out)" class="doc doc-heading doc-heading-parameter">              <b><code>out</code></b>
+</h2>              (<code><span title="typing.Optional">Optional</span>[<span title="opt_einsum.typing.ArrayType">ArrayType</span>]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>A output array in which set the resulting output.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract(use_blas)" class="doc doc-heading doc-heading-parameter">              <b><code>use_blas</code></b>
+</h2>              (<code><span title="bool">bool</span></code>, default:
+                  <code>True</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Do you use BLAS for valid operations, may use extra memory for more intermediates.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract(optimize)" class="doc doc-heading doc-heading-parameter">              <b><code>optimize</code></b>
+</h2>              (<code><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></code>, default:
+                  <code>True</code>
+)
+          –
+          <div class="doc-md-description">
+            <ul>
+<li>Choose the type of path the contraction will be optimized with</li>
+<li>if a list is given uses this as the path.</li>
+<li><code>'optimal'</code> An algorithm that explores all possible ways of
+contracting the listed tensors. Scales factorially with the number of
+terms in the contraction.</li>
+<li><code>'dp'</code> A faster (but essentially optimal) algorithm that uses
+dynamic programming to exhaustively search all contraction paths
+without outer-products.</li>
+<li><code>'greedy'</code> An cheap algorithm that heuristically chooses the best
+pairwise contraction at each step. Scales linearly in the number of
+terms in the contraction.</li>
+<li><code>'random-greedy'</code> Run a randomized version of the greedy algorithm
+32 times and pick the best path.</li>
+<li><code>'random-greedy-128'</code> Run a randomized version of the greedy
+algorithm 128 times and pick the best path.</li>
+<li><code>'branch-all'</code> An algorithm like optimal but that restricts itself
+to searching 'likely' paths. Still scales factorially.</li>
+<li><code>'branch-2'</code> An even more restricted version of 'branch-all' that
+only searches the best two options at each step. Scales exponentially
+with the number of terms in the contraction.</li>
+<li><code>'auto', None, True</code> Choose the best of the above algorithms whilst aiming to
+keep the path finding time below 1ms.</li>
+<li><code>'auto-hq'</code> Aim for a high quality contraction, choosing the best
+of the above algorithms whilst aiming to keep the path finding time
+below 1sec.</li>
+<li><code>False</code> will not optimize the contraction.</li>
+</ul>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract(memory_limit)" class="doc doc-heading doc-heading-parameter">              <b><code>memory_limit</code></b>
+</h2>              (<code><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <ul>
+<li>Give the upper bound of the largest intermediate tensor contract will build.</li>
+<li>None or -1 means there is no limit.</li>
+<li><code>max_input</code> means the limit is set as largest input tensor.</li>
+<li>A positive integer is taken as an explicit limit on the number of elements.</li>
+</ul>
+<p>The default is None. Note that imposing a limit can make contractions
+exponentially slower to perform.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract(backend)" class="doc doc-heading doc-heading-parameter">              <b><code>backend</code></b>
+</h2>              (<code><span title="opt_einsum.typing.BackendType">BackendType</span></code>, default:
+                  <code>&#39;auto&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Which library to use to perform the required <code>tensordot</code>, <code>transpose</code>
+and <code>einsum</code> calls. Should match the types of arrays supplied, See
+<code>contract_expression</code> for generating expressions which convert
+numpy arrays to and from the backend library automatically.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="opt_einsum.typing.ArrayType">ArrayType</span></code>
+          –
+          <div class="doc-md-description">
+            <p>The result of the einsum expression.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<details class="notes" open>
+  <summary>Notes</summary>
+  <p>This function should produce a result identical to that of NumPy's einsum
+function. The primary difference is <code>contract</code> will attempt to form
+intermediates which reduce the overall scaling of the given einsum contraction.
+By default the worst intermediate formed will be equal to that of the largest
+input array. For large einsum expressions with many input arrays this can
+provide arbitrarily large (1000 fold+) speed improvements.</p>
+<p>For contractions with just two tensors this function will attempt to use
+NumPy's built-in BLAS functionality to ensure that the given operation is
+performed optimally. When NumPy is linked to a threaded BLAS, potential
+speedups are on the order of 20-100 for a six core machine.</p>
+</details>
+
+    </div>
+
+</div><h3 id="opt_einsumcontract_path"><code>opt_einsum.contract_path</code></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h1 id="opt_einsum.contract.contract_path" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">contract_path</span>
+
+
+</h1>
+          <div class="doc-overloads">
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract_path</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="subscripts (opt_einsum.contract.contract_path(subscripts))" href="#opt_einsum.contract.contract_path(subscripts)">subscripts</a></span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+    <span class="o">*</span><span class="n"><a class="autorefs autorefs-internal" title="*operands (opt_einsum.contract.contract_path(*operands))" href="#opt_einsum.contract.contract_path(*operands)">operands</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="use_blas (opt_einsum.contract.contract_path(use_blas))" href="#opt_einsum.contract.contract_path(use_blas)">use_blas</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="optimize (opt_einsum.contract.contract_path(optimize))" href="#opt_einsum.contract.contract_path(optimize)">optimize</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="memory_limit (opt_einsum.contract.contract_path(memory_limit))" href="#opt_einsum.contract.contract_path(memory_limit)">memory_limit</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="shapes (opt_einsum.contract.contract_path(shapes))" href="#opt_einsum.contract.contract_path(shapes)">shapes</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract_path(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Tuple">Tuple</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            PathInfo (opt_einsum.contract.PathInfo)" href="#opt_einsum.contract.PathInfo">PathInfo</a></span><span class="p">]</span>
+</code></pre></div><div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract_path</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="subscripts (opt_einsum.contract.contract_path(subscripts))" href="#opt_einsum.contract.contract_path(subscripts)">subscripts</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span>
+    <span class="o">*</span><span class="n"><a class="autorefs autorefs-internal" title="*operands (opt_einsum.contract.contract_path(*operands))" href="#opt_einsum.contract.contract_path(*operands)">operands</a></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span> <span class="n"><span title="typing.Collection">Collection</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]],</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="use_blas (opt_einsum.contract.contract_path(use_blas))" href="#opt_einsum.contract.contract_path(use_blas)">use_blas</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="optimize (opt_einsum.contract.contract_path(optimize))" href="#opt_einsum.contract.contract_path(optimize)">optimize</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="memory_limit (opt_einsum.contract.contract_path(memory_limit))" href="#opt_einsum.contract.contract_path(memory_limit)">memory_limit</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="shapes (opt_einsum.contract.contract_path(shapes))" href="#opt_einsum.contract.contract_path(shapes)">shapes</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract_path(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Tuple">Tuple</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            PathInfo (opt_einsum.contract.PathInfo)" href="#opt_einsum.contract.PathInfo">PathInfo</a></span><span class="p">]</span>
+</code></pre></div>          </div>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract_path</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="subscripts (opt_einsum.contract.contract_path(subscripts))" href="#opt_einsum.contract.contract_path(subscripts)">subscripts</a></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
+    <span class="o">*</span><span class="n"><a class="autorefs autorefs-internal" title="*operands (opt_einsum.contract.contract_path(*operands))" href="#opt_einsum.contract.contract_path(*operands)">operands</a></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="use_blas (opt_einsum.contract.contract_path(use_blas))" href="#opt_einsum.contract.contract_path(use_blas)">use_blas</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="optimize (opt_einsum.contract.contract_path(optimize))" href="#opt_einsum.contract.contract_path(optimize)">optimize</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="memory_limit (opt_einsum.contract.contract_path(memory_limit))" href="#opt_einsum.contract.contract_path(memory_limit)">memory_limit</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="shapes (opt_einsum.contract.contract_path(shapes))" href="#opt_einsum.contract.contract_path(shapes)">shapes</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract_path(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Tuple">Tuple</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            PathInfo (opt_einsum.contract.PathInfo)" href="#opt_einsum.contract.PathInfo">PathInfo</a></span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Find a contraction order <code>path</code>, without performing the contraction.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract_path(subscripts)" class="doc doc-heading doc-heading-parameter">              <b><code>subscripts</code></b>
+</h2>              (<code><span title="typing.Any">Any</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>Specifies the subscripts for summation.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract_path(*operands)" class="doc doc-heading doc-heading-parameter">              <b><code>*operands</code></b>
+</h2>              (<code><span title="typing.Any">Any</span></code>, default:
+                  <code>()</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>These are the arrays for the operation.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract_path(use_blas)" class="doc doc-heading doc-heading-parameter">              <b><code>use_blas</code></b>
+</h2>              (<code><span title="bool">bool</span></code>, default:
+                  <code>True</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Do you use BLAS for valid operations, may use extra memory for more intermediates.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract_path(optimize)" class="doc doc-heading doc-heading-parameter">              <b><code>optimize</code></b>
+</h2>              (<code><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></code>, default:
+                  <code>True</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Choose the type of path the contraction will be optimized with.
+- if a list is given uses this as the path.
+- <code>'optimal'</code> An algorithm that explores all possible ways of
+contracting the listed tensors. Scales factorially with the number of
+terms in the contraction.
+- <code>'dp'</code> A faster (but essentially optimal) algorithm that uses
+dynamic programming to exhaustively search all contraction paths
+without outer-products.
+- <code>'greedy'</code> An cheap algorithm that heuristically chooses the best
+pairwise contraction at each step. Scales linearly in the number of
+terms in the contraction.
+- <code>'random-greedy'</code> Run a randomized version of the greedy algorithm
+32 times and pick the best path.
+- <code>'random-greedy-128'</code> Run a randomized version of the greedy
+algorithm 128 times and pick the best path.
+- <code>'branch-all'</code> An algorithm like optimal but that restricts itself
+to searching 'likely' paths. Still scales factorially.
+- <code>'branch-2'</code> An even more restricted version of 'branch-all' that
+only searches the best two options at each step. Scales exponentially
+with the number of terms in the contraction.
+- <code>'auto'</code> Choose the best of the above algorithms whilst aiming to
+keep the path finding time below 1ms.
+- <code>'auto-hq'</code> Aim for a high quality contraction, choosing the best
+of the above algorithms whilst aiming to keep the path finding time
+below 1sec.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract_path(memory_limit)" class="doc doc-heading doc-heading-parameter">              <b><code>memory_limit</code></b>
+</h2>              (<code><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Give the upper bound of the largest intermediate tensor contract will build.
+- None or -1 means there is no limit
+- <code>max_input</code> means the limit is set as largest input tensor
+- a positive integer is taken as an explicit limit on the number of elements</p>
+<p>The default is None. Note that imposing a limit can make contractions
+exponentially slower to perform.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.contract.contract_path(shapes)" class="doc doc-heading doc-heading-parameter">              <b><code>shapes</code></b>
+</h2>              (<code><span title="bool">bool</span></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether <code>contract_path</code> should assume arrays (the default) or array shapes have been supplied.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<b><code>path</code></b> (              <code><span title="opt_einsum.typing.PathType">PathType</span></code>
+)          –
+          <div class="doc-md-description">
+            <p>The optimized einsum contraciton path</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<b><code>PathInfo</code></b> (              <code><a class="autorefs autorefs-internal" title="            PathInfo (opt_einsum.contract.PathInfo)" href="#opt_einsum.contract.PathInfo">PathInfo</a></code>
+)          –
+          <div class="doc-md-description">
+            <p>A printable object containing various information about the path found.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<details class="notes" open>
+  <summary>Notes</summary>
+  <p>The resulting path indicates which terms of the input contraction should be
+contracted first, the result of this contraction is then appended to the end of
+the contraction list.</p>
+</details>
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <p>We can begin with a chain dot example. In this case, it is optimal to
+contract the b and c tensors represented by the first element of the path (1,
+2). The resulting tensor is added to the end of the contraction and the
+remaining contraction, <code>(0, 1)</code>, is then executed.</p>
+        <div class="highlight"><pre><span></span><code><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">path_info</span> <span class="o">=</span> <span class="n">opt_einsum</span><span class="o">.</span><span class="n">contract_path</span><span class="p">(</span><span class="s1">&#39;ij,jk,kl-&gt;il&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">path_info</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="c1">#&gt; [(1, 2), (0, 1)]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">path_info</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="c1">#&gt;   Complete contraction:  ij,jk,kl-&gt;il</span>
+<span class="c1">#&gt;          Naive scaling:  4</span>
+<span class="c1">#&gt;      Optimized scaling:  3</span>
+<span class="c1">#&gt;       Naive FLOP count:  1.600e+02</span>
+<span class="c1">#&gt;   Optimized FLOP count:  5.600e+01</span>
+<span class="c1">#&gt;    Theoretical speedup:  2.857</span>
+<span class="c1">#&gt;   Largest intermediate:  4.000e+00 elements</span>
+<span class="c1">#&gt; -------------------------------------------------------------------------</span>
+<span class="c1">#&gt; scaling                  current                                remaining</span>
+<span class="c1">#&gt; -------------------------------------------------------------------------</span>
+<span class="c1">#&gt;    3                   kl,jk-&gt;jl                                ij,jl-&gt;il</span>
+<span class="c1">#&gt;    3                   jl,ij-&gt;il                                   il-&gt;il</span>
+</code></pre></div>
+<p>A more complex index transformation example.</p>
+<div class="highlight"><pre><span></span><code><span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">path_info</span> <span class="o">=</span> <span class="n">oe</span><span class="o">.</span><span class="n">contract_path</span><span class="p">(</span><span class="s1">&#39;ea,fb,abcd,gc,hd-&gt;efgh&#39;</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">path_info</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="c1">#&gt; [(0, 2), (0, 3), (0, 2), (0, 1)]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">path_info</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="c1">#&gt;   Complete contraction:  ea,fb,abcd,gc,hd-&gt;efgh</span>
+<span class="c1">#&gt;          Naive scaling:  8</span>
+<span class="c1">#&gt;      Optimized scaling:  5</span>
+<span class="c1">#&gt;       Naive FLOP count:  8.000e+08</span>
+<span class="c1">#&gt;   Optimized FLOP count:  8.000e+05</span>
+<span class="c1">#&gt;    Theoretical speedup:  1000.000</span>
+<span class="c1">#&gt;   Largest intermediate:  1.000e+04 elements</span>
+<span class="c1">#&gt; --------------------------------------------------------------------------</span>
+<span class="c1">#&gt; scaling                  current                                remaining</span>
+<span class="c1">#&gt; --------------------------------------------------------------------------</span>
+<span class="c1">#&gt;    5               abcd,ea-&gt;bcde                      fb,gc,hd,bcde-&gt;efgh</span>
+<span class="c1">#&gt;    5               bcde,fb-&gt;cdef                         gc,hd,cdef-&gt;efgh</span>
+<span class="c1">#&gt;    5               cdef,gc-&gt;defg                            hd,defg-&gt;efgh</span>
+<span class="c1">#&gt;    5               defg,hd-&gt;efgh                               efgh-&gt;efgh</span>
+</code></pre></div>
+
+
+    </div>
+
+</div><h3 id="opt_einsumcontract_expression"><code>opt_einsum.contract_expression</code></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h1 id="opt_einsum.contract.contract_expression" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">contract_expression</span>
+
+
+</h1>
+          <div class="doc-overloads">
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract_expression</span><span class="p">(</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(subscripts)">subscripts</span></span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+    <span class="o">*</span><span class="n"><span title="opt_einsum.contract.contract_expression(*operands)">operands</span></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span> <span class="n"><span title="opt_einsum.typing.TensorShapeType">TensorShapeType</span></span><span class="p">],</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(constants)">constants</span></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="typing.Collection">Collection</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(use_blas)">use_blas</span></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(optimize)">optimize</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(memory_limit)">memory_limit</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract_expression(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ContractExpression (opt_einsum.contract.ContractExpression)" href="#opt_einsum.contract.ContractExpression">ContractExpression</a></span>
+</code></pre></div><div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract_expression</span><span class="p">(</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(subscripts)">subscripts</span></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span> <span class="n"><span title="opt_einsum.typing.TensorShapeType">TensorShapeType</span></span><span class="p">],</span>
+    <span class="o">*</span><span class="n"><span title="opt_einsum.contract.contract_expression(*operands)">operands</span></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span>
+        <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span> <span class="n"><span title="opt_einsum.typing.TensorShapeType">TensorShapeType</span></span><span class="p">,</span> <span class="n"><span title="typing.Collection">Collection</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span>
+    <span class="p">],</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(constants)">constants</span></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="typing.Collection">Collection</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(use_blas)">use_blas</span></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(optimize)">optimize</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(memory_limit)">memory_limit</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract_expression(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ContractExpression (opt_einsum.contract.ContractExpression)" href="#opt_einsum.contract.ContractExpression">ContractExpression</a></span>
+</code></pre></div>          </div>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">contract_expression</span><span class="p">(</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(subscripts)">subscripts</span></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span> <span class="n"><span title="opt_einsum.typing.TensorShapeType">TensorShapeType</span></span><span class="p">],</span>
+    <span class="o">*</span><span class="n"><span title="opt_einsum.contract.contract_expression(*shapes)">shapes</span></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span>
+        <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">,</span> <span class="n"><span title="opt_einsum.typing.TensorShapeType">TensorShapeType</span></span><span class="p">,</span> <span class="n"><span title="typing.Collection">Collection</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span>
+    <span class="p">],</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(constants)">constants</span></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="typing.Collection">Collection</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(use_blas)">use_blas</span></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(optimize)">optimize</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.OptimizeKind">OptimizeKind</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.contract_expression(memory_limit)">memory_limit</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.contract._MemoryLimit">_MemoryLimit</span></span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.contract_expression(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ContractExpression (opt_einsum.contract.ContractExpression)" href="#opt_einsum.contract.ContractExpression">ContractExpression</a></span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Generate a reusable expression for a given contraction with
+specific shapes, which can, for example, be cached.</p>
+<p>Parameters:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">subscripts</span><span class="o">:</span><span class="w"> </span><span class="n">Specifies</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">subscripts</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">summation</span><span class="p">.</span>
+<span class="n">shapes</span><span class="o">:</span><span class="w"> </span><span class="n">Shapes</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">arrays</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">optimize</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">contraction</span><span class="w"> </span><span class="k">for</span><span class="p">.</span>
+<span class="n">constants</span><span class="o">:</span><span class="w"> </span><span class="n">The</span><span class="w"> </span><span class="n">indices</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="k">any</span><span class="w"> </span><span class="n">constant</span><span class="w"> </span><span class="n">arguments</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n n-Quoted">`shapes`</span><span class="p">,</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">which</span><span class="w"> </span><span class="k">case</span><span class="w"> </span><span class="n">the</span>
+<span class="w">    </span><span class="n">actual</span><span class="w"> </span><span class="k">array</span><span class="w"> </span><span class="n">should</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">supplied</span><span class="w"> </span><span class="k">at</span><span class="w"> </span><span class="n">that</span><span class="w"> </span><span class="n">position</span><span class="w"> </span><span class="n">rather</span><span class="w"> </span><span class="k">than</span><span class="w"> </span><span class="n">just</span><span class="w"> </span><span class="n">a</span>
+<span class="w">    </span><span class="n">shape</span><span class="p">.</span><span class="w"> </span><span class="k">If</span><span class="w"> </span><span class="n">these</span><span class="w"> </span><span class="n">are</span><span class="w"> </span><span class="n">specified</span><span class="p">,</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">constant</span><span class="w"> </span><span class="n">parts</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">contraction</span>
+<span class="w">    </span><span class="k">between</span><span class="w"> </span><span class="n">calls</span><span class="w"> </span><span class="n">will</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">reused</span><span class="p">.</span><span class="w"> </span><span class="n">Additionally</span><span class="p">,</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">GPU</span><span class="o">-</span><span class="n">enabled</span><span class="w"> </span><span class="n">backend</span><span class="w"> </span><span class="k">is</span>
+<span class="w">    </span><span class="n">used</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">example</span><span class="p">,</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">constant</span><span class="w"> </span><span class="n">tensors</span><span class="w"> </span><span class="n">will</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">kept</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">GPU</span><span class="p">,</span>
+<span class="w">    </span><span class="n">minimizing</span><span class="w"> </span><span class="n">transfers</span><span class="p">.</span>
+<span class="n">kwargs</span><span class="o">:</span><span class="w"> </span><span class="n">Passed</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n n-Quoted">`contract_path`</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="n n-Quoted">`einsum`</span><span class="p">.</span><span class="w"> </span><span class="n">See</span><span class="w"> </span><span class="n n-Quoted">`contract`</span><span class="p">.</span>
+</code></pre></div>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><a class="autorefs autorefs-internal" title="            ContractExpression (opt_einsum.contract.ContractExpression)" href="#opt_einsum.contract.ContractExpression">ContractExpression</a></code>
+          –
+          <div class="doc-md-description">
+            <p>Callable with signature <code>expr(*arrays, out=None, backend='numpy')</code> where the array's shapes should match <code>shapes</code>.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<details class="notes" open>
+  <summary>Notes</summary>
+  <p>The <code>out</code> keyword argument should be supplied to the generated expression
+rather than this function.
+The <code>backend</code> keyword argument should also be supplied to the generated
+expression. If numpy arrays are supplied, if possible they will be
+converted to and back from the correct backend array type.
+The generated expression will work with any arrays which have
+the same rank (number of dimensions) as the original shapes, however, if
+the actual sizes are different, the expression may no longer be optimal.
+Constant operations will be computed upon the first call with a particular
+backend, then subsequently reused.</p>
+</details>        <p>Examples:
+Basic usage:</p>
+<div class="highlight"><pre><span></span><code><span class="n">expr</span> <span class="o">=</span> <span class="n">contract_expression</span><span class="p">(</span><span class="s2">&quot;ab,bc-&gt;ac&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">a</span> <span class="o">@</span> <span class="n">b</span><span class="p">)</span>
+<span class="c1">#&gt; True</span>
+</code></pre></div>
+<p>Supply <code>a</code> as a constant:</p>
+<div class="highlight"><pre><span></span><code><span class="n">expr</span> <span class="o">=</span> <span class="n">contract_expression</span><span class="p">(</span><span class="s2">&quot;ab,bc-&gt;ac&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">constants</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">expr</span>
+<span class="c1">#&gt; &lt;ContractExpression(&#39;[ab],bc-&gt;ac&#39;, constants=[0])&gt;</span>
+
+<span class="n">c</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">a</span> <span class="o">@</span> <span class="n">b</span><span class="p">)</span>
+<span class="c1">#&gt; True</span>
+</code></pre></div>
+
+
+    </div>
+
+</div><h3 id="opt_einsumcontractcontractexpression"><code>opt_einsum.contract.ContractExpression</code></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h1 id="opt_einsum.contract.ContractExpression" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ContractExpression</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">ContractExpression</span><span class="p">(</span>
+    <span class="n"><span title="opt_einsum.contract.ContractExpression(contraction)">contraction</span></span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.ContractExpression(contraction_list)">contraction_list</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ContractionListType">ContractionListType</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.ContractExpression(constants_dict)">constants_dict</span></span><span class="p">:</span> <span class="n"><span title="typing.Dict">Dict</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">,</span> <span class="n"><span title="opt_einsum.typing.ArrayType">ArrayType</span></span><span class="p">],</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.contract.ContractExpression(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+
+        <p>Helper class for storing an explicit <code>contraction_list</code> which can
+then be repeatedly called solely with the array arguments.</p>
+
+
+
+
+
+
+
+
+
+
+<p><span class="doc-section-title">Methods:</span></p>
+    <ul>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="            evaluate_constants (opt_einsum.contract.ContractExpression.evaluate_constants)" href="#opt_einsum.contract.ContractExpression.evaluate_constants">evaluate_constants</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Convert any constant operands to the correct backend form, and</p>
+            </div>
+          </li>
+    </ul>
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="opt_einsum.contract.ContractExpression.evaluate_constants" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">evaluate_constants</span>
+
+
+</h2>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">evaluate_constants</span><span class="p">(</span><span class="n"><span title="opt_einsum.contract.ContractExpression.evaluate_constants(backend)">backend</span></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Convert any constant operands to the correct backend form, and
+perform as many contractions as possible to create a new list of
+operands, stored in <code>self._evaluated_constants[backend]</code>. This also
+makes sure <code>self.contraction_list</code> only contains the remaining,
+non-const operations.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="opt_einsumcontractpathinfo"><code>opt_einsum.contract.PathInfo</code></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h1 id="opt_einsum.contract.PathInfo" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">PathInfo</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">PathInfo</span><span class="p">(</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(contraction_list)">contraction_list</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ContractionListType">ContractionListType</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(input_subscripts)">input_subscripts</span></span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(output_subscript)">output_subscript</span></span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(indices)">indices</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(path)">path</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(scale_list)">scale_list</span></span><span class="p">:</span> <span class="n"><span title="typing.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">],</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(naive_cost)">naive_cost</span></span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(opt_cost)">opt_cost</span></span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(size_list)">size_list</span></span><span class="p">:</span> <span class="n"><span title="typing.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">],</span>
+    <span class="n"><span title="opt_einsum.contract.PathInfo(size_dict)">size_dict</span></span><span class="p">:</span> <span class="n"><span title="typing.Dict">Dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="int">int</span></span><span class="p">],</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+
+        <p>A printable object to contain information about a contraction path.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="opt_einsumget_symbol"><code>opt_einsum.get_symbol</code></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h1 id="opt_einsum.parser.get_symbol" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">get_symbol</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">get_symbol</span><span class="p">(</span><span class="n"><span title="opt_einsum.parser.get_symbol(i)">i</span></span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="str">str</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Get the symbol corresponding to int <code>i</code> - runs through the usual 52
+letters before resorting to unicode characters, starting at <code>chr(192)</code> and skipping surrogates.</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="n">get_symbol</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="c1">#&gt; &#39;c&#39;</span>
+
+<span class="n">get_symbol</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+<span class="c1">#&gt; &#39;Ŕ&#39;</span>
+
+<span class="n">get_symbol</span><span class="p">(</span><span class="mi">20000</span><span class="p">)</span>
+<span class="c1">#&gt; &#39;京&#39;</span>
+</code></pre></div>
+
+
+    </div>
+
+</div><h3 id="opt_einsumshared_intermediates"><code>opt_einsum.shared_intermediates</code></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h1 id="opt_einsum.sharing.shared_intermediates" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">shared_intermediates</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">shared_intermediates</span><span class="p">(</span>
+    <span class="n"><span title="opt_einsum.sharing.shared_intermediates(cache)">cache</span></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.sharing.CacheType">CacheType</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.sharing.CacheType">CacheType</span></span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Context in which contract intermediate results are shared.</p>
+<p>Note that intermediate computations will not be garbage collected until
+1. this context exits, and
+2. the yielded cache is garbage collected (if it was captured).</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><strong>cache</strong> - <em>(dict)</em> If specified, a user-stored dict in which intermediate results will be stored. This can be used to interleave sharing contexts.</li>
+</ul>
+<p><strong>Returns:</strong></p>
+<ul>
+<li><strong>cache</strong> - <em>(dict)</em> A dictionary in which sharing results are stored. If ignored,
+    sharing results will be garbage collected when this context is
+    exited. This dict can be passed to another context to resume
+    sharing.</li>
+</ul>
+
+
+    </div>
+
+</div><h3 id="opt_einsumpathsoptimal"><code>opt_einsum.paths.optimal</code></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h1 id="opt_einsum.paths.optimal" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">optimal</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">optimal</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="inputs (opt_einsum.paths.optimal(inputs))" href="#opt_einsum.paths.optimal(inputs)">inputs</a></span><span class="p">:</span> <span class="n"><span title="typing.List">List</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></span><span class="p">],</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="output (opt_einsum.paths.optimal(output))" href="#opt_einsum.paths.optimal(output)">output</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="size_dict (opt_einsum.paths.optimal(size_dict))" href="#opt_einsum.paths.optimal(size_dict)">size_dict</a></span><span class="p">:</span> <span class="n"><span title="typing.Dict">Dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="int">int</span></span><span class="p">],</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="memory_limit (opt_einsum.paths.optimal(memory_limit))" href="#opt_einsum.paths.optimal(memory_limit)">memory_limit</a></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Computes all possible pair contractions in a depth-first recursive manner,
+sieving results based on <code>memory_limit</code> and the best path found so far.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.optimal(inputs)" class="doc doc-heading doc-heading-parameter">              <b><code>inputs</code></b>
+</h2>              (<code><span title="typing.List">List</span>[<span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>List of sets that represent the lhs side of the einsum subscript.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.optimal(output)" class="doc doc-heading doc-heading-parameter">              <b><code>output</code></b>
+</h2>              (<code><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>Set that represents the rhs side of the overall einsum subscript.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.optimal(size_dict)" class="doc doc-heading doc-heading-parameter">              <b><code>size_dict</code></b>
+</h2>              (<code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="int">int</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Dictionary of index sizes.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.optimal(memory_limit)" class="doc doc-heading doc-heading-parameter">              <b><code>memory_limit</code></b>
+</h2>              (<code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>The maximum number of elements in a temporary array.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<b><code>path</code></b> (              <code><span title="opt_einsum.typing.PathType">PathType</span></code>
+)          –
+          <div class="doc-md-description">
+            <p>The optimal contraction order within the memory limit constraint.</p>
+          </div>
+        </li>
+    </ul>
+        <p>Examples:
+<div class="highlight"><pre><span></span><code><span class="n">isets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="s1">&#39;abd&#39;</span><span class="p">),</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;ac&#39;</span><span class="p">),</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;bdc&#39;</span><span class="p">)]</span>
+<span class="n">oset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+<span class="n">idx_sizes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span><span class="mi">4</span><span class="p">}</span>
+<span class="n">optimal</span><span class="p">(</span><span class="n">isets</span><span class="p">,</span> <span class="n">oset</span><span class="p">,</span> <span class="n">idx_sizes</span><span class="p">,</span> <span class="mi">5000</span><span class="p">)</span>
+<span class="c1">#&gt; [(0, 2), (0, 1)]</span>
+</code></pre></div></p>
+
+
+    </div>
+
+</div><h3 id="opt_einsumpathsgreedy"><code>opt_einsum.paths.greedy</code></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h1 id="opt_einsum.paths.greedy" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">greedy</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">greedy</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="inputs (opt_einsum.paths.greedy(inputs))" href="#opt_einsum.paths.greedy(inputs)">inputs</a></span><span class="p">:</span> <span class="n"><span title="typing.List">List</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></span><span class="p">],</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="output (opt_einsum.paths.greedy(output))" href="#opt_einsum.paths.greedy(output)">output</a></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="size_dict (opt_einsum.paths.greedy(size_dict))" href="#opt_einsum.paths.greedy(size_dict)">size_dict</a></span><span class="p">:</span> <span class="n"><span title="typing.Dict">Dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="int">int</span></span><span class="p">],</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="memory_limit (opt_einsum.paths.greedy(memory_limit))" href="#opt_einsum.paths.greedy(memory_limit)">memory_limit</a></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="choose_fn (opt_einsum.paths.greedy(choose_fn))" href="#opt_einsum.paths.greedy(choose_fn)">choose_fn</a></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="cost_fn (opt_einsum.paths.greedy(cost_fn))" href="#opt_einsum.paths.greedy(cost_fn)">cost_fn</a></span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;memory-removed&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Finds the path by a three stage algorithm:</p>
+<ol>
+<li>Eagerly compute Hadamard products.</li>
+<li>Greedily compute contractions to maximize <code>removed_size</code></li>
+<li>Greedily compute outer products.</li>
+</ol>
+<p>This algorithm scales quadratically with respect to the
+maximum number of elements sharing a common dim.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.greedy(inputs)" class="doc doc-heading doc-heading-parameter">              <b><code>inputs</code></b>
+</h2>              (<code><span title="typing.List">List</span>[<span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>List of sets that represent the lhs side of the einsum subscript</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.greedy(output)" class="doc doc-heading doc-heading-parameter">              <b><code>output</code></b>
+</h2>              (<code><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>Set that represents the rhs side of the overall einsum subscript</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.greedy(size_dict)" class="doc doc-heading doc-heading-parameter">              <b><code>size_dict</code></b>
+</h2>              (<code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="int">int</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Dictionary of index sizes</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.greedy(memory_limit)" class="doc doc-heading doc-heading-parameter">              <b><code>memory_limit</code></b>
+</h2>              (<code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>The maximum number of elements in a temporary array</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.greedy(choose_fn)" class="doc doc-heading doc-heading-parameter">              <b><code>choose_fn</code></b>
+</h2>              (<code><span title="typing.Any">Any</span></code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>A function that chooses which contraction to perform from the queue</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.greedy(cost_fn)" class="doc doc-heading doc-heading-parameter">              <b><code>cost_fn</code></b>
+</h2>              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;memory-removed&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>A function that assigns a potential contraction a cost.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<b><code>path</code></b> (              <code><span title="opt_einsum.typing.PathType">PathType</span></code>
+)          –
+          <div class="doc-md-description">
+            <p>The contraction order (a list of tuples of ints).</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="n">isets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="s1">&#39;abd&#39;</span><span class="p">),</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;ac&#39;</span><span class="p">),</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;bdc&#39;</span><span class="p">)]</span>
+<span class="n">oset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+<span class="n">idx_sizes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span><span class="mi">4</span><span class="p">}</span>
+<span class="n">greedy</span><span class="p">(</span><span class="n">isets</span><span class="p">,</span> <span class="n">oset</span><span class="p">,</span> <span class="n">idx_sizes</span><span class="p">)</span>
+<span class="c1">#&gt; [(0, 2), (0, 1)]</span>
+</code></pre></div>
+
+
+    </div>
+
+</div><h3 id="opt_einsumpathsbranch"><code>opt_einsum.paths.branch</code></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h1 id="opt_einsum.paths.branch" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">branch</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">branch</span><span class="p">(</span>
+    <span class="n"><span title="opt_einsum.paths.branch(inputs)">inputs</span></span><span class="p">:</span> <span class="n"><span title="typing.List">List</span></span><span class="p">[</span><span class="n"><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></span><span class="p">],</span>
+    <span class="n"><span title="opt_einsum.paths.branch(output)">output</span></span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.ArrayIndexType">ArrayIndexType</span></span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.paths.branch(size_dict)">size_dict</span></span><span class="p">:</span> <span class="n"><span title="typing.Dict">Dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="int">int</span></span><span class="p">],</span>
+    <span class="n"><span title="opt_einsum.paths.branch(memory_limit)">memory_limit</span></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.paths.branch(nbranch)">nbranch</span></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.paths.branch(cutoff_flops_factor)">cutoff_flops_factor</span></span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.paths.branch(minimize)">minimize</span></span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;flops&quot;</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.paths.branch(cost_fn)">cost_fn</span></span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;memory-removed&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+
+    </div>
+
+</div><h3 id="opt_einsumpathspathoptimizer"><code>opt_einsum.paths.PathOptimizer</code></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h1 id="opt_einsum.paths.PathOptimizer" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">PathOptimizer</span>
+
+
+</h1>
+
+
+    <div class="doc doc-contents first">
+
+
+        <p>Base class for different path optimizers to inherit from.</p>
+<p>Subclassed optimizers should define a call method with signature:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ArrayIndexType</span><span class="p">],</span> <span class="n">output</span><span class="p">:</span> <span class="n">ArrayIndexType</span><span class="p">,</span> <span class="n">size_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">memory_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+    \<span class="s2">&quot;</span><span class="se">\&quot;\&quot;</span>
+    <span class="n">Parameters</span><span class="p">:</span>
+        <span class="n">inputs</span><span class="p">:</span> <span class="n">The</span> <span class="n">indices</span> <span class="n">of</span> <span class="n">each</span> <span class="nb">input</span> <span class="n">array</span><span class="o">.</span>
+        <span class="n">outputs</span><span class="p">:</span> <span class="n">The</span> <span class="n">output</span> <span class="n">indices</span>
+        <span class="n">size_dict</span><span class="p">:</span> <span class="n">The</span> <span class="n">size</span> <span class="n">of</span> <span class="n">each</span> <span class="n">index</span>
+        <span class="n">memory_limit</span><span class="p">:</span> <span class="n">If</span> <span class="n">given</span><span class="p">,</span> <span class="n">the</span> <span class="n">maximum</span> <span class="n">allowed</span> <span class="n">memory</span><span class="o">.</span>
+    \<span class="s2">&quot;</span><span class="se">\&quot;\&quot;</span>
+    <span class="c1"># ... compute path here ...</span>
+    <span class="k">return</span> <span class="n">path</span>
+</code></pre></div>
+<p>where <code>path</code> is a list of int-tuples specifying a contraction order.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="opt_einsumpathsbranchbound"><code>opt_einsum.paths.BranchBound</code></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h1 id="opt_einsum.paths.BranchBound" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">BranchBound</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">BranchBound</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="nbranch (opt_einsum.paths.BranchBound(nbranch))" href="#opt_einsum.paths.BranchBound(nbranch)">nbranch</a></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="cutoff_flops_factor (opt_einsum.paths.BranchBound(cutoff_flops_factor))" href="#opt_einsum.paths.BranchBound(cutoff_flops_factor)">cutoff_flops_factor</a></span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="minimize (opt_einsum.paths.BranchBound(minimize))" href="#opt_einsum.paths.BranchBound(minimize)">minimize</a></span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;flops&quot;</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="cost_fn (opt_einsum.paths.BranchBound(cost_fn))" href="#opt_einsum.paths.BranchBound(cost_fn)">cost_fn</a></span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;memory-removed&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            PathOptimizer (opt_einsum.paths.PathOptimizer)" href="#opt_einsum.paths.PathOptimizer">PathOptimizer</a></code></p>
+
+
+        <p>as well sieving by <code>memory_limit</code> and the best path found so far.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.BranchBound(nbranch)" class="doc doc-heading doc-heading-parameter">              <b><code>nbranch</code></b>
+</h2>              (<code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>How many branches to explore at each contraction step. If None, explore
+all possible branches. If an integer, branch into this many paths at
+each step. Defaults to None.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.BranchBound(cutoff_flops_factor)" class="doc doc-heading doc-heading-parameter">              <b><code>cutoff_flops_factor</code></b>
+</h2>              (<code><span title="int">int</span></code>, default:
+                  <code>4</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>If at any point, a path is doing this much worse than the best path
+found so far was, terminate it. The larger this is made, the more paths
+will be fully explored and the slower the algorithm. Defaults to 4.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.BranchBound(minimize)" class="doc doc-heading doc-heading-parameter">              <b><code>minimize</code></b>
+</h2>              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;flops&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether to optimize the path with regard primarily to the total
+estimated flop-count, or the size of the largest intermediate. The
+option not chosen will still be used as a secondary criterion.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.BranchBound(cost_fn)" class="doc doc-heading doc-heading-parameter">              <b><code>cost_fn</code></b>
+</h2>              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;memory-removed&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>A function that returns a heuristic 'cost' of a potential contraction
+with which to sort candidates. Should have signature
+<code>cost_fn(size12, size1, size2, k12, k1, k2)</code>.</p>
+          </div>
+        </li>
+    </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="opt_einsumpath_randomrandomoptimizer"><code>opt_einsum.path_random.RandomOptimizer</code></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h1 id="opt_einsum.path_random.RandomOptimizer" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">RandomOptimizer</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">RandomOptimizer</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="max_repeats (opt_einsum.path_random.RandomOptimizer(max_repeats))" href="#opt_einsum.path_random.RandomOptimizer(max_repeats)">max_repeats</a></span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="max_time (opt_einsum.path_random.RandomOptimizer(max_time))" href="#opt_einsum.path_random.RandomOptimizer(max_time)">max_time</a></span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="float">float</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="minimize (opt_einsum.path_random.RandomOptimizer(minimize))" href="#opt_einsum.path_random.RandomOptimizer(minimize)">minimize</a></span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;flops&quot;</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="parallel (opt_einsum.path_random.RandomOptimizer(parallel))" href="#opt_einsum.path_random.RandomOptimizer(parallel)">parallel</a></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="bool">bool</span></span><span class="p">,</span> <span class="n"><span title="decimal.Decimal">Decimal</span></span><span class="p">,</span> <span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="pre_dispatch (opt_einsum.path_random.RandomOptimizer(pre_dispatch))" href="#opt_einsum.path_random.RandomOptimizer(pre_dispatch)">pre_dispatch</a></span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            PathOptimizer (opt_einsum.paths.PathOptimizer)" href="#opt_einsum.paths.PathOptimizer">PathOptimizer</a></code></p>
+
+
+        <p>Base class for running any random path finder that benefits
+from repeated calling, possibly in a parallel fashion. Custom random
+optimizers should subclass this, and the <code>setup</code> method should be
+implemented with the following signature:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">size_dict</span><span class="p">):</span>
+    <span class="c1"># custom preparation here ...</span>
+    <span class="k">return</span> <span class="n">trial_fn</span><span class="p">,</span> <span class="n">trial_args</span>
+</code></pre></div>
+<p>Where <code>trial_fn</code> itself should have the signature::</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">trial_fn</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">trial_args</span><span class="p">):</span>
+    <span class="c1"># custom computation of path here</span>
+    <span class="k">return</span> <span class="n">ssa_path</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">size</span>
+</code></pre></div>
+<p>Where <code>r</code> is the run number and could for example be used to seed a
+random number generator. See <code>RandomGreedy</code> for an example.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.path_random.RandomOptimizer(max_repeats)" class="doc doc-heading doc-heading-parameter">              <b><code>max_repeats</code></b>
+</h2>              (<code><span title="int">int</span></code>, default:
+                  <code>32</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>The maximum number of repeat trials to have.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.path_random.RandomOptimizer(max_time)" class="doc doc-heading doc-heading-parameter">              <b><code>max_time</code></b>
+</h2>              (<code><span title="typing.Optional">Optional</span>[<span title="float">float</span>]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>The maximum amount of time to run the algorithm for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.path_random.RandomOptimizer(minimize)" class="doc doc-heading doc-heading-parameter">              <b><code>minimize</code></b>
+</h2>              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;flops&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether to favour paths that minimize the total estimated flop-count or
+the size of the largest intermediate created.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.path_random.RandomOptimizer(parallel)" class="doc doc-heading doc-heading-parameter">              <b><code>parallel</code></b>
+</h2>              (<code><span title="typing.Union">Union</span>[<span title="bool">bool</span>, <span title="decimal.Decimal">Decimal</span>, <span title="int">int</span>]</code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether to parallelize the random trials, by default <code>False</code>. If
+<code>True</code>, use a <code>concurrent.futures.ProcessPoolExecutor</code> with the same
+number of processes as cores. If an integer is specified, use that many
+processes instead. Finally, you can supply a custom executor-pool which
+should have an API matching that of the python 3 standard library
+module <code>concurrent.futures</code>. Namely, a <code>submit</code> method that returns
+<code>Future</code> objects, themselves with <code>result</code> and <code>cancel</code> methods.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.path_random.RandomOptimizer(pre_dispatch)" class="doc doc-heading doc-heading-parameter">              <b><code>pre_dispatch</code></b>
+</h2>              (<code><span title="int">int</span></code>, default:
+                  <code>128</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>If running in parallel, how many jobs to pre-dispatch so as to avoid
+submitting all jobs at once. Should also be more than twice the number
+of workers to avoid under-subscription. Default: 128.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="            path
+
+
+  
+      property
+   (opt_einsum.path_random.RandomOptimizer.path)" href="#opt_einsum.path_random.RandomOptimizer.path">path</a></code></b>
+              (<code><span title="opt_einsum.typing.PathType">PathType</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>The best path found so far.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="opt_einsum.path_random.RandomOptimizer.costs">costs</span></code></b>
+              (<code><span title="typing.List">List</span>[<span title="int">int</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The list of each trial's costs found so far.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="opt_einsum.path_random.RandomOptimizer.sizes">sizes</span></code></b>
+              (<code><span title="typing.List">List</span>[<span title="int">int</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The list of each trial's largest intermediate size so far.</p>
+          </div>
+        </li>
+    </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="opt_einsum.path_random.RandomOptimizer.path" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">path</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h2>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="n">path</span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The best path found so far.</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="opt_einsumpath_randomrandomgreedy"><code>opt_einsum.path_random.RandomGreedy</code></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h1 id="opt_einsum.path_random.RandomGreedy" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">RandomGreedy</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">RandomGreedy</span><span class="p">(</span>
+    <span class="n"><span title="opt_einsum.path_random.RandomGreedy(cost_fn)">cost_fn</span></span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;memory-removed-jitter&quot;</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.path_random.RandomGreedy(temperature)">temperature</span></span><span class="p">:</span> <span class="n"><span title="float">float</span></span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.path_random.RandomGreedy(rel_temperature)">rel_temperature</span></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><span title="opt_einsum.path_random.RandomGreedy(nbranch)">nbranch</span></span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="o">**</span><span class="n"><span title="opt_einsum.path_random.RandomGreedy(**kwargs)">kwargs</span></span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            RandomOptimizer (opt_einsum.path_random.RandomOptimizer)" href="#opt_einsum.path_random.RandomOptimizer">RandomOptimizer</a></code></p>
+
+
+        <div class="codehilite"><pre><span></span><code>    with which to sort candidates. Should have signature
+    <span class="sb">`cost_fn(size12, size1, size2, k12, k1, k2)`</span>.
+</code></pre></div>
+
+<p>temperature: When choosing a possible contraction, its relative probability will be
+        proportional to <code>exp(-cost / temperature)</code>. Thus the larger
+        <code>temperature</code> is, the further random paths will stray from the normal
+        'greedy' path. Conversely, if set to zero, only paths with exactly the
+        same cost as the best at each step will be explored.
+rel_temperature: Whether to normalize the <code>temperature</code> at each step to the scale of
+        the best cost. This is generally beneficial as the magnitude of costs
+        can vary significantly throughout a contraction. If False, the
+        algorithm will end up branching when the absolute cost is low, but
+        stick to the 'greedy' path when the cost is high - this can also be
+        beneficial.
+nbranch: How many potential paths to calculate probability for and choose from at each step.
+kwargs: Supplied to RandomOptimizer.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="            choose_fn
+
+
+  
+      property
+   (opt_einsum.path_random.RandomGreedy.choose_fn)" href="#opt_einsum.path_random.RandomGreedy.choose_fn">choose_fn</a></code></b>
+              (<code><span title="typing.Any">Any</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>The function that chooses which contraction to take - make this a</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="            path
+
+
+  
+      property
+   (opt_einsum.path_random.RandomGreedy.path)" href="#opt_einsum.path_random.RandomGreedy.path">path</a></code></b>
+              (<code><span title="opt_einsum.typing.PathType">PathType</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>The best path found so far.</p>
+          </div>
+        </li>
+    </ul>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="opt_einsum.path_random.RandomGreedy.choose_fn" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">choose_fn</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h2>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="n">choose_fn</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The function that chooses which contraction to take - make this a
+property so that <code>temperature</code> and <code>nbranch</code> etc. can be updated
+between runs.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="opt_einsum.path_random.RandomGreedy.path" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">path</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h2>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="n">path</span><span class="p">:</span> <span class="n"><span title="opt_einsum.typing.PathType">PathType</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The best path found so far.</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="opt_einsumpathsdynamicprogramming"><code>opt_einsum.paths.DynamicProgramming</code></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h1 id="opt_einsum.paths.DynamicProgramming" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">DynamicProgramming</span>
+
+
+</h1>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">DynamicProgramming</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="minimize (opt_einsum.paths.DynamicProgramming(minimize))" href="#opt_einsum.paths.DynamicProgramming(minimize)">minimize</a></span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;flops&quot;</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="cost_cap (opt_einsum.paths.DynamicProgramming(cost_cap))" href="#opt_einsum.paths.DynamicProgramming(cost_cap)">cost_cap</a></span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="bool">bool</span></span><span class="p">,</span> <span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="search_outer (opt_einsum.paths.DynamicProgramming(search_outer))" href="#opt_einsum.paths.DynamicProgramming(search_outer)">search_outer</a></span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            PathOptimizer (opt_einsum.paths.PathOptimizer)" href="#opt_einsum.paths.PathOptimizer">PathOptimizer</a></code></p>
+
+
+        <p>Finds the optimal path of pairwise contractions without intermediate outer
+products based a dynamic programming approach presented in
+Phys. Rev. E 90, 033315 (2014) (the corresponding preprint is publicly
+available at https://arxiv.org/abs/1304.6112). This method is especially
+well-suited in the area of tensor network states, where it usually
+outperforms all the other optimization strategies.</p>
+<p>This algorithm shows exponential scaling with the number of inputs
+in the worst case scenario (see example below). If the graph to be
+contracted consists of disconnected subgraphs, the algorithm scales
+linearly in the number of disconnected subgraphs and only exponentially
+with the number of inputs per subgraph.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.DynamicProgramming(minimize)" class="doc doc-heading doc-heading-parameter">              <b><code>minimize</code></b>
+</h2>              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;flops&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>What to minimize:
+- 'flops' - minimize the number of flops
+- 'size' - minimize the size of the largest intermediate
+- 'write' - minimize the size of all intermediate tensors
+- 'combo' - minimize <code>flops + alpha * write</code> summed over intermediates, a default ratio of alpha=64
+is used, or it can be customized with <code>f'combo-{alpha}'</code>
+- 'limit' - minimize <code>max(flops, alpha * write)</code> summed over intermediates, a default ratio of alpha=64
+is used, or it can be customized with <code>f'limit-{alpha}'</code>
+- callable - a custom local cost function</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.DynamicProgramming(cost_cap)" class="doc doc-heading doc-heading-parameter">              <b><code>cost_cap</code></b>
+</h2>              (<code><span title="typing.Union">Union</span>[<span title="bool">bool</span>, <span title="int">int</span>]</code>, default:
+                  <code>True</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>How to implement cost-capping:
+- True - iteratively increase the cost-cap
+- False - implement no cost-cap at all
+- int - use explicit cost cap</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h2 id="opt_einsum.paths.DynamicProgramming(search_outer)" class="doc doc-heading doc-heading-parameter">              <b><code>search_outer</code></b>
+</h2>              (<code><span title="bool">bool</span></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>In rare circumstances the optimal contraction may involve an outer
+product, this option allows searching such contractions but may well
+slow down the path finding considerably on all but very small graphs.</p>
+          </div>
+        </li>
+    </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+        <script src="../javascript/config.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

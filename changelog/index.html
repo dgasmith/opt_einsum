@@ -1,0 +1,1370 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../api_reference/">
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>Changelog - Optimized Einsum</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../css/custom.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#changelog" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Optimized Einsum" class="md-header__button md-logo" aria-label="Optimized Einsum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Optimized Einsum
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dgasmith/opt_einsum" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dgasmith/opt_einsum
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Optimized Einsum" class="md-nav__button md-logo" aria-label="Optimized Einsum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Optimized Einsum
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dgasmith/opt_einsum" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dgasmith/opt_einsum
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/input_format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Input Format
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/backends/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Backends & GPU Support
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/reusing_paths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reusing Paths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/sharing_intermediates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Sharing Intermediates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Path Information
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Path Information
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/optimal_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Optimal Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/branching_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Branching Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/greedy_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Greedy Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/random_greedy_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Random-Greedy Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/dp_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Dynamic Programming Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/custom_paths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom Path Optimizers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/dask_reusing_intermediaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reusing Intermediaries with Dask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/large_expr_with_greedy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Large Expressions with Greedy
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api_reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#340-2024-09-26" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.4.0 / 2024-09-26
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#330-2020-07-19" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.3.0 / 2020-07-19
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#320-2020-03-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.2.0 / 2020-03-01
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#310-2019-09-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.1.0 / 2019-09-30
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300-2019-08-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.0.0 / 2019-08-10
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#230-2018-12-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.3.0 / 2018-12-01
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#220-2018-07-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.2.0 / 2018-07-29
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#213-2018-8-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1.3 / 2018-8-23
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#212-2018-8-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1.2 / 2018-8-16
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#211-2018-8-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1.1 / 2018-8-15
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#210-2018-8-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1.0 / 2018-8-15
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#201-2018-6-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.0.1 / 2018-6-28
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#200-2018-5-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.0.0 / 2018-5-17
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-2016-10-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.0.0 / 2016-10-14
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#340-2024-09-26" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.4.0 / 2024-09-26
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#330-2020-07-19" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.3.0 / 2020-07-19
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#320-2020-03-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.2.0 / 2020-03-01
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#310-2019-09-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.1.0 / 2019-09-30
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300-2019-08-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.0.0 / 2019-08-10
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#230-2018-12-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.3.0 / 2018-12-01
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#220-2018-07-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.2.0 / 2018-07-29
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#213-2018-8-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1.3 / 2018-8-23
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#212-2018-8-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1.2 / 2018-8-16
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#211-2018-8-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1.1 / 2018-8-15
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#210-2018-8-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1.0 / 2018-8-15
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#201-2018-6-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.0.1 / 2018-6-28
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#200-2018-5-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.0.0 / 2018-5-17
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-2016-10-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.0.0 / 2016-10-14
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="changelog">Changelog</h1>
+<h2 id="340-2024-09-26">3.4.0 / 2024-09-26</h2>
+<p>NumPy has been removed from <code>opt_einsum</code> as a dependency allowing for more flexible installs.</p>
+<p><strong>New Features</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/160">#160</a> Migrates docs to MkDocs Material and GitHub pages hosting.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/161">#161</a> Adds Python type annotations to the code base.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/204">#204</a> Removes NumPy as a hard dependency.</li>
+</ul>
+<p><strong>Enhancements</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/154">#154</a> Prevents an infinite recursion error when the <code>memory_limit</code> was set very low for the <code>dp</code> algorithm. </li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/155">#155</a> Adds flake8 spell check to the doc strings</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/159">#159</a> Migrates to GitHub actions for CI.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/174">#174</a> Prevents double contracts of floats in dynamic paths.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/196">#196</a> Allows <code>backend=None</code> which is equivalent to <code>backend='auto'</code></li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/208">#208</a> Switches to <code>ConfigParser</code> insetad of <code>SafeConfigParser</code> for Python 3.12 compatability. </li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/228">#228</a> <code>backend='jaxlib'</code> is now an alias for the <code>jax</code> library</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/237">#237</a> Switches to <code>ruff</code> for formatting and linting.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/238">#238</a> Removes <code>numpy</code>-specific keyword args from being explicitly defined in <code>contract</code> and uses <code>**kwargs</code> instead.</li>
+</ul>
+<p><strong>Bug Fixes</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/195">#195</a> Fixes a bug where <code>dp</code> would not work for scalar-only contractions.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/200">#200</a> Fixes a bug where <code>parse_einsum_input</code> would not correctly respect shape-only contractions.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/222">#222</a> Fixes an erorr in <code>parse_einsum_input</code> where an output subscript specified multiple times was not correctly caught. </li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/229">#229</a> Fixes a bug where empty contraction lists in <code>PathInfo</code> would cause an error.</li>
+</ul>
+<h2 id="330-2020-07-19">3.3.0 / 2020-07-19</h2>
+<p>Adds a <code>object</code> backend for optimized contractions on arbitrary Python objects.</p>
+<p><strong>New Features</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/145">#145</a> Adds a <code>object</code> based backend so that <code>contract(backend='object')</code> can be used on arbitrary objects such as SymPy symbols.</li>
+</ul>
+<p><strong>Enhancements</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/140">#140</a> Better error messages when the requested <code>contract</code> backend cannot be found.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/141">#141</a> Adds a check with RandomOptimizers to ensure the objects are not accidentally reused for different contractions.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/149">#149</a> Limits the <code>remaining</code> category for the <code>contract_path</code> output to only show up to 20 tensors to prevent issues with the quadratically scaling memory requirements and the number of print lines for large contractions.</li>
+</ul>
+<h2 id="320-2020-03-01">3.2.0 / 2020-03-01</h2>
+<p>Small fixes for the <code>dp</code> path and support for a new mars backend.</p>
+<p><strong>New Features</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/109">#109</a> Adds mars backend support.</li>
+</ul>
+<p><strong>Enhancements</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/110">#110</a> New <code>auto-hq</code> and <code>'random-greedy-128'</code> paths.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/119">#119</a> Fixes several edge cases in the <code>dp</code> path.</li>
+</ul>
+<p><strong>Bug fixes</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/127">#127</a> Fixes an issue where Python 3.6 features are required while Python 3.5 is <code>opt_einsum</code>'s stated minimum version.</li>
+</ul>
+<h2 id="310-2019-09-30">3.1.0 / 2019-09-30</h2>
+<p>Adds a new dynamic programming algorithm to the suite of paths.</p>
+<p><strong>New Features</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/102">#102</a> Adds new <code>dp</code> path.</li>
+</ul>
+<h2 id="300-2019-08-10">3.0.0 / 2019-08-10</h2>
+<p>This release moves <code>opt_einsum</code> to be backend agnostic while adding support
+additional backends such as Jax and Autograd. Support for Python 2.7 has been dropped and Python 3.5 will become the new minimum version, a Python deprecation policy equivalent to NumPy's has been adopted.</p>
+<p><strong>New Features</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/78">#78</a> A new random-optimizer has been implemented which uses Boltzmann weighting to explore alternative near-minimum paths using greedy-like schemes. This provides a fairly large path performance enhancements with a linear path time overhead.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/78">#78</a> A new PathOptimizer class has been implemented to provide a framework for building new optimizers. An example is that now custom cost functions can now be provided in the greedy formalism for building custom optimizers without a large amount of additional code.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/81">#81</a> The <code>backend="auto"</code> keyword has been implemented for <code>contract</code> allowing automatic detection of the correct backend to use based off provided tensors in the contraction.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/88">#88</a> Autograd and Jax support have been implemented.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/96">#96</a> Deprecates Python 2 functionality and devops improvements.</li>
+</ul>
+<p><strong>Enhancements</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/84">#84</a> The <code>contract_path</code> function can now accept shape tuples rather than full tensors.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/84">#84</a> The <code>contract_path</code> automated path algorithm decision technology has been refactored to a standalone function.</li>
+</ul>
+<h2 id="230-2018-12-01">2.3.0 / 2018-12-01</h2>
+<p>This release primarily focuses on expanding the suite of available path
+technologies to provide better optimization characistics for 4-20 tensors while
+decreasing the time to find paths for 50-200+ tensors. See <code>Path Overview &lt;path_finding.html#performance-comparison&gt;</code>_ for more information.</p>
+<p><strong>New Features</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/60">#60</a> A new <code>greedy</code> implementation has been added which is up to two orders of magnitude faster for 200 tensors.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/73">#73</a> Adds a new <code>branch</code> path that uses <code>greedy</code> ideas to prune the <code>optimal</code> exploration space to provide a better path than <code>greedy</code> at sub <code>optimal</code> cost.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/73">#73</a> Adds a new <code>auto</code> keyword to the <code>opt_einsum.contract</code> <code>path</code> option. This keyword automatically chooses the best path technology that takes under 1ms to execute.</li>
+</ul>
+<p><strong>Enhancements</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/61">#61</a> The <code>opt_einsum.contract</code> <code>path</code> keyword has been changed to <code>optimize</code> to more closely match NumPy. <code>path</code> will be deprecated in the future.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/61">#61</a> The <code>opt_einsum.contract_path</code> now returns a <code>opt_einsum.contract.PathInfo</code> object that can be queried for the scaling, flops, and intermediates of the path. The print representation of this object is identical to before.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/61">#61</a> The default <code>memory_limit</code> is now unlimited by default based on community feedback.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/66">#66</a> The Torch backend will now use <code>tensordot</code> when using a version of Torch which includes this functionality.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/68">#68</a> Indices can now be any hashable object when provided in the <code>"Interleaved Input" &lt;input_format.html#interleaved-input&gt;</code>_ syntax.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/74">#74</a> Allows the default <code>transpose</code> operation to be overridden to take advantage of more advanced tensor transpose libraries.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/73">#73</a> The <code>optimal</code> path is now significantly faster.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/81">#81</a> A documentation pass for v3.0.</li>
+</ul>
+<p><strong>Bug fixes</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/72">#72</a> Fixes the <code>"Interleaved Input" &lt;input_format.html#interleaved-input&gt;</code>_ syntax and adds documentation.</li>
+</ul>
+<h2 id="220-2018-07-29">2.2.0 / 2018-07-29</h2>
+<p><strong>New Features</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/48">#48</a> Intermediates can now be shared between contractions, see here for more details.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/53">#53</a> Intermediate caching is thread safe.</li>
+</ul>
+<p><strong>Enhancements</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/48">#48</a> Expressions are now mapped to non-unicode index set so that unicode input is support for all backends.</li>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/54">#54</a> General documentation update.</li>
+</ul>
+<p><strong>Bug fixes</strong></p>
+<ul>
+<li><a href="https://github.com/dgasmith/opt_einsum/pull/41">#41</a> PyTorch indices are mapped back to a small a-z subset valid for PyTorch's einsum implementation.</li>
+</ul>
+<h2 id="213-2018-8-23">2.1.3 / 2018-8-23</h2>
+<p><strong>Bug fixes</strong></p>
+<ul>
+<li>Fixes unicode issue for large numbers of tensors in Python 2.7.</li>
+<li>Fixes unicode install bug in README.md.</li>
+</ul>
+<h2 id="212-2018-8-16">2.1.2 / 2018-8-16</h2>
+<p><strong>Bug fixes</strong></p>
+<ul>
+<li>Ensures <code>versioneer.py</code> is in MANIFEST.in for a clean pip install.</li>
+</ul>
+<h2 id="211-2018-8-15">2.1.1 / 2018-8-15</h2>
+<p><strong>Bug fixes</strong></p>
+<ul>
+<li>Corrected Markdown display on PyPi.</li>
+</ul>
+<h2 id="210-2018-8-15">2.1.0 / 2018-8-15</h2>
+<p><code>opt_einsum</code> continues to improve its support for additional backends beyond NumPy with PyTorch.</p>
+<p>We have also published the opt_einsum package in the Journal of Open Source Software. If you use this package in your work, please consider citing us!</p>
+<p><strong>New features</strong></p>
+<ul>
+<li>PyTorch backend support</li>
+<li>Tensorflow eager-mode execution backend support</li>
+</ul>
+<p><strong>Enhancements</strong></p>
+<ul>
+<li>Intermediate tensordot-like expressions are now ordered to avoid transposes.</li>
+<li>CI now uses conda backend to better support GPU and tensor libraries.</li>
+<li>Now accepts arbitrary unicode indices rather than a subset.</li>
+<li>New auto path option which switches between optimal and greedy at four tensors.</li>
+</ul>
+<p><strong>Bug fixes</strong></p>
+<ul>
+<li>Fixed issue where broadcast indices were incorrectly locked out of tensordot-like evaluations even after their dimension was broadcast.</li>
+</ul>
+<h2 id="201-2018-6-28">2.0.1 / 2018-6-28</h2>
+<p><strong>New Features</strong></p>
+<ul>
+<li>Allows unlimited Unicode indices.</li>
+<li>Adds a Journal of Open-Source Software paper.</li>
+<li>Minor documentation improvements.</li>
+</ul>
+<h2 id="200-2018-5-17">2.0.0 / 2018-5-17</h2>
+<p><code>opt_einsum</code> is a powerful tensor contraction order optimizer for NumPy and related ecosystems.</p>
+<p><strong>New Features</strong></p>
+<ul>
+<li>Expressions can be precompiled so that the expression optimization need not happen multiple times.</li>
+<li>The greedy order optimization algorithm has been tuned to be able to handle hundreds of tensors in several seconds.</li>
+<li>Input indices can now be unicode so that expressions can have many thousands of indices.</li>
+<li>GPU and distributed computing backends have been added such as Dask, TensorFlow, CUPy, Theano, and Sparse.</li>
+</ul>
+<p><strong>Bug Fixes</strong></p>
+<ul>
+<li>An error affecting cases where opt_einsum mistook broadcasting operations for matrix multiply has been fixed.</li>
+<li>Most error messages are now more expressive.</li>
+</ul>
+<h2 id="100-2016-10-14">1.0.0 / 2016-10-14</h2>
+<p>Einsum is a very powerful function for contracting tensors of arbitrary
+dimension and index. However, it is only optimized to contract two terms at a
+time resulting in non-optimal scaling for contractions with many terms.
+Opt_einsum aims to fix this by optimizing the contraction order which can lead
+to arbitrarily large speed ups at the cost of additional intermediate tensors.</p>
+<p>Opt_einsum is also implemented into the np.einsum function as of NumPy v1.12.</p>
+<p><strong>New Features</strong></p>
+<ul>
+<li>Tensor contraction order optimizer.</li>
+<li><code>opt_einsum.contract</code> as a drop-in replacement for <code>numpy.einsum</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+        <script src="../javascript/config.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

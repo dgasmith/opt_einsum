@@ -1,0 +1,1276 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../input_format/">
+      
+      
+        <link rel="next" href="../reusing_paths/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>Backends & GPU Support - Optimized Einsum</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../css/custom.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#backends-gpu-support" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Optimized Einsum" class="md-header__button md-logo" aria-label="Optimized Einsum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Optimized Einsum
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Backends & GPU Support
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dgasmith/opt_einsum" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dgasmith/opt_einsum
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Optimized Einsum" class="md-nav__button md-logo" aria-label="Optimized Einsum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Optimized Einsum
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dgasmith/opt_einsum" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dgasmith/opt_einsum
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input_format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Input Format
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Backends & GPU Support
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Backends & GPU Support
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#backend-agnostic-contractions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backend agnostic contractions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#special-gpu-backends-for-numpy-arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      Special (GPU) backends for numpy arrays
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contracting-arbitrary-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contracting arbitrary objects
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reusing_paths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reusing Paths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sharing_intermediates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Sharing Intermediates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Path Information
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Path Information
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../paths/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../paths/optimal_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Optimal Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../paths/branching_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Branching Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../paths/greedy_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Greedy Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../paths/random_greedy_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Random-Greedy Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../paths/dp_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Dynamic Programming Path
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../paths/custom_paths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom Path Optimizers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/dask_reusing_intermediaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reusing Intermediaries with Dask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/large_expr_with_greedy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Large Expressions with Greedy
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#backend-agnostic-contractions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backend agnostic contractions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#special-gpu-backends-for-numpy-arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      Special (GPU) backends for numpy arrays
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contracting-arbitrary-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contracting arbitrary objects
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="backends-gpu-support">Backends &amp; GPU Support</h1>
+<p><code>opt_einsum</code> is largely agnostic to the type of n-dimensional arrays (tensors)
+it uses, since finding the contraction path only relies on getting the shape
+attribute of each array supplied.
+It can perform the underlying tensor contractions with various
+libraries. In fact, any library that provides a <code>numpy.tensordot</code> and
+<code>numpy.transpose</code> implementation can perform most normal contractions.
+However, certain special functionalities such as axes reduction are reliant on a
+<code>numpy.einsum</code> implementation.
+The following is a brief overview of libraries which have been tested with
+<code>opt_einsum</code>:</p>
+<ul>
+<li><a href="https://www.tensorflow.org/">tensorflow</a>: compiled tensor expressions
+  that can run on GPU.</li>
+<li><a href="http://deeplearning.net/software/theano/">theano</a>: compiled tensor
+  expressions that can run on GPU.</li>
+<li><a href="https://cupy.chainer.org/">cupy</a>: numpy-like api for GPU tensors.</li>
+<li><a href="https://dask.pydata.org/">dask</a>: larger-than-memory tensor
+  computations, distributed scheduling, and potential reuse of
+  intermediaries.</li>
+<li><a href="https://sparse.pydata.org/">sparse</a>: sparse tensors.</li>
+<li><a href="https://pytorch.org">pytorch</a>: numpy-like api for GPU tensors.</li>
+<li><a href="https://github.com/HIPS/autograd">autograd</a>: automatic derivative
+  computation for tensor expressions</li>
+<li><a href="https://github.com/google/jax">jax</a>: compiled GPU tensor expressions
+  including <code>autograd</code>-like functionality</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For a contraction to be possible without using a backend einsum, it must
+satisfy the following rule: in the full expression (<em>including</em> output
+indices) each index must appear twice. In other words, each dimension
+must be either contracted with one other dimension or left alone.</p>
+</div>
+<h2 id="backend-agnostic-contractions">Backend agnostic contractions</h2>
+<p>The automatic backend detection will be detected based on the first supplied
+array (default), this can be overridden by specifying the correct <code>backend</code>
+argument for the type of arrays supplied when calling
+<a href="../../api_reference/#opt_einsum.contract.contract"><code>opt_einsum.contract</code></a>. For example, if you had a library installed
+called <code>'foo'</code> which provided an <code>numpy.ndarray</code> like object with a
+<code>.shape</code> attribute as well as <code>foo.tensordot</code> and <code>foo.transpose</code> then
+you could contract them with something like:</p>
+<div class="highlight"><pre><span></span><code><span class="n">contract</span><span class="p">(</span><span class="n">einsum_str</span><span class="p">,</span> <span class="o">*</span><span class="n">foo_arrays</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p>Behind the scenes <code>opt_einsum</code> will find the contraction path, perform
+pairwise contractions using e.g. <code>foo.tensordot</code> and finally return the canonical
+type those functions return.</p>
+<h3 id="dask">Dask</h3>
+<p><a href="https://dask.pydata.org/">dask</a> is an example of a library which satisfies
+these requirements. For example:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">opt_einsum</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">oe</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dask.array</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">da</span>
+<span class="n">shapes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">),</span> <span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+<span class="n">dxs</span> <span class="o">=</span> <span class="p">[</span><span class="n">da</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shp</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span> <span class="k">for</span> <span class="n">shp</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">]</span>
+<span class="n">dxs</span>
+<span class="c1">#&gt; [dask.array&lt;da.random.normal, shape=(3, 200), dtype=float64, chunksize=(3, 100)&gt;,</span>
+<span class="c1">#&gt;  dask.array&lt;da.random.normal, shape=(200, 300), dtype=float64, chunksize=(100, 100)&gt;,</span>
+<span class="c1">#&gt;  dask.array&lt;da.random.normal, shape=(300, 4), dtype=float64, chunksize=(100, 4)&gt;]</span>
+
+
+<span class="n">dy</span> <span class="o">=</span> <span class="n">oe</span><span class="o">.</span><span class="n">contract</span><span class="p">(</span><span class="s2">&quot;ab,bc,cd&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">dxs</span><span class="p">)</span>  <span class="c1"># will infer backend=&#39;dask&#39;</span>
+<span class="n">dy</span>
+<span class="c1">#&gt; dask.array&lt;transpose, shape=(3, 4), dtype=float64, chunksize=(3, 4)&gt;</span>
+
+<span class="n">dy</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+<span class="c1">#&gt; array([[ 470.71404665,    2.44931372,  -28.47577265,  424.37716615],</span>
+<span class="c1">#&gt;        [  64.38328345, -287.40753131,  144.46515642,  324.88169821],</span>
+<span class="c1">#&gt;        [-142.07153553, -180.41739259,  125.0973783 , -239.16754541]])</span>
+</code></pre></div>
+<p>In this case, dask arrays in = dask array out, since dask arrays have a shape
+attribute, and <code>opt_einsum</code> can find <code>dask.array.tensordot</code> and
+<code>dask.array.transpose</code>.</p>
+<h3 id="sparse">Sparse</h3>
+<p>The <a href="https://sparse.pydata.org/">sparse</a> library also fits the requirements and is
+supported. An example:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">sparse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sp</span>
+<span class="n">shapes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">),</span> <span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+<span class="n">sxs</span> <span class="o">=</span> <span class="p">[</span><span class="n">sp</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span> <span class="k">for</span> <span class="n">shp</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">]</span>
+<span class="n">sxs</span>
+<span class="c1">#&gt; [&lt;COO: shape=(3, 200), dtype=float64, nnz=6, sorted=False, duplicates=True&gt;,</span>
+<span class="c1">#&gt;  &lt;COO: shape=(200, 300), dtype=float64, nnz=600, sorted=False, duplicates=True&gt;,</span>
+<span class="c1">#&gt;  &lt;COO: shape=(300, 4), dtype=float64, nnz=12, sorted=False, duplicates=True&gt;]</span>
+
+<span class="n">oe</span><span class="o">.</span><span class="n">contract</span><span class="p">(</span><span class="s2">&quot;ab,bc,cd&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">sxs</span><span class="p">)</span>
+<span class="c1">#&gt; &lt;COO: shape=(3, 4), dtype=float64, nnz=0, sorted=False, duplicates=False&gt;</span>
+</code></pre></div>
+<h3 id="autograd">Autograd</h3>
+<p>The <a href="https://github.com/HIPS/autograd">autograd</a> library is a drop-in for
+<code>numpy</code> that can automatically compute the gradients of array expressions.
+<code>opt_einsum</code> automatically dispatches the <code>autograd</code> arrays correctly,
+enabling a simple way to compute gradients of tensor contractions:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">autograd</span>
+<span class="n">shapes</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span>
+<span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="o">*</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">]</span>
+
+<span class="c1"># make single arg function as autograd takes derivative of first arg</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">foo</span><span class="p">(</span><span class="n">xyz</span><span class="p">):</span>
+   <span class="k">return</span> <span class="n">oe</span><span class="o">.</span><span class="n">contract</span><span class="p">(</span><span class="s1">&#39;ij,jk,ki-&gt;&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">xyz</span><span class="p">)</span>
+
+<span class="n">foo</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span>
+<span class="c1">#&gt; array(4.90422159)</span>
+
+<span class="c1"># wrap foo with autograd to compute gradients instead</span>
+<span class="n">dfoo</span> <span class="o">=</span> <span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+<span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">dz</span> <span class="o">=</span> <span class="n">dfoo</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span>
+<span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">dz</span>
+<span class="c1">#&gt; (array([[1.10056194, 1.25078356, 1.48211494],</span>
+<span class="c1">#&gt;         [1.38945961, 1.5572077 , 1.65234003]]),</span>
+<span class="c1">#&gt;  array([[0.41710717, 0.63202881, 0.84573502, 0.95069975],</span>
+<span class="c1">#&gt;         [0.42706777, 0.73630994, 0.99328938, 0.77415267],</span>
+<span class="c1">#&gt;         [0.40773334, 0.61693475, 0.82545726, 0.93132302]]),</span>
+<span class="c1">#&gt;  array([[0.78747828, 1.28979012],</span>
+<span class="c1">#&gt;         [1.26051133, 1.48835538],</span>
+<span class="c1">#&gt;         [0.46896666, 0.55003072],</span>
+<span class="c1">#&gt;         [1.10840828, 1.16722494]]))</span>
+</code></pre></div>
+<h3 id="jax">Jax</h3>
+<p><a href="https://github.com/google/jax">jax</a> is itself a drop-in for <code>autograd</code>,
+that additionally uses <a href="https://www.tensorflow.org/xla">XLA</a> to compile the
+expressions, particularly for the GPU. Using it with <code>opt_einsum</code> is very
+simple:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<span class="c1"># generate a compiled version of the above function</span>
+<span class="n">jit_foo</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+<span class="n">jit_foo</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span>
+<span class="c1">#&gt; DeviceArray(4.9042215, dtype=float32)</span>
+
+<span class="c1"># generate a compiled version of the gradient function</span>
+<span class="n">jit_dfoo</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">foo</span><span class="p">))</span>
+<span class="n">jit_dfoo</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span>
+<span class="c1">#&gt; [DeviceArray([[1.10056198, 1.25078356, 1.48211491],</span>
+<span class="c1">#&gt;               [1.38945973, 1.5572077, 1.65234005]], dtype=float32),</span>
+<span class="c1">#&gt;  DeviceArray([[0.41710716, 0.63202882, 0.84573501, 0.95069975],</span>
+<span class="c1">#&gt;               [0.42706776, 0.73630995, 0.99328935, 0.7741527 ],</span>
+<span class="c1">#&gt;               [0.40773335, 0.61693472, 0.82545722, 0.93132305]],</span>
+<span class="c1">#&gt;              dtype=float32),</span>
+<span class="c1">#&gt;  DeviceArray([[0.78747827, 1.28979015],</span>
+<span class="c1">#&gt;               [1.2605114 , 1.4883554 ],</span>
+<span class="c1">#&gt;               [0.46896666, 0.55003077],</span>
+<span class="c1">#&gt;               [1.10840821, 1.16722488]], dtype=float32)]</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>jax</code> defaults to converting all arrays to single precision. This
+behaviour can be changed by running
+<code>from jax.config import config; config.update("jax_enable_x64", True)</code>
+<strong>before</strong> it has been imported and used at all.</p>
+</div>
+<h2 id="special-gpu-backends-for-numpy-arrays">Special (GPU) backends for numpy arrays</h2>
+<p>A particular case is if numpy arrays are required for the input and output,
+however, a more performant backend is required such as performing the contraction on a GPU.
+Unless the specified backend works on numpy arrays, this requires converting to and from the backend array type.
+Currently <code>opt_einsum</code> can handle this automatically for:</p>
+<ul>
+<li><a href="https://www.tensorflow.org/">tensorflow</a></li>
+<li><a href="http://deeplearning.net/software/theano/">theano</a></li>
+<li><a href="https://cupy.chainer.org/">cupy</a></li>
+<li><a href="https://pytorch.org">pytorch</a></li>
+<li><a href="https://github.com/google/jax">jax</a></li>
+</ul>
+<p>all of which offer GPU support. Since <code>tensorflow</code> and <code>theano</code> both require
+compiling the expression, this functionality is encapsulated in generating a
+<a href="../../api_reference/#opt_einsum.contract.contract_expression"><code>opt_einsum.ContractExpression</code></a> using
+<a href="../../api_reference/#opt_einsumcontract_expression"><code>opt_einsum.contract_expression</code></a>, which can then be called using numpy
+arrays whilst specifying <code>backend='tensorflow'</code> etc.
+Additionally, if arrays are marked as <code>constant</code>
+(see <a href="../reusing_paths/#specifying-constants"><code>constants-section</code></a>), then these arrays will be kept on the device
+for optimal performance.</p>
+<h3 id="theano">Theano</h3>
+<p>If <code>theano</code> is installed, using it as backend is as simple as specifying
+<code>backend='theano'</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">shapes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">),</span> <span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+<span class="n">expr</span> <span class="o">=</span> <span class="n">oe</span><span class="o">.</span><span class="n">contract_expression</span><span class="p">(</span><span class="s2">&quot;ab,bc,cd&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">shapes</span><span class="p">)</span>
+<span class="n">expr</span>
+<span class="c1">#&gt; &lt;ContractExpression(&#39;ab,bc,cd&#39;)&gt;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="c1"># GPU advantage mainly for low precision numbers</span>
+<span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="o">*</span><span class="n">shp</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="k">for</span> <span class="n">shp</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">]</span>
+<span class="n">expr</span><span class="p">(</span><span class="o">*</span><span class="n">xs</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;theano&#39;</span><span class="p">)</span>  <span class="c1"># might see some fluff on first run</span>
+<span class="c1">#&gt; array([[ 129.28352  , -128.00702  , -164.62917  , -335.11682  ],</span>
+<span class="c1">#&gt;        [-462.52344  , -121.12657  ,  -67.847626 ,  624.5457   ],</span>
+<span class="c1">#&gt;        [   5.2838974,   36.441578 ,   81.62851  ,  703.1576   ]],</span>
+<span class="c1">#&gt;       dtype=float32)</span>
+</code></pre></div>
+<p>Note that you can still supply <code>theano.tensor.TensorType</code> directly to
+<code>opt_einsum</code> (with <code>backend='theano'</code>), and it will return the
+relevant <code>theano</code> type.</p>
+<h3 id="tensorflow">Tensorflow</h3>
+<p>To run the expression with <strong>tensorflow</strong>, you need to register a default
+session:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+<span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">sess</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="o">*</span><span class="n">xs</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;tensorflow&#39;</span><span class="p">)</span>
+
+<span class="n">out</span>
+<span class="c1">#&gt; array([[ 129.28357  , -128.00684  , -164.62903  , -335.1167   ],</span>
+<span class="c1">#&gt;        [-462.52362  , -121.12659  ,  -67.84769  ,  624.5455   ],</span>
+<span class="c1">#&gt;        [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],</span>
+<span class="c1">#&gt;       dtype=float32)</span>
+</code></pre></div>
+<p>Note that you can still supply this expression with, for example, a
+<code>tensorflow.placeholder</code> using <code>backend='tensorflow'</code>, and then no
+conversion would take place, instead you'd get a <code>tensorflow.Tensor</code> back.</p>
+<p>Version 1.9 of tensorflow also added support for eager execution of
+computations. If compilation of the contraction expression tensorflow graph is
+taking a substantial amount of time up then it can be advantageous to use this,
+especially since tensor contractions are quite compute-bound. This is achieved
+by running the following snippet:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">enable_eager_execution</span><span class="p">()</span>
+</code></pre></div>
+<p>After which <code>opt_einsum</code> will automatically detect eager mode if
+<code>backend='tensorflow'</code> is supplied to a
+<a href="../../api_reference/#opt_einsum.contract.contract_expression"><code>opt_einsum.ContractExpression</code></a>.</p>
+<h3 id="pytorch-cupy">Pytorch &amp; Cupy</h3>
+<p>Both <a href="https://pytorch.org">pytorch</a> and <a href="https://cupy.chainer.org/">cupy</a>
+offer numpy-like, GPU-enabled arrays which execute eagerly rather than
+requiring any compilation. If they are installed, no steps are required to
+utilize them other than specifying the <code>backend</code> keyword:</p>
+<div class="highlight"><pre><span></span><code><span class="n">expr</span><span class="p">(</span><span class="o">*</span><span class="n">xs</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;torch&#39;</span><span class="p">)</span>
+<span class="c1">#&gt; array([[ 129.28357  , -128.00684  , -164.62903  , -335.1167   ],</span>
+<span class="c1">#&gt;        [-462.52362  , -121.12659  ,  -67.84769  ,  624.5455   ],</span>
+<span class="c1">#&gt;        [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],</span>
+<span class="c1">#&gt;       dtype=float32)</span>
+
+<span class="n">expr</span><span class="p">(</span><span class="o">*</span><span class="n">xs</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;cupy&#39;</span><span class="p">)</span>
+<span class="c1">#&gt; array([[ 129.28357  , -128.00684  , -164.62903  , -335.1167   ],</span>
+<span class="c1">#&gt;        [-462.52362  , -121.12659  ,  -67.84769  ,  624.5455   ],</span>
+<span class="c1">#&gt;        [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],</span>
+<span class="c1">#&gt;       dtype=float32)</span>
+</code></pre></div>
+<p>And as with the other GPU backends, if raw <code>cupy</code> or <code>pytorch</code> arrays are
+supplied the returned array will be of the same type, with no conversion
+to or from <code>numpy</code> arrays.</p>
+<h3 id="jax_1">Jax</h3>
+<p><a href="https://github.com/google/jax">jax</a>, as introduced above, can compile tensor
+functions, in doing so often achieving better performance.
+<code>opt_einsum</code> expressions can handle this behind the scenes,
+so again just the <code>backend</code> keyword needs to be supplied:</p>
+<div class="highlight"><pre><span></span><code><span class="n">expr</span><span class="p">(</span><span class="o">*</span><span class="n">xs</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;jax&#39;</span><span class="p">)</span>
+<span class="c1">#&gt; array([[ 129.28357  , -128.00684  , -164.62903  , -335.1167   ],</span>
+<span class="c1">#&gt;        [-462.52362  , -121.12659  ,  -67.84769  ,  624.5455   ],</span>
+<span class="c1">#&gt;        [   5.2839584,   36.44155  ,   81.62852  ,  703.15784  ]],</span>
+<span class="c1">#&gt;       dtype=float32)</span>
+</code></pre></div>
+<h2 id="contracting-arbitrary-objects">Contracting arbitrary objects</h2>
+<p>There is one more explicit backend that can handle arbitrary arrays of objects,
+so long the <em>objects themselves</em> just support multiplication and addition (
+<code>__mul__</code> and <code>__add__</code> dunder methods respectively).
+Use it by supplying <code>backend='object'</code>.</p>
+<p>For example, imagine we want to perform a contraction of arrays made up of <a href="https://www.sympy.org">sympy</a> symbols:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">opt_einsum</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">oe</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sympy</span>
+
+<span class="c1"># define the symbols</span>
+<span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span> <span class="o">=</span> <span class="p">[</span><span class="n">sympy</span><span class="o">.</span><span class="n">symbols</span><span class="p">(</span><span class="n">oe</span><span class="o">.</span><span class="n">get_symbol</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">)]</span>
+<span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">d</span>
+<span class="n">𝑑</span>
+
+<span class="c1"># define the tensors (you might explicitly specify `dtype=object`)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">]])</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">],</span> <span class="p">[</span><span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">]])</span>
+<span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]])</span>
+
+<span class="c1"># contract the tensors!</span>
+<span class="n">oe</span><span class="o">.</span><span class="n">contract</span><span class="p">(</span><span class="s1">&#39;uv,vw,wu-&gt;u&#39;</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">)</span>
+<span class="c1"># array([i*(a*e + b*g) + k*(a*f + b*h), j*(c*e + d*g) + l*(c*f + d*h)],</span>
+<span class="c1">#       dtype=object)</span>
+</code></pre></div>
+<p>There are a few things to note here:</p>
+<ul>
+<li>The returned array is a <code>numpy.ndarray</code> but since it has <code>dtype=object</code>
+  it can really hold <em>any</em> python objects</li>
+<li>We had to explicitly use <code>backend='object'</code>, since <code>numpy.einsum</code>
+  would have otherwise been dispatched to, which can't handle <code>dtype=object</code>
+  (though <code>numpy.tensordot</code> in fact can)</li>
+<li>Although an optimized pairwise contraction order is used, the looping in each
+  single contraction is <strong>performed in python so performance will be
+  drastically lower than for numeric dtypes!</strong></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant"], "search": "../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+        <script src="../../javascript/config.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
