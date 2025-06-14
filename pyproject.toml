@@ -32,6 +32,9 @@ dependencies = [
 ]
 dynamic = ['version', 'readme']
 
+[project.urls]
+source = "https://github.com/dgasmith/opt_einsum"
+
 [tool.hatch.version]
 source = "vcs"
 path = 'opt_einsum/_version.py'
