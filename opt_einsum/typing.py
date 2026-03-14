@@ -28,6 +28,8 @@ OptimizeKind = (
     | Literal["branch-2"]
     | Literal["auto"]
     | Literal["auto-hq"]
+    | PathSearchFunctionType
+    | PathType
 )
 BackendType = Literal[
     "auto" | "object" | "autograd" | "cupy" | "dask" | "jax" | "theano" | "tensorflow" | "torch" | "libjax"
