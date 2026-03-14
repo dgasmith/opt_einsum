@@ -24,7 +24,7 @@ jobs:
             extras: "test,lint,numpy,dask"
           - python-version: "3.13"
             environment: "full"
-            extras: "test,lint,numpy,tensorflow,dask,jax,sparse"
+            extras: "test,lint,numpy,dask,jax,sparse"
           - python-version: "3.13"
             environment: "torch-only"
             extras: "test,lint,torch"

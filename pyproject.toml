@@ -35,10 +35,9 @@ source = "https://github.com/dgasmith/opt_einsum"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]
-lint = ["ruff==0.15.*", "mypy>=1.11,<1.12"]
+lint = ["ruff==0.15.*", "mypy>=1.19,<2.0"]
 torch = ["torch>=2.0,<3.0"]
 numpy = ["numpy>=1.23"]
-tensorflow = ["tensorflow-cpu"]
 dask = ["dask"]
 jax = ["jax"]
 sparse = ["sparse"]
