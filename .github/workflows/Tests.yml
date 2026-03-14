@@ -23,7 +23,6 @@ jobs:
             extras: "test,lint,numpy,dask,jax,sparse"
           - python-version: "3.13"
             extras: "test,lint,torch"
-            check-no-numpy: true
           - python-version: "3.12"
             extras: "test,lint,numpy"
             extra-packages: "tensorflow-cpu"
@@ -38,19 +37,14 @@ jobs:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
 
-    - name: Install extra packages
-      if: matrix.extra-packages != ''
-      run: uv pip install ${{ matrix.extra-packages }}
-
-    - name: Check no NumPy for torch-only environment
-      if: matrix['check-no-numpy']
-      run: python devtools/ci_scripts/check_no_numpy.py
+    - name: Install
+      run: uv pip install -e ".[${{ matrix.extras }}]" ${{ matrix.extra-packages || '' }}
 
     - name: Test
-      run: uv run --with ".[${{ matrix.extras }}]" pytest -v --cov=opt_einsum/ --cov-report=xml
+      run: uv run --no-sync pytest -v --cov=opt_einsum/ --cov-report=xml
 
     - name: Coverage
-      run: uv run --with ".[test]" coverage report
+      run: uv run --no-sync coverage report
 
     - uses: codecov/codecov-action@v4
       with:
