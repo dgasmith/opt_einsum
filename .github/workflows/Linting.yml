@@ -19,11 +19,8 @@ jobs:
         python-version: "3.12"
         enable-cache: true
 
-    - name: Install
-      run: uv pip install -e ".[test,lint]"
-
     - name: MyPy
-      run: uv run mypy opt_einsum
+      run: uv run --with ".[lint]" mypy opt_einsum
 
   ruff:
     name: Ruff
@@ -36,9 +33,6 @@ jobs:
       with:
         python-version: "3.12"
         enable-cache: true
-
-    - name: Install
-      run: uv pip install -e ".[test,lint]"
 
     - name: Lint
       run: make format-check

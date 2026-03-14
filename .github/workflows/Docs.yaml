@@ -18,13 +18,10 @@ jobs:
         python-version: "3.12"
         enable-cache: true
 
-    - name: Install
-      run: uv pip install -e ".[docs]"
-
     - name: Build Docs
-      run: uv run mkdocs build
+      run: make docs
 
     # Only deploy if main, otherwise just build for testing
     - name: Deploy
       if: endsWith(github.ref, '/main')
-      run: uv run mkdocs gh-deploy --force
+      run: uv run --with ".[docs]" mkdocs gh-deploy --force
