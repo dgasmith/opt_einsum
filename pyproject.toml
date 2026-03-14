@@ -32,6 +32,17 @@ dependencies = [
 ]
 dynamic = ['version', 'readme']
 
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+lint = ["ruff>=0.6,<0.7", "mypy>=1.11,<1.12"]
+torch = ["torch>=2.0,<3.0"]
+numpy = ["numpy>=1.23"]
+tensorflow = ["tensorflow-cpu"]
+dask = ["dask"]
+jax = ["jax"]
+sparse = ["sparse"]
+dev = ["opt_einsum[test,lint,numpy,tensorflow,dask,jax,sparse]"]
+
 [tool.hatch.version]
 source = "vcs"
 path = 'opt_einsum/_version.py'

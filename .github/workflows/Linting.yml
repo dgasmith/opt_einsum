@@ -9,71 +9,36 @@ on:
 jobs:
   mypy:
     name: MyPy
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [3.12]
-        environment: ["min-deps"]
-
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -el {0}
 
     steps:
     - uses: actions/checkout@v4
 
-    - uses: conda-incubator/setup-miniconda@v3
+    - uses: astral-sh/setup-uv@v5
       with:
-        python-version: ${{ matrix.python-version }}
-        channel-priority: true
-        activate-environment: test
-        environment-file: devtools/conda-envs/${{ matrix.environment }}-environment.yaml
-
-    - name: Environment Information
-      run: |
-        conda info
-        conda list
-        conda config --show-sources
-        conda config --show
+        python-version: "3.12"
+        enable-cache: true
 
     - name: Install
-      run: python -m pip install . --no-deps
+      run: uv pip install -e ".[test,lint]"
 
     - name: MyPy
-      run: mypy opt_einsum
+      run: uv run mypy opt_einsum
 
   ruff:
     name: Ruff
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [3.12]
-        environment: ["min-deps"]
-
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -el {0}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
-    - uses: conda-incubator/setup-miniconda@v3
+    - uses: astral-sh/setup-uv@v5
       with:
-        python-version: ${{ matrix.python-version }}
-        channel-priority: true
-        activate-environment: test
-        environment-file: devtools/conda-envs/${{ matrix.environment }}-environment.yaml
+        python-version: "3.12"
+        enable-cache: true
 
-    - name: Environment Information
-      run: |
-        conda info
-        conda list
-        conda config --show-sources
-        conda config --show
+    - name: Install
+      run: uv pip install -e ".[test,lint]"
 
     - name: Lint
-      run: |
-        set -e
-        make format-check
+      run: make format-check
