@@ -53,7 +53,7 @@ docs = [
     "mkdocs-material==9.*",
     "pygments==2.*",
 ]
-dev = ["opt_einsum[test,lint,numpy,tensorflow,dask,jax,sparse]"]
+dev = ["opt_einsum[test,lint]"]
 
 [tool.hatch.version]
 source = "vcs"
