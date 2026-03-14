@@ -30,6 +30,9 @@ dependencies = [
 ]
 dynamic = ['version', 'readme']
 
+[project.urls]
+source = "https://github.com/dgasmith/opt_einsum"
+
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]
 lint = ["ruff>=0.6,<0.7", "mypy>=1.11,<1.12"]

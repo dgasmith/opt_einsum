@@ -297,7 +297,7 @@ def contract_path(
     input_list = input_subscripts.split(",")
     input_sets = [frozenset(x) for x in input_list]
     if shapes:
-        input_shapes = operands_prepped
+        input_shapes = list(operands_prepped)
     else:
         input_shapes = [parser.get_shape(x) for x in operands_prepped]
     output_set = frozenset(output_subscript)

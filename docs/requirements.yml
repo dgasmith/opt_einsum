@@ -3,7 +3,7 @@ black
 devtools
 markdown==3.*
 markdown-include==0.*
-mkdocstrings[python]==0.25.*
+mkdocstrings[python]==0.29.*
 mkdocs==1.*
 mkdocs-awesome-pages-plugin==2.*
 mkdocs-exclude==1.*
