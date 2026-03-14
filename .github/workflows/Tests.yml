@@ -8,28 +8,23 @@ on:
 
 jobs:
   tests:
-    name: ${{ matrix.environment }} / py${{ matrix.python-version }}
+    name: ${{ matrix.extras }} / py${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - python-version: "3.12"
-            environment: "min-deps"
             extras: "test,lint"
           - python-version: "3.14"
-            environment: "min-deps"
             extras: "test,lint"
           - python-version: "3.12"
-            environment: "min-ver"
             extras: "test,lint,numpy,dask"
           - python-version: "3.13"
-            environment: "full"
             extras: "test,lint,numpy,dask,jax,sparse"
           - python-version: "3.13"
-            environment: "torch-only"
             extras: "test,lint,torch"
+            check-no-numpy: true
           - python-version: "3.12"
-            environment: "tensorflow"
             extras: "test,lint,numpy"
             extra-packages: "tensorflow-cpu"
 
@@ -48,7 +43,7 @@ jobs:
       run: uv pip install ${{ matrix.extra-packages }}
 
     - name: Check no NumPy for torch-only environment
-      if: matrix.environment == 'torch-only'
+      if: matrix['check-no-numpy']
       run: python devtools/ci_scripts/check_no_numpy.py
 
     - name: Test
