@@ -12,11 +12,11 @@ format-check:
 
 .PHONY: mypy
 mypy:
-	uv run --with ".[lint]" mypy opt_einsum
+	uv run --with ".[test,lint]" mypy opt_einsum
 
 .PHONY: test
 test:
-	uv run --with ".[test]" pytest -v --cov=opt_einsum/
+	uv run --with ".[test]" pytest -v --cov=opt_einsum/ --cov-report=xml
 
 .PHONY: docs
 docs:

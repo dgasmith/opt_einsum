@@ -39,18 +39,15 @@ jobs:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
 
-    - name: Install
-      run: uv pip install -e ".[${{ matrix.extras }}]"
-
     - name: Check no NumPy for torch-only environment
       if: matrix.environment == 'torch-only'
       run: python devtools/ci_scripts/check_no_numpy.py
 
     - name: Test
-      run: uv run pytest -v --cov=opt_einsum opt_einsum/ --cov-report=xml
+      run: uv run --with ".[${{ matrix.extras }}]" pytest -v --cov=opt_einsum/ --cov-report=xml
 
     - name: Coverage
-      run: uv run coverage report
+      run: uv run --with ".[test]" coverage report
 
     - uses: codecov/codecov-action@v4
       with:
