@@ -31,6 +31,4 @@ OptimizeKind = (
     | PathSearchFunctionType
     | PathType
 )
-BackendType = Literal[
-    "auto" | "object" | "autograd" | "cupy" | "dask" | "jax" | "theano" | "tensorflow" | "torch" | "libjax"
-]
+BackendType = Literal["auto", "object", "autograd", "cupy", "dask", "jax", "theano", "tensorflow", "torch", "libjax"]
