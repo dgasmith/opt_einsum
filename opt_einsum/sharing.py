@@ -8,14 +8,15 @@ import functools
 import numbers
 import threading
 from collections import Counter, defaultdict
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
-from typing import Counter as CounterType
+from collections import Counter as CounterType
+from collections.abc import Generator
+from typing import Any
 
 from opt_einsum.parser import alpha_canonicalize, parse_einsum_input
 from opt_einsum.typing import ArrayType
 
-CacheKeyType = Union[Tuple[str, str, int, Tuple[int, ...]], Tuple[str, int]]
-CacheType = Dict[CacheKeyType, ArrayType]
+CacheKeyType = tuple[str, str, int, tuple[int, ...]] | tuple[str, int]
+CacheType = dict[CacheKeyType, ArrayType]
 
 __all__ = [
     "currently_sharing",
@@ -27,7 +28,7 @@ __all__ = [
     "to_backend_cache_wrap",
 ]
 
-_SHARING_STACK: Dict[int, List[CacheType]] = defaultdict(list)
+_SHARING_STACK: dict[int, list[CacheType]] = defaultdict(list)
 
 
 def currently_sharing() -> bool:
@@ -53,7 +54,7 @@ def _remove_sharing_cache() -> None:
 
 @contextlib.contextmanager
 def shared_intermediates(
-    cache: Optional[CacheType] = None,
+    cache: CacheType | None = None,
 ) -> Generator[CacheType, None, None]:
     """Context in which contract intermediate results are shared.
 

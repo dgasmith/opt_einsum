@@ -5,7 +5,7 @@ the various path helper functions.
 
 import itertools
 from concurrent.futures import ProcessPoolExecutor
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -103,7 +103,7 @@ def test_size_by_dict() -> None:
 
 
 def test_flop_cost() -> None:
-    size_dict = {v: 10 for v in "abcdef"}
+    size_dict = dict.fromkeys("abcdef", 10)
 
     # Loop over an array
     assert 10 == oe.helpers.flop_count("a", False, 1, size_dict)
@@ -203,7 +203,7 @@ def test_optimal_edge_cases() -> None:
 
 def test_greedy_edge_cases() -> None:
     expression = "abc,cfd,dbe,efa"
-    dim_dict = {k: 20 for k in expression.replace(",", "")}
+    dim_dict = dict.fromkeys(expression.replace(",", ""), 20)
     tensors = build_shapes(expression, dimension_dict=dim_dict)
 
     path, _ = oe.contract_path(expression, *tensors, optimize="greedy", memory_limit="max_input", shapes=True)
@@ -450,10 +450,10 @@ def test_custom_path_optimizer() -> None:
     class NaiveOptimizer(oe.paths.PathOptimizer):
         def __call__(
             self,
-            inputs: List[ArrayIndexType],
+            inputs: list[ArrayIndexType],
             output: ArrayIndexType,
-            size_dict: Dict[str, int],
-            memory_limit: Optional[int] = None,
+            size_dict: dict[str, int],
+            memory_limit: int | None = None,
         ) -> PathType:
             self.was_used = True
             return [(0, 1)] * (len(inputs) - 1)
@@ -475,11 +475,11 @@ def test_custom_random_optimizer() -> None:
     class NaiveRandomOptimizer(oe.path_random.RandomOptimizer):
         @staticmethod
         def random_path(
-            r: int, n: int, inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int]
+            r: int, n: int, inputs: list[ArrayIndexType], output: ArrayIndexType, size_dict: dict[str, int]
         ) -> Any:
             """Picks a completely random contraction order."""
             np.random.seed(r)
-            ssa_path: List[TensorShapeType] = []
+            ssa_path: list[TensorShapeType] = []
             remaining = set(range(n))
             while len(remaining) > 1:
                 i, j = np.random.choice(list(remaining), size=2, replace=False)
@@ -512,7 +512,7 @@ def test_custom_random_optimizer() -> None:
 
 def test_optimizer_registration() -> None:
     def custom_optimizer(
-        inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int], memory_limit: Optional[int]
+        inputs: list[ArrayIndexType], output: ArrayIndexType, size_dict: dict[str, int], memory_limit: int | None
     ) -> PathType:
         return [(0, 1)] * (len(inputs) - 1)
 

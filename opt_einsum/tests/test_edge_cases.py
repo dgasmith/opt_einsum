@@ -2,7 +2,7 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 import pytest
 
@@ -144,7 +144,7 @@ def test_pathinfo_for_empty_contraction() -> None:
         ["ab,->", ([[5, 5], [2.0, 1]], True)],
     ],
 )
-def test_contract_with_assumed_shapes(expression: str, operands: Tuple[Any]) -> None:
+def test_contract_with_assumed_shapes(expression: str, operands: tuple[Any]) -> None:
     """Test that we can contract with assumed shapes, and that the output is correct. This is required as we need to infer intermediate shape sizes."""
 
     benchmark = np.einsum(expression, *operands)

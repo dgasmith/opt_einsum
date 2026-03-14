@@ -1,27 +1,34 @@
 """Types used in the opt_einsum package."""
 
 from collections import namedtuple
-from typing import Any, Callable, Collection, Dict, FrozenSet, List, Literal, Optional, Tuple, Union
+from collections.abc import Callable, Collection
+from typing import Any, Literal
 
-TensorShapeType = Tuple[int, ...]
+TensorShapeType = tuple[int, ...]
 PathType = Collection[TensorShapeType]
 
 ArrayType = Any
 
-ArrayIndexType = FrozenSet[str]
+ArrayIndexType = frozenset[str]
 ArrayShaped = namedtuple("ArrayShaped", ["shape"])
 
-ContractionListType = List[Tuple[Any, ArrayIndexType, str, Optional[Tuple[str, ...]], Union[str, bool]]]
-PathSearchFunctionType = Callable[[List[ArrayIndexType], ArrayIndexType, Dict[str, int], Optional[int]], PathType]
+ContractionListType = list[tuple[Any, ArrayIndexType, str, tuple[str, ...] | None, str | bool]]
+PathSearchFunctionType = Callable[[list[ArrayIndexType], ArrayIndexType, dict[str, int], int | None], PathType]
 
 # Contract kwargs
-OptimizeKind = Union[
-    None,
-    bool,
-    Literal[
-        "optimal", "dp", "greedy", "random-greedy", "random-greedy-128", "branch-all", "branch-2", "auto", "auto-hq"
-    ],
-    PathType,
-    PathSearchFunctionType,
+OptimizeKind = (
+    None
+    | int
+    | Literal["optimal"]
+    | Literal["dp"]
+    | Literal["greedy"]
+    | Literal["random-greedy"]
+    | Literal["random-greedy-128"]
+    | Literal["branch-all"]
+    | Literal["branch-2"]
+    | Literal["auto"]
+    | Literal["auto-hq"]
+)
+BackendType = Literal[
+    "auto" | "object" | "autograd" | "cupy" | "dask" | "jax" | "theano" | "tensorflow" | "torch" | "libjax"
 ]
-BackendType = Literal["auto", "object", "autograd", "cupy", "dask", "jax", "theano", "tensorflow", "torch", "libjax"]

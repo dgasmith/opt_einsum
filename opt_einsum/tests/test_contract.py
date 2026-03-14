@@ -2,7 +2,7 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
-from typing import Any, List
+from typing import Any
 
 import pytest
 
@@ -229,13 +229,13 @@ def test_contract_expression_interleaved_input() -> None:
         ("ab,bc,cd", [0, 1]),
     ],
 )
-def test_contract_expression_with_constants(string: str, constants: List[int]) -> None:
+def test_contract_expression_with_constants(string: str, constants: list[int]) -> None:
     views = build_views(string)
     expected = contract(string, *views, optimize=False, use_blas=False)
 
     shapes = [view.shape if hasattr(view, "shape") else () for view in views]
 
-    expr_args: List[Any] = []
+    expr_args: list[Any] = []
     ctrc_args = []
     for i, (shape, view) in enumerate(zip(shapes, views)):
         if i in constants:
