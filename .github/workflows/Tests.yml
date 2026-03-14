@@ -22,7 +22,6 @@ jobs:
           - python-version: "3.12"
             environment: "min-ver"
             extras: "test,lint,numpy,dask"
-            extra-packages: '"tensorflow-cpu==2.10.*" "dask==2021.*"'
           - python-version: "3.13"
             environment: "full"
             extras: "test,lint,numpy,tensorflow,dask,jax,sparse"
@@ -41,7 +40,7 @@ jobs:
         enable-cache: true
 
     - name: Install
-      run: uv pip install -e ".[${{ matrix.extras }}]" ${{ matrix.extra-packages }}
+      run: uv pip install -e ".[${{ matrix.extras }}]"
 
     - name: Check no NumPy for torch-only environment
       if: matrix.environment == 'torch-only'
