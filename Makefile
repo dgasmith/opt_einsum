@@ -7,8 +7,8 @@ format:
 
 .PHONY: format-check
 format-check:
-	uv run ruff check opt_einsum
-	uv run ruff format --check opt_einsum
+	uv run --with ".[lint]" ruff check opt_einsum
+	uv run --with ".[lint]" ruff format --check opt_einsum
 
 .PHONY: mypy
 mypy:

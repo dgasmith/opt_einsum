@@ -20,7 +20,7 @@ jobs:
         enable-cache: true
 
     - name: MyPy
-      run: uv run --with ".[lint]" mypy opt_einsum
+      run: make mypy
 
   ruff:
     name: Ruff
