@@ -35,13 +35,24 @@ source = "https://github.com/dgasmith/opt_einsum"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]
-lint = ["ruff>=0.6,<0.7", "mypy>=1.11,<1.12"]
+lint = ["ruff==0.15.*", "mypy>=1.11,<1.12"]
 torch = ["torch>=2.0,<3.0"]
 numpy = ["numpy>=1.23"]
 tensorflow = ["tensorflow-cpu"]
 dask = ["dask"]
 jax = ["jax"]
 sparse = ["sparse"]
+docs = [
+    "ansi2html==1.*",
+    "markdown==3.*",
+    "markdown-include==0.*",
+    "mkdocstrings[python]==0.29.*",
+    "mkdocs==1.*",
+    "mkdocs-awesome-pages-plugin==2.*",
+    "mkdocs-exclude==1.*",
+    "mkdocs-material==9.*",
+    "pygments==2.*",
+]
 dev = ["opt_einsum[test,lint,numpy,tensorflow,dask,jax,sparse]"]
 
 [tool.hatch.version]
