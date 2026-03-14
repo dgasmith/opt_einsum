@@ -13,20 +13,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python-version: "3.8"
-            environment: "min-deps"
-            extras: "test,lint"
           - python-version: "3.12"
             environment: "min-deps"
             extras: "test,lint"
-          - python-version: "3.9"
+          - python-version: "3.14"
+            environment: "min-deps"
+            extras: "test,lint"
+          - python-version: "3.12"
             environment: "min-ver"
             extras: "test,lint,numpy,dask"
             extra-packages: '"tensorflow-cpu==2.10.*" "dask==2021.*"'
-          - python-version: "3.11"
+          - python-version: "3.13"
             environment: "full"
             extras: "test,lint,numpy,tensorflow,dask,jax,sparse"
-          - python-version: "3.12"
+          - python-version: "3.13"
             environment: "torch-only"
             extras: "test,lint,torch"
 
