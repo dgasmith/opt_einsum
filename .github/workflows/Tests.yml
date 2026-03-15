@@ -8,7 +8,7 @@ on:
 
 jobs:
   tests:
-    name: ${{ matrix.extras }} / py${{ matrix.python-version }}
+    name: ${{ matrix.extras }}${{ matrix.python-extras && format('+{0}', matrix.python-extras) || '' }} / py${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,10 +23,11 @@ jobs:
             extras: "test,lint,numpy,dask"
           - python-version: "3.13"
             extras: "test,lint,numpy,dask,jax,sparse"
-          - python-version: "3.12"
-            extras: "test,lint,tensorflow"
           - python-version: "3.13"
             extras: "test,lint,torch"
+          - python-version: "3.13"
+            extras: "test,lint"
+            python-extras: "tensorflow"
 
     runs-on: ubuntu-latest
 
@@ -39,7 +40,7 @@ jobs:
         enable-cache: true
 
     - name: Install
-      run: uv pip install -e ".[${{ matrix.extras }}]"
+      run: uv pip install -e ".[${{ matrix.extras }}]" ${{ matrix.python-extras }}
 
     - name: Test
       run: uv run --no-sync pytest -v --cov=opt_einsum/ --cov-report=xml
