@@ -27,7 +27,6 @@ classifiers = [
 ]
 requires-python = '>=3.12'
 dependencies = [
-    "tensorflow>=2.21.0",
 ]
 dynamic = ['version', 'readme']
 
