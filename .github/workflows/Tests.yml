@@ -18,13 +18,15 @@ jobs:
           - python-version: "3.14"
             extras: "test,lint"
           - python-version: "3.12"
+            extras: "test,lint,numpy"
+          - python-version: "3.12"
             extras: "test,lint,numpy,dask"
           - python-version: "3.13"
             extras: "test,lint,numpy,dask,jax,sparse"
+          - python-version: "3.12"
+            extras: "test,lint,tensorflow"
           - python-version: "3.13"
             extras: "test,lint,torch"
-          - python-version: "3.12"
-            extras: "test,lint,numpy"
 
     runs-on: ubuntu-latest
 

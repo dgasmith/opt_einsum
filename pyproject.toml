@@ -27,6 +27,7 @@ classifiers = [
 ]
 requires-python = '>=3.12'
 dependencies = [
+    "tensorflow>=2.21.0",
 ]
 dynamic = ['version', 'readme']
 
@@ -34,13 +35,15 @@ dynamic = ['version', 'readme']
 source = "https://github.com/dgasmith/opt_einsum"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
-lint = ["ruff==0.15.*", "mypy>=1.19,<2.0"]
-torch = ["torch>=2.0,<3.0"]
-numpy = ["numpy>=1.23"]
 dask = ["dask"]
 jax = ["jax"]
+numpy = ["numpy>=1.23"]
 sparse = ["sparse"]
+tensorflow = ["tensorflow>=2.0,<3.0"]
+torch = ["torch>=2.0,<3.0"]
+
+test = ["pytest", "pytest-cov"]
+lint = ["ruff==0.15.*", "mypy>=1.19,<2.0"]
 docs = [
     "ansi2html==1.*",
     "markdown==3.*",
