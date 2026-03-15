@@ -25,7 +25,7 @@ jobs:
             extras: "test,lint,numpy,dask,jax,sparse"
           - python-version: "3.13"
             extras: "test,lint,torch"
-          - python-version: "3.13"
+          - python-version: "3.12"
             extras: "test,lint"
             python-extras: "tensorflow"
 
