@@ -1,6 +1,7 @@
 """Contains helper functions for opt_einsum testing scripts."""
 
-from typing import Any, Collection, Dict, FrozenSet, Iterable, List, Tuple, overload
+from collections.abc import Collection, Iterable
+from typing import Any, overload
 
 from opt_einsum.typing import ArrayIndexType, ArrayType
 
@@ -12,11 +13,11 @@ _default_dim_dict = dict(zip(_valid_chars, _sizes))
 
 
 @overload
-def compute_size_by_dict(indices: Iterable[int], idx_dict: List[int]) -> int: ...
+def compute_size_by_dict(indices: Iterable[int], idx_dict: list[int]) -> int: ...
 
 
 @overload
-def compute_size_by_dict(indices: Collection[str], idx_dict: Dict[str, int]) -> int: ...
+def compute_size_by_dict(indices: Collection[str], idx_dict: dict[str, int]) -> int: ...
 
 
 def compute_size_by_dict(indices: Any, idx_dict: Any) -> int:
@@ -49,9 +50,9 @@ def compute_size_by_dict(indices: Any, idx_dict: Any) -> int:
 
 def find_contraction(
     positions: Collection[int],
-    input_sets: List[ArrayIndexType],
+    input_sets: list[ArrayIndexType],
     output_set: ArrayIndexType,
-) -> Tuple[FrozenSet[str], List[ArrayIndexType], ArrayIndexType, ArrayIndexType]:
+) -> tuple[frozenset[str], list[ArrayIndexType], ArrayIndexType, ArrayIndexType]:
     """Finds the contraction for a given set of input and output sets.
 
     Parameters
@@ -107,7 +108,7 @@ def flop_count(
     idx_contraction: Collection[str],
     inner: bool,
     num_terms: int,
-    size_dictionary: Dict[str, int],
+    size_dictionary: dict[str, int],
 ) -> int:
     """Computes the number of FLOPS in the contraction.
 

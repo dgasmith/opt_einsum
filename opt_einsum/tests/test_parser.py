@@ -2,7 +2,7 @@
 Directly tests various parser utility functions.
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 import pytest
 
@@ -70,5 +70,5 @@ def test_parse_with_ellisis() -> None:
         [5.0 + 0j, ()],
     ],
 )
-def test_get_shapes(array: Any, shape: Tuple[int]) -> None:
+def test_get_shapes(array: Any, shape: tuple[int]) -> None:
     assert get_shape(array) == shape

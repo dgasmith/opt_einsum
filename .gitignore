@@ -1,6 +1,9 @@
 # Hatch replaces this file
 opt_einsum/_version.py
 
+# UV Lockfile
+uv.lock
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -74,7 +74,26 @@ Please see the [documentation](https://dgasmith.github.io/opt_einsum/index) for 
 
 ## Installation
 
-`opt_einsum` can either be installed via `pip install opt_einsum` or from conda `conda install opt_einsum -c conda-forge`.
+`opt_einsum` can be installed via pip:
+
+```bash
+pip install opt_einsum
+```
+
+or with [uv](https://github.com/astral-sh/uv):
+
+```bash
+uv pip install opt_einsum
+```
+
+It is also available on conda-forge: `conda install opt_einsum -c conda-forge`.
+
+For development, clone the repository and install with optional extras:
+
+```bash
+uv pip install -e ".[dev]"
+```
+
 See the installation [documentation](https://dgasmith.github.io/opt_einsum/getting_started/install) for further methods.
 
 ## Citation

@@ -16,24 +16,44 @@ classifiers = [
     'Programming Language :: Python :: Implementation :: PyPy',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     'Intended Audience :: Developers',
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: MIT License',
     'Topic :: Software Development :: Libraries :: Python Modules',
 
 ]
-requires-python = '>=3.8'
+requires-python = '>=3.12'
 dependencies = [
 ]
 dynamic = ['version', 'readme']
 
 [project.urls]
 source = "https://github.com/dgasmith/opt_einsum"
+
+[project.optional-dependencies]
+dask = ["dask"]
+jax = ["jax"]
+numpy = ["numpy>=1.23"]
+sparse = ["sparse"]
+torch = ["torch>=2.0,<3.0"]
+
+test = ["pytest", "pytest-cov"]
+lint = ["ruff==0.15.*", "mypy>=1.19,<2.0"]
+docs = [
+    "ansi2html==1.*",
+    "markdown==3.*",
+    "markdown-include==0.*",
+    "mkdocstrings[python]==0.29.*",
+    "mkdocs==1.*",
+    "mkdocs-awesome-pages-plugin==2.*",
+    "mkdocs-exclude==1.*",
+    "mkdocs-material==9.*",
+    "pygments==2.*",
+]
+dev = ["opt_einsum[test,lint]"]
 
 [tool.hatch.version]
 source = "vcs"
@@ -72,7 +92,7 @@ filterwarnings = [
 
 [tool.ruff]
 line-length = 120
-target-version = 'py38'
+target-version = 'py312'
 
 [tool.ruff.lint]
 extend-select = ['RUF100', 'UP', 'C', 'D', 'I', 'N', 'NPY', 'Q', 'T', 'W']

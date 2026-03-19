@@ -8,8 +8,9 @@ import operator
 import random
 import re
 from collections import Counter, defaultdict
-from typing import Any, Callable, Dict, FrozenSet, Generator, List, Optional, Sequence, Set, Tuple, Union
-from typing import Counter as CounterType
+from collections import Counter as CounterType
+from collections.abc import Callable, Generator, Sequence
+from typing import Any
 
 from opt_einsum.helpers import compute_size_by_dict, flop_count
 from opt_einsum.typing import ArrayIndexType, PathSearchFunctionType, PathType, TensorShapeType
@@ -52,9 +53,9 @@ class PathOptimizer:
 
     def _check_args_against_first_call(
         self,
-        inputs: List[ArrayIndexType],
+        inputs: list[ArrayIndexType],
         output: ArrayIndexType,
-        size_dict: Dict[str, int],
+        size_dict: dict[str, int],
     ) -> None:
         """Utility that stateful optimizers can use to ensure they are not
         called with different contractions across separate runs.
@@ -71,10 +72,10 @@ class PathOptimizer:
 
     def __call__(
         self,
-        inputs: List[ArrayIndexType],
+        inputs: list[ArrayIndexType],
         output: ArrayIndexType,
-        size_dict: Dict[str, int],
-        memory_limit: Optional[int] = None,
+        size_dict: dict[str, int],
+        memory_limit: int | None = None,
     ) -> PathType:
         raise NotImplementedError
 
@@ -148,13 +149,13 @@ def linear_to_ssa(path: PathType) -> PathType:
 
 
 def calc_k12_flops(
-    inputs: Tuple[FrozenSet[str]],
-    output: FrozenSet[str],
-    remaining: FrozenSet[int],
+    inputs: tuple[frozenset[str]],
+    output: frozenset[str],
+    remaining: frozenset[int],
     i: int,
     j: int,
-    size_dict: Dict[str, int],
-) -> Tuple[FrozenSet[str], int]:
+    size_dict: dict[str, int],
+) -> tuple[frozenset[str], int]:
     """Calculate the resulting indices and flops for a potential pairwise
     contraction - used in the recursive (optimal/branch) algorithms.
 
@@ -184,10 +185,10 @@ def calc_k12_flops(
 
 
 def _compute_oversize_flops(
-    inputs: Tuple[FrozenSet[str]],
-    remaining: List[ArrayIndexType],
+    inputs: tuple[frozenset[str]],
+    remaining: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
+    size_dict: dict[str, int],
 ) -> int:
     """Compute the flop count for a contraction of all remaining arguments. This
     is used when a memory limit means that no pairwise contractions can be made.
@@ -199,10 +200,10 @@ def _compute_oversize_flops(
 
 
 def optimal(
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    size_dict: dict[str, int],
+    memory_limit: int | None = None,
 ) -> PathType:
     """Computes all possible pair contractions in a depth-first recursive manner,
     sieving results based on `memory_limit` and the best path found so far.
@@ -230,8 +231,8 @@ def optimal(
 
     best_flops = {"flops": float("inf")}
     best_ssa_path = {"ssa_path": (tuple(range(len(inputs))),)}
-    size_cache: Dict[FrozenSet[str], int] = {}
-    result_cache: Dict[Tuple[ArrayIndexType, ArrayIndexType], Tuple[FrozenSet[str], int]] = {}
+    size_cache: dict[frozenset[str], int] = {}
+    result_cache: dict[tuple[ArrayIndexType, ArrayIndexType], tuple[frozenset[str], int]] = {}
 
     def _optimal_iterate(path, remaining, inputs, flops):
         # reached end of path (only ever get here if flops is best found so far)
@@ -330,7 +331,7 @@ _COST_FNS = {
 class BranchBound(PathOptimizer):
     def __init__(
         self,
-        nbranch: Optional[int] = None,
+        nbranch: int | None = None,
         cutoff_flops_factor: int = 4,
         minimize: str = "flops",
         cost_fn: str = "memory-removed",
@@ -363,8 +364,8 @@ class BranchBound(PathOptimizer):
         self.cost_fn: Any = _COST_FNS.get(cost_fn, cost_fn)
 
         self.better = get_better_fn(minimize)
-        self.best: Dict[str, Any] = {"flops": float("inf"), "size": float("inf")}
-        self.best_progress: Dict[int, float] = defaultdict(lambda: float("inf"))
+        self.best: dict[str, Any] = {"flops": float("inf"), "size": float("inf")}
+        self.best_progress: dict[int, float] = defaultdict(lambda: float("inf"))
 
     @property
     def path(self) -> PathType:
@@ -372,10 +373,10 @@ class BranchBound(PathOptimizer):
 
     def __call__(
         self,
-        inputs_: List[ArrayIndexType],
+        inputs_: list[ArrayIndexType],
         output_: ArrayIndexType,
-        size_dict: Dict[str, int],
-        memory_limit: Optional[int] = None,
+        size_dict: dict[str, int],
+        memory_limit: int | None = None,
     ) -> PathType:
         """Parameters:
             inputs_: List of sets that represent the lhs side of the einsum subscript
@@ -396,11 +397,11 @@ class BranchBound(PathOptimizer):
         """
         self._check_args_against_first_call(inputs_, output_, size_dict)
 
-        inputs: Tuple[FrozenSet[str]] = tuple(map(frozenset, inputs_))  # type: ignore
-        output: FrozenSet[str] = frozenset(output_)
+        inputs: tuple[frozenset[str]] = tuple(map(frozenset, inputs_))  # type: ignore
+        output: frozenset[str] = frozenset(output_)
 
         size_cache = {k: compute_size_by_dict(k, size_dict) for k in inputs}
-        result_cache: Dict[Tuple[FrozenSet[str], FrozenSet[str]], Tuple[FrozenSet[str], int]] = {}
+        result_cache: dict[tuple[frozenset[str], frozenset[str]], tuple[frozenset[str], int]] = {}
 
         def _branch_iterate(path, inputs, remaining, flops, size):
             # reached end of path (only ever get here if flops is best found so far)
@@ -410,7 +411,7 @@ class BranchBound(PathOptimizer):
                 self.best["ssa_path"] = path
                 return
 
-            def _assess_candidate(k1: FrozenSet[str], k2: FrozenSet[str], i: int, j: int) -> Any:
+            def _assess_candidate(k1: frozenset[str], k2: frozenset[str], i: int, j: int) -> Any:
                 # find resulting indices and flops
                 try:
                     k12, flops12 = result_cache[k1, k2]
@@ -495,11 +496,11 @@ class BranchBound(PathOptimizer):
 
 
 def branch(
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
-    nbranch: Optional[int] = None,
+    size_dict: dict[str, int],
+    memory_limit: int | None = None,
+    nbranch: int | None = None,
     cutoff_flops_factor: int = 4,
     minimize: str = "flops",
     cost_fn: str = "memory-removed",
@@ -514,16 +515,16 @@ branch_all = functools.partial(branch, nbranch=None)
 branch_2 = functools.partial(branch, nbranch=2)
 branch_1 = functools.partial(branch, nbranch=1)
 
-GreedyCostType = Tuple[int, int, int]
-GreedyContractionType = Tuple[GreedyCostType, ArrayIndexType, ArrayIndexType, ArrayIndexType]  # Cost, t1,t2->t3
+GreedyCostType = tuple[int, int, int]
+GreedyContractionType = tuple[GreedyCostType, ArrayIndexType, ArrayIndexType, ArrayIndexType]  # Cost, t1,t2->t3
 
 
 def _get_candidate(
     output: ArrayIndexType,
-    sizes: Dict[str, int],
-    remaining: Dict[ArrayIndexType, int],
-    footprints: Dict[ArrayIndexType, int],
-    dim_ref_counts: Dict[int, Set[str]],
+    sizes: dict[str, int],
+    remaining: dict[ArrayIndexType, int],
+    footprints: dict[ArrayIndexType, int],
+    dim_ref_counts: dict[int, set[str]],
     k1: ArrayIndexType,
     k2: ArrayIndexType,
     cost_fn: Any,
@@ -550,13 +551,13 @@ def _get_candidate(
 
 def _push_candidate(
     output: ArrayIndexType,
-    sizes: Dict[str, Any],
-    remaining: Dict[ArrayIndexType, int],
-    footprints: Dict[ArrayIndexType, int],
-    dim_ref_counts: Dict[int, Set[str]],
+    sizes: dict[str, Any],
+    remaining: dict[ArrayIndexType, int],
+    footprints: dict[ArrayIndexType, int],
+    dim_ref_counts: dict[int, set[str]],
     k1: ArrayIndexType,
-    k2s: List[ArrayIndexType],
-    queue: List[GreedyContractionType],
+    k2s: list[ArrayIndexType],
+    queue: list[GreedyContractionType],
     push_all: bool,
     cost_fn: Any,
 ) -> None:
@@ -570,8 +571,8 @@ def _push_candidate(
 
 
 def _update_ref_counts(
-    dim_to_keys: Dict[str, Set[ArrayIndexType]],
-    dim_ref_counts: Dict[int, Set[str]],
+    dim_to_keys: dict[str, set[ArrayIndexType]],
+    dim_ref_counts: dict[int, set[str]],
     dims: ArrayIndexType,
 ) -> None:
     for dim in dims:
@@ -596,9 +597,9 @@ def _simple_chooser(queue, remaining):
 
 
 def ssa_greedy_optimize(
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    sizes: Dict[str, int],
+    sizes: dict[str, int],
     choose_fn: Any = None,
     cost_fn: Any = "memory-removed",
 ) -> PathType:
@@ -629,9 +630,9 @@ def ssa_greedy_optimize(
     output = frozenset(output) | frozenset.intersection(*fs_inputs)
 
     # Deduplicate shapes by eagerly computing Hadamard products.
-    remaining: Dict[ArrayIndexType, int] = {}  # key -> ssa_id
+    remaining: dict[ArrayIndexType, int] = {}  # key -> ssa_id
     ssa_ids = itertools.count(len(fs_inputs))
-    ssa_path: List[TensorShapeType] = []
+    ssa_path: list[TensorShapeType] = []
     for ssa_id, key in enumerate(fs_inputs):
         if key in remaining:
             ssa_path.append((remaining[key], ssa_id))
@@ -656,7 +657,7 @@ def ssa_greedy_optimize(
     footprints = {key: compute_size_by_dict(key, sizes) for key in remaining}
 
     # Find initial candidate contractions.
-    queue: List[GreedyContractionType] = []
+    queue: list[GreedyContractionType] = []
     for dim, dim_keys in dim_to_keys.items():
         dim_keys_list = sorted(dim_keys, key=remaining.__getitem__)
         for i, k1 in enumerate(dim_keys_list[:-1]):
@@ -731,10 +732,10 @@ def ssa_greedy_optimize(
 
 
 def greedy(
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    size_dict: dict[str, int],
+    memory_limit: int | None = None,
     choose_fn: Any = None,
     cost_fn: str = "memory-removed",
 ) -> PathType:
@@ -774,7 +775,7 @@ def greedy(
     return ssa_to_linear(ssa_path)
 
 
-def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
+def _tree_to_sequence(tree: tuple[Any, ...]) -> PathType:
     """Converts a contraction tree to a contraction path as it has to be
     returned by path optimizers. A contraction tree can either be an int
     (=no contraction) or a tuple containing the terms to be contracted. An
@@ -808,9 +809,9 @@ def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
     if type(tree) == int:  # noqa: E721
         return []
 
-    c: List[Tuple[Any, ...]] = [tree]  # list of remaining contractions (lower part of columns shown above)
-    t: List[int] = []  # list of elementary tensors (upper part of columns)
-    s: List[Tuple[int, ...]] = []  # resulting contraction sequence
+    c: list[tuple[Any, ...]] = [tree]  # list of remaining contractions (lower part of columns shown above)
+    t: list[int] = []  # list of elementary tensors (upper part of columns)
+    s: list[tuple[int, ...]] = []  # resulting contraction sequence
 
     while len(c) > 0:
         j = c.pop(-1)
@@ -827,7 +828,7 @@ def _tree_to_sequence(tree: Tuple[Any, ...]) -> PathType:
     return s
 
 
-def _find_disconnected_subgraphs(inputs: List[FrozenSet[int]], output: FrozenSet[int]) -> List[FrozenSet[int]]:
+def _find_disconnected_subgraphs(inputs: list[frozenset[int]], output: frozenset[int]) -> list[frozenset[int]]:
     """Finds disconnected subgraphs in the given list of inputs. Inputs are
     connected if they share summation indices. Note: Disconnected subgraphs
     can be contracted independently before forming outer products.
@@ -869,7 +870,7 @@ def _find_disconnected_subgraphs(inputs: List[FrozenSet[int]], output: FrozenSet
     return [frozenset(x) for x in subgraphs]
 
 
-def _bitmap_select(s: int, seq: List[FrozenSet[int]]) -> Generator[FrozenSet[int], None, None]:
+def _bitmap_select(s: int, seq: list[frozenset[int]]) -> Generator[frozenset[int], None, None]:
     """Select elements of ``seq`` which are marked by the bitmap set ``s``.
 
     E.g.:
@@ -899,19 +900,19 @@ def _dp_calc_legs(g, all_tensors, s, inputs, i1_cut_i2_wo_output, i1_union_i2):
 def _dp_compare_flops(
     cost1: int,
     cost2: int,
-    i1_union_i2: Set[int],
-    size_dict: List[int],
+    i1_union_i2: set[int],
+    size_dict: list[int],
     cost_cap: int,
     s1: int,
     s2: int,
-    xn: Dict[int, Any],
+    xn: dict[int, Any],
     g: int,
     all_tensors: int,
-    inputs: List[FrozenSet[int]],
-    i1_cut_i2_wo_output: Set[int],
-    memory_limit: Optional[int],
-    contract1: Union[int, Tuple[int]],
-    contract2: Union[int, Tuple[int]],
+    inputs: list[frozenset[int]],
+    i1_cut_i2_wo_output: set[int],
+    memory_limit: int | None,
+    contract1: int | tuple[int],
+    contract2: int | tuple[int],
 ) -> None:
     """Performs the inner comparison of whether the two subgraphs (the bitmaps
     `s1` and `s2`) should be merged and added to the dynamic programming
@@ -937,19 +938,19 @@ def _dp_compare_flops(
 def _dp_compare_size(
     cost1: int,
     cost2: int,
-    i1_union_i2: Set[int],
-    size_dict: List[int],
+    i1_union_i2: set[int],
+    size_dict: list[int],
     cost_cap: int,
     s1: int,
     s2: int,
-    xn: Dict[int, Any],
+    xn: dict[int, Any],
     g: int,
     all_tensors: int,
-    inputs: List[FrozenSet[int]],
-    i1_cut_i2_wo_output: Set[int],
-    memory_limit: Optional[int],
-    contract1: Union[int, Tuple[int]],
-    contract2: Union[int, Tuple[int]],
+    inputs: list[frozenset[int]],
+    i1_cut_i2_wo_output: set[int],
+    memory_limit: int | None,
+    contract1: int | tuple[int],
+    contract2: int | tuple[int],
 ) -> None:
     """Like `_dp_compare_flops` but sieves the potential contraction based
     on the size of the intermediate tensor created, rather than the number of
@@ -968,19 +969,19 @@ def _dp_compare_size(
 def _dp_compare_write(
     cost1: int,
     cost2: int,
-    i1_union_i2: Set[int],
-    size_dict: List[int],
+    i1_union_i2: set[int],
+    size_dict: list[int],
     cost_cap: int,
     s1: int,
     s2: int,
-    xn: Dict[int, Any],
+    xn: dict[int, Any],
     g: int,
     all_tensors: int,
-    inputs: List[FrozenSet[int]],
-    i1_cut_i2_wo_output: Set[int],
-    memory_limit: Optional[int],
-    contract1: Union[int, Tuple[int]],
-    contract2: Union[int, Tuple[int]],
+    inputs: list[frozenset[int]],
+    i1_cut_i2_wo_output: set[int],
+    memory_limit: int | None,
+    contract1: int | tuple[int],
+    contract2: int | tuple[int],
 ) -> None:
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
     on the total size of memory created, rather than the number of
@@ -1002,20 +1003,20 @@ DEFAULT_COMBO_FACTOR = 64
 def _dp_compare_combo(
     cost1: int,
     cost2: int,
-    i1_union_i2: Set[int],
-    size_dict: List[int],
+    i1_union_i2: set[int],
+    size_dict: list[int],
     cost_cap: int,
     s1: int,
     s2: int,
-    xn: Dict[int, Any],
+    xn: dict[int, Any],
     g: int,
     all_tensors: int,
-    inputs: List[FrozenSet[int]],
-    i1_cut_i2_wo_output: Set[int],
-    memory_limit: Optional[int],
-    contract1: Union[int, Tuple[int]],
-    contract2: Union[int, Tuple[int]],
-    factor: Union[int, float] = DEFAULT_COMBO_FACTOR,
+    inputs: list[frozenset[int]],
+    i1_cut_i2_wo_output: set[int],
+    memory_limit: int | None,
+    contract1: int | tuple[int],
+    contract2: int | tuple[int],
+    factor: int | float = DEFAULT_COMBO_FACTOR,
     combine: Callable = sum,
 ) -> None:
     """Like ``_dp_compare_flops`` but sieves the potential contraction based
@@ -1036,7 +1037,7 @@ minimize_finder = re.compile(r"(flops|size|write|combo|limit)-*(\d*)")
 
 
 @functools.lru_cache(128)
-def _parse_minimize(minimize: Union[str, Callable]) -> Tuple[Callable, Union[int, float]]:
+def _parse_minimize(minimize: str | Callable) -> tuple[Callable, int | float]:
     """This works out what local scoring function to use for the dp algorithm
     as well as a `naive_scale` to account for the memory_limit checks.
     """
@@ -1066,7 +1067,7 @@ def _parse_minimize(minimize: Union[str, Callable]) -> Tuple[Callable, Union[int
         raise ValueError(f"Couldn't parse `minimize` value: {minimize}.")
 
 
-def simple_tree_tuple(seq: Sequence[Tuple[int, ...]]) -> Tuple[Any, ...]:
+def simple_tree_tuple(seq: Sequence[tuple[int, ...]]) -> tuple[Any, ...]:
     """Make a simple left to right binary tree out of iterable `seq`.
 
     ```python
@@ -1079,8 +1080,8 @@ def simple_tree_tuple(seq: Sequence[Tuple[int, ...]]) -> Tuple[Any, ...]:
 
 
 def _dp_parse_out_single_term_ops(
-    inputs: List[FrozenSet[int]], all_inds: Tuple[str, ...], ind_counts: CounterType[str]
-) -> Tuple[List[FrozenSet[int]], List[Tuple[int]], List[Union[int, Tuple[int]]]]:
+    inputs: list[frozenset[int]], all_inds: tuple[str, ...], ind_counts: CounterType[str]
+) -> tuple[list[frozenset[int]], list[tuple[int]], list[int | tuple[int]]]:
     """Take `inputs` and parse for single term index operations, i.e. where
     an index appears on one tensor and nowhere else.
 
@@ -1089,9 +1090,9 @@ def _dp_parse_out_single_term_ops(
     term contraction' that will perform this summation.
     """
     i_single = frozenset(i for i, c in enumerate(all_inds) if ind_counts[c] == 1)
-    inputs_parsed: List[FrozenSet[int]] = []
-    inputs_done: List[Tuple[int]] = []
-    inputs_contractions: List[Union[int, Tuple[int]]] = []
+    inputs_parsed: list[frozenset[int]] = []
+    inputs_done: list[tuple[int]] = []
+    inputs_contractions: list[int | tuple[int]] = []
     for j, i in enumerate(inputs):
         i_reduced = i - i_single
         if (not i_reduced) and (len(i) > 0):
@@ -1140,17 +1141,17 @@ class DynamicProgramming(PathOptimizer):
             slow down the path finding considerably on all but very small graphs.
     """
 
-    def __init__(self, minimize: str = "flops", cost_cap: Union[bool, int] = True, search_outer: bool = False) -> None:
+    def __init__(self, minimize: str = "flops", cost_cap: bool | int = True, search_outer: bool = False) -> None:
         self.minimize = minimize
         self.search_outer = search_outer
         self.cost_cap = cost_cap
 
     def __call__(
         self,
-        inputs_: List[ArrayIndexType],
+        inputs_: list[ArrayIndexType],
         output_: ArrayIndexType,
-        size_dict_: Dict[str, int],
-        memory_limit_: Optional[int] = None,
+        size_dict_: dict[str, int],
+        memory_limit_: int | None = None,
     ) -> PathType:
         """Parameters:
             inputs_: List of sets that represent the lhs side of the einsum subscript
@@ -1223,7 +1224,7 @@ class DynamicProgramming(PathOptimizer):
             # the set of n tensors is represented by a bitmap: if bit j is 1,
             # tensor j is in the set, e.g. 0b100101 = {0,2,5}; set unions
             # (intersections) can then be computed by bitwise or (and);
-            x: List[Any] = [None] * 2 + [{} for j in range(len(g) - 1)]
+            x: list[Any] = [None] * 2 + [{} for j in range(len(g) - 1)]
             x[1] = {1 << j: (inputs[j], 0, inputs_contractions[j]) for j in g}
 
             # convert set of tensors g to a bitmap set:
@@ -1307,10 +1308,10 @@ class DynamicProgramming(PathOptimizer):
 
 
 def dynamic_programming(
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    size_dict: dict[str, int],
+    memory_limit: int | None = None,
     **kwargs: Any,
 ) -> PathType:
     optimizer = DynamicProgramming(**kwargs)
@@ -1329,10 +1330,10 @@ for i in range(9, 15):
 
 
 def auto(
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    size_dict: dict[str, int],
+    memory_limit: int | None = None,
 ) -> PathType:
     """Finds the contraction path by automatically choosing the method based on
     how many input arguments there are.
@@ -1348,10 +1349,10 @@ for i in range(6, 17):
 
 
 def auto_hq(
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    size_dict: dict[str, int],
+    memory_limit: int | None = None,
 ) -> PathType:
     """Finds the contraction path by automatically choosing the method based on
     how many input arguments there are, but targeting a more generous
@@ -1362,7 +1363,7 @@ def auto_hq(
     return _AUTO_HQ_CHOICES.get(len(inputs), random_greedy_128)(inputs, output, size_dict, memory_limit)
 
 
-_PATH_OPTIONS: Dict[str, PathSearchFunctionType] = {
+_PATH_OPTIONS: dict[str, PathSearchFunctionType] = {
     "auto": auto,
     "auto-hq": auto_hq,
     "optimal": optimal,

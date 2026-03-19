@@ -1,32 +1,23 @@
 .DEFAULT_GOAL := all
 
-.PHONY: install
-install:
-	pip install -e .
+.PHONY: format
+format:
+	uv run --with ".[lint]" ruff check opt_einsum --fix
+	uv run --with ".[lint]" ruff format opt_einsum
 
-.PHONY: fmt
-fmt:
-	ruff check opt_einsum --fix
-	ruff format opt_einsum
-
-.PHONY: fmt-unsafe
-fmt-unsafe:
-	ruff check opt_einsum --fix --unsafe-fixes
-	ruff format opt_einsum
-
-.PHONY: fmt-check
-fmt-check:
-	ruff check opt_einsum
-	ruff format --check opt_einsum
+.PHONY: format-check
+format-check:
+	uv run --with ".[lint]" ruff check opt_einsum
+	uv run --with ".[lint]" ruff format --check opt_einsum
 
 .PHONY: mypy
 mypy:
-	mypy opt_einsum
+	uv run --with ".[test,lint]" mypy opt_einsum
 
 .PHONY: test
 test:
-	pytest -v --cov=opt_einsum/
+	uv run --with ".[test]" pytest -v --cov=opt_einsum/ --cov-report=xml
 
 .PHONY: docs
 docs:
-	mkdocs build
+	uv run --with ".[docs]" mkdocs build

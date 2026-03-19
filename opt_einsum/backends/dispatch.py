@@ -4,7 +4,7 @@ constants.
 """
 
 import importlib
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from opt_einsum.backends import cupy as _cupy
 from opt_einsum.backends import jax as _jax
@@ -54,7 +54,7 @@ def _import_func(func: str, backend: str, default: Any = None) -> Any:
 
 # manually cache functions as python2 doesn't support functools.lru_cache
 #     other libs will be added to this if needed, but pre-populate with numpy
-_cached_funcs: Dict[Tuple[str, str], Any] = {
+_cached_funcs: dict[tuple[str, str], Any] = {
     ("einsum", "object"): object_arrays.object_einsum,
 }
 
@@ -84,7 +84,7 @@ def get_func(func: str, backend: str = "numpy", default: Any = None) -> Any:
 
 
 # mark libs with einsum, else try to use tensordot/transpose as much as possible
-_has_einsum: Dict[str, bool] = {}
+_has_einsum: dict[str, bool] = {}
 
 
 def has_einsum(backend: str) -> bool:
@@ -101,7 +101,7 @@ def has_einsum(backend: str) -> bool:
         return _has_einsum[backend]
 
 
-_has_tensordot: Dict[str, bool] = {}
+_has_tensordot: dict[str, bool] = {}
 
 
 def has_tensordot(backend: str) -> bool:

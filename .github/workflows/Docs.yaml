@@ -11,21 +11,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
+    - uses: astral-sh/setup-uv@v5
       with:
-        python-version: 3.x
-
-    - name: Install
-      run: |
-        pip install -r docs/requirements.yml
-        pip install -e .
+        python-version: "3.12"
+        enable-cache: true
 
     - name: Build Docs
-      run: mkdocs build 
+      run: make docs
 
     # Only deploy if main, otherwise just build for testing
     - name: Deploy
       if: endsWith(github.ref, '/main')
-      run: mkdocs gh-deploy --force
+      run: uv run --with ".[docs]" mkdocs gh-deploy --force

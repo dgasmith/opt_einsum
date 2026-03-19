@@ -1,8 +1,9 @@
 """Contains the primary optimization and contraction routines."""
 
+from collections.abc import Collection, Iterable, Sequence
 from decimal import Decimal
 from functools import lru_cache
-from typing import Any, Collection, Dict, Iterable, List, Literal, Optional, Sequence, Tuple, Union, overload
+from typing import Any, Literal, overload
 
 from opt_einsum import backends, blas, helpers, parser, paths, sharing
 from opt_einsum.typing import (
@@ -26,7 +27,7 @@ __all__ = [
 
 ## Common types
 
-_MemoryLimit = Union[None, int, Decimal, Literal["max_input"]]
+_MemoryLimit = None | int | Decimal | Literal["max_input"]
 
 
 class PathInfo:
@@ -43,7 +44,7 @@ class PathInfo:
         naive_cost: int,
         opt_cost: int,
         size_list: Sequence[int],
-        size_dict: Dict[str, int],
+        size_dict: dict[str, int],
     ):
         self.contraction_list = contraction_list
         self.input_subscripts = input_subscripts
@@ -99,7 +100,7 @@ class PathInfo:
         return "".join(path_print)
 
 
-def _choose_memory_arg(memory_limit: _MemoryLimit, size_list: List[int]) -> Optional[int]:
+def _choose_memory_arg(memory_limit: _MemoryLimit, size_list: list[int]) -> int | None:
     if memory_limit == "max_input":
         return max(size_list)
 
@@ -121,10 +122,10 @@ def _choose_memory_arg(memory_limit: _MemoryLimit, size_list: List[int]) -> Opti
 _EinsumDefaultKeys = Literal["order", "casting", "dtype", "out"]
 
 
-def _filter_einsum_defaults(kwargs: Dict[_EinsumDefaultKeys, Any]) -> Dict[_EinsumDefaultKeys, Any]:
+def _filter_einsum_defaults(kwargs: dict[_EinsumDefaultKeys, Any]) -> dict[_EinsumDefaultKeys, Any]:
     """Filters out default contract kwargs to pass to various backends."""
     kwargs = kwargs.copy()
-    ret: Dict[_EinsumDefaultKeys, Any] = {}
+    ret: dict[_EinsumDefaultKeys, Any] = {}
     if (order := kwargs.pop("order", "K")) != "K":
         ret["order"] = order
 
@@ -151,20 +152,20 @@ def contract_path(
     memory_limit: _MemoryLimit = None,
     shapes: bool = False,
     **kwargs: Any,
-) -> Tuple[PathType, PathInfo]: ...
+) -> tuple[PathType, PathInfo]: ...
 
 
 # Overlaod for contract(operand, indices, operand, indices, ....)
 @overload
 def contract_path(
     subscripts: ArrayType,
-    *operands: Union[ArrayType, Collection[int]],
+    *operands: ArrayType | Collection[int],
     use_blas: bool = True,
     optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
     shapes: bool = False,
     **kwargs: Any,
-) -> Tuple[PathType, PathInfo]: ...
+) -> tuple[PathType, PathInfo]: ...
 
 
 def contract_path(
@@ -175,7 +176,7 @@ def contract_path(
     memory_limit: _MemoryLimit = None,
     shapes: bool = False,
     **kwargs: Any,
-) -> Tuple[PathType, PathInfo]:
+) -> tuple[PathType, PathInfo]:
     """Find a contraction order `path`, without performing the contraction.
 
     Parameters:
@@ -304,7 +305,7 @@ def contract_path(
     indices = frozenset(input_subscripts.replace(",", ""))
 
     # Get length of each unique dimension and ensure all dimensions are correct
-    size_dict: Dict[str, int] = {}
+    size_dict: dict[str, int] = {}
     for tnum, term in enumerate(input_list):
         sh = input_shapes[tnum]
 
@@ -401,7 +402,7 @@ def contract_path(
         # for large expressions saving the remaining terms at each step can
         # incur a large memory footprint - and also be messy to print
         if len(input_list) <= 20:
-            remaining: Optional[Tuple[str, ...]] = tuple(input_list)
+            remaining: tuple[str, ...] | None = tuple(input_list)
         else:
             remaining = None
 
@@ -451,20 +452,20 @@ def _einsum(*operands: Any, **kwargs: Any) -> ArrayType:
     return fn(einsum_str, *operands, **kwargs)
 
 
-def _default_transpose(x: ArrayType, axes: Tuple[int, ...]) -> ArrayType:
+def _default_transpose(x: ArrayType, axes: tuple[int, ...]) -> ArrayType:
     #  most libraries implement a method version
     return x.transpose(axes)
 
 
 @sharing.transpose_cache_wrap
-def _transpose(x: ArrayType, axes: Tuple[int, ...], backend: str = "numpy") -> ArrayType:
+def _transpose(x: ArrayType, axes: tuple[int, ...], backend: str = "numpy") -> ArrayType:
     """Base transpose."""
     fn = backends.get_func("transpose", backend, _default_transpose)
     return fn(x, axes)
 
 
 @sharing.tensordot_cache_wrap
-def _tensordot(x: ArrayType, y: ArrayType, axes: Tuple[int, ...], backend: str = "numpy") -> ArrayType:
+def _tensordot(x: ArrayType, y: ArrayType, axes: tuple[int, ...], backend: str = "numpy") -> ArrayType:
     """Base tensordot."""
     fn = backends.get_func("tensordot", backend)
     return fn(x, y, axes=axes)
@@ -489,7 +490,7 @@ def contract(
 @overload
 def contract(
     subscripts: ArrayType,
-    *operands: Union[ArrayType, Collection[int]],
+    *operands: ArrayType | Collection[int],
     out: ArrayType = ...,
     use_blas: bool = ...,
     optimize: OptimizeKind = ...,
@@ -500,9 +501,9 @@ def contract(
 
 
 def contract(
-    subscripts: Union[str, ArrayType],
-    *operands: Union[ArrayType, Collection[int]],
-    out: Optional[ArrayType] = None,
+    subscripts: str | ArrayType,
+    *operands: ArrayType | Collection[int],
+    out: ArrayType | None = None,
     use_blas: bool = True,
     optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
@@ -612,7 +613,7 @@ def infer_backend(x: Any) -> str:
     return _infer_backend_class_cached(x.__class__)
 
 
-def parse_backend(arrays: Sequence[ArrayType], backend: Optional[str]) -> str:
+def parse_backend(arrays: Sequence[ArrayType], backend: str | None) -> str:
     """Find out what backend we should use, dipatching based on the first
     array if ``backend='auto'`` is specified.
     """
@@ -631,9 +632,9 @@ def parse_backend(arrays: Sequence[ArrayType], backend: Optional[str]) -> str:
 def _core_contract(
     operands_: Sequence[ArrayType],
     contraction_list: ContractionListType,
-    backend: Optional[str] = "auto",
+    backend: str | None = "auto",
     evaluate_constants: bool = False,
-    out: Optional[ArrayType] = None,
+    out: ArrayType | None = None,
     **kwargs: Any,
 ) -> ArrayType:
     """Inner loop used to perform an actual contraction given the output
@@ -696,7 +697,7 @@ def _core_contract(
 
         else:
             # Call einsum
-            out_kwarg: Union[None, ArrayType] = None
+            out_kwarg: None | ArrayType = None
             if handle_out:
                 out_kwarg = out
             new_view = _einsum(einsum_str, *tmp_operands, backend=backend, out=out_kwarg, **kwargs)
@@ -746,7 +747,7 @@ class ContractExpression:
         self,
         contraction: str,
         contraction_list: ContractionListType,
-        constants_dict: Dict[int, ArrayType],
+        constants_dict: dict[int, ArrayType],
         **kwargs: Any,
     ):
         self.contraction = format_const_einsum_str(contraction, constants_dict.keys())
@@ -761,10 +762,10 @@ class ContractExpression:
         self._full_contraction_list = contraction_list
 
         self._constants_dict = constants_dict
-        self._evaluated_constants: Dict[str, Any] = {}
-        self._backend_expressions: Dict[str, Any] = {}
+        self._evaluated_constants: dict[str, Any] = {}
+        self._backend_expressions: dict[str, Any] = {}
 
-    def evaluate_constants(self, backend: Optional[str] = "auto") -> None:
+    def evaluate_constants(self, backend: str | None = "auto") -> None:
         """Convert any constant operands to the correct backend form, and
         perform as many contractions as possible to create a new list of
         operands, stored in ``self._evaluated_constants[backend]``. This also
@@ -784,7 +785,7 @@ class ContractExpression:
         self._evaluated_constants[backend] = new_ops
         self.contraction_list = new_contraction_list
 
-    def _get_evaluated_constants(self, backend: str) -> List[Optional[ArrayType]]:
+    def _get_evaluated_constants(self, backend: str) -> list[ArrayType | None]:
         """Retrieve or generate the cached list of constant operators (mixed
         in with None representing non-consts) and the remaining contraction
         list.
@@ -806,8 +807,8 @@ class ContractExpression:
     def _contract(
         self,
         arrays: Sequence[ArrayType],
-        out: Optional[ArrayType] = None,
-        backend: Optional[str] = "auto",
+        out: ArrayType | None = None,
+        backend: str | None = "auto",
         evaluate_constants: bool = False,
     ) -> ArrayType:
         """The normal, core contraction."""
@@ -825,7 +826,7 @@ class ContractExpression:
     def _contract_with_conversion(
         self,
         arrays: Sequence[ArrayType],
-        out: Optional[ArrayType],
+        out: ArrayType | None,
         backend: str,
         evaluate_constants: bool = False,
     ) -> ArrayType:
@@ -852,7 +853,7 @@ class ContractExpression:
     def __call__(
         self,
         *arrays: ArrayType,
-        out: Union[None, ArrayType] = None,
+        out: None | ArrayType = None,
         backend: str = "auto",
         evaluate_constants: bool = False,
     ) -> ArrayType:
@@ -875,8 +876,7 @@ class ContractExpression:
 
         if len(arrays) != correct_num_args:
             raise ValueError(
-                f"This `ContractExpression` takes exactly {self.num_args} array arguments "
-                f"but received {len(arrays)}."
+                f"This `ContractExpression` takes exactly {self.num_args} array arguments but received {len(arrays)}."
             )
 
         if self._constants_dict and not evaluate_constants:
@@ -931,8 +931,8 @@ def shape_only(shape: TensorShapeType) -> ArrayShaped:
 @overload
 def contract_expression(
     subscripts: str,
-    *operands: Union[ArrayType, TensorShapeType],
-    constants: Union[Collection[int], None] = ...,
+    *operands: ArrayType | TensorShapeType,
+    constants: Collection[int] | None = ...,
     use_blas: bool = ...,
     optimize: OptimizeKind = ...,
     memory_limit: _MemoryLimit = ...,
@@ -943,9 +943,9 @@ def contract_expression(
 # Overlaod for contract(operand, indices, operand, indices, ....)
 @overload
 def contract_expression(
-    subscripts: Union[ArrayType, TensorShapeType],
-    *operands: Union[ArrayType, TensorShapeType, Collection[int]],
-    constants: Union[Collection[int], None] = ...,
+    subscripts: ArrayType | TensorShapeType,
+    *operands: ArrayType | TensorShapeType | Collection[int],
+    constants: Collection[int] | None = ...,
     use_blas: bool = ...,
     optimize: OptimizeKind = ...,
     memory_limit: _MemoryLimit = ...,
@@ -954,9 +954,9 @@ def contract_expression(
 
 
 def contract_expression(
-    subscripts: Union[str, ArrayType, TensorShapeType],
-    *shapes: Union[ArrayType, TensorShapeType, Collection[int]],
-    constants: Union[Collection[int], None] = None,
+    subscripts: str | ArrayType | TensorShapeType,
+    *shapes: ArrayType | TensorShapeType | Collection[int],
+    constants: Collection[int] | None = None,
     use_blas: bool = True,
     optimize: OptimizeKind = True,
     memory_limit: _MemoryLimit = None,
@@ -1022,7 +1022,7 @@ def contract_expression(
     for arg in ("out", "backend"):
         if kwargs.get(arg, None) is not None:
             raise ValueError(
-                f"'{arg}' should only be specified when calling a " "`ContractExpression`, not when building it."
+                f"'{arg}' should only be specified when calling a `ContractExpression`, not when building it."
             )
 
     if not isinstance(subscripts, str):

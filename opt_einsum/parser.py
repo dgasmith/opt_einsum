@@ -1,7 +1,8 @@
 """A functionally equivalent parser of the numpy.einsum input parser."""
 
 import itertools
-from typing import Any, Dict, Iterator, List, Sequence, Tuple
+from collections.abc import Iterator, Sequence
+from typing import Any
 
 from opt_einsum.typing import ArrayType, TensorShapeType
 
@@ -125,7 +126,7 @@ def alpha_canonicalize(equation: str) -> str:
     >>> oe.parser.alpha_canonicalize("Ĥěļļö")
     'abccd'
     """
-    rename: Dict[str, str] = {}
+    rename: dict[str, str] = {}
     for name in equation:
         if name in ".,->":
             continue
@@ -153,7 +154,7 @@ def find_output_str(subscripts: str) -> str:
     return "".join(s for s in sorted(set(tmp_subscripts)) if tmp_subscripts.count(s) == 1)
 
 
-def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: str) -> TensorShapeType:
+def find_output_shape(inputs: list[str], shapes: list[TensorShapeType], output: str) -> TensorShapeType:
     """Find the output shape for given inputs, shapes and output string, taking
     into account broadcasting.
 
@@ -229,7 +230,7 @@ def possibly_convert_to_numpy(x: Any) -> Any:
         return x
 
 
-def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
+def convert_subscripts(old_sub: list[Any], symbol_map: dict[Any, Any]) -> str:
     """Convert user custom subscripts list to subscript string according to `symbol_map`.
 
     Examples:
@@ -249,7 +250,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, ...]]:
+def convert_interleaved_input(operands: Sequence[Any]) -> tuple[str, tuple[Any, ...]]:
     """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
@@ -274,8 +275,7 @@ def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, 
 
     except TypeError:  # unhashable or uncomparable object
         raise TypeError(
-            "For this input type lists must contain either Ellipsis "
-            "or hashable and comparable object (e.g. int, str)."
+            "For this input type lists must contain either Ellipsis or hashable and comparable object (e.g. int, str)."
         )
 
     subscripts = ",".join(convert_subscripts(sub, symbol_map) for sub in subscript_list)
@@ -286,7 +286,7 @@ def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, 
     return subscripts, tuple(operand_list)
 
 
-def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
+def parse_einsum_input(operands: Any, shapes: bool = False) -> tuple[str, str, list[ArrayType]]:
     """A reproduction of einsum c side einsum parsing in python.
 
     Parameters:
