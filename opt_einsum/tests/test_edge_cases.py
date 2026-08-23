@@ -115,6 +115,13 @@ def test_broadcasting_contraction4() -> None:
     assert np.allclose(ein, opt)
 
 
+def test_zero_length_broadcasting_contraction() -> None:
+    operands = (np.ones(1), np.empty(0), np.ones(1))
+    expected = np.einsum("i,i,i->", *operands)
+    actual = contract("i,i,i->", *operands)
+    assert actual == expected
+
+
 def test_can_blas_on_healed_broadcast_dimensions() -> None:
     expr = contract_expression("ab,bc,bd->acd", (5, 4), (1, 5), (4, 20))
     # first contraction involves broadcasting

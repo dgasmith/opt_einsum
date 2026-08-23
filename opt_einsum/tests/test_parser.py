@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from opt_einsum.parser import get_shape, get_symbol, parse_einsum_input
+from opt_einsum.parser import find_output_shape, get_shape, get_symbol, parse_einsum_input
 from opt_einsum.testing import build_arrays_from_tuples
 
 
@@ -72,3 +72,7 @@ def test_parse_with_ellisis() -> None:
 )
 def test_get_shapes(array: Any, shape: tuple[int]) -> None:
     assert get_shape(array) == shape
+
+
+def test_find_output_shape_with_zero_length_broadcast() -> None:
+    assert find_output_shape(["i", "i"], [(0,), (1,)], "i") == (0,)
