@@ -175,11 +175,10 @@ def calc_k12_flops(
     """
     k1, k2 = inputs[i], inputs[j]
     either = k1 | k2
-    shared = k1 & k2
     keep = frozenset.union(output, *map(inputs.__getitem__, remaining - {i, j}))
 
     k12 = either & keep
-    cost = flop_count(either, bool(shared - keep), 2, size_dict)
+    cost = flop_count(either, bool(either - keep), 2, size_dict)
 
     return k12, cost
 
@@ -232,9 +231,12 @@ def optimal(
     best_flops = {"flops": float("inf")}
     best_ssa_path = {"ssa_path": (tuple(range(len(inputs))),)}
     size_cache: dict[frozenset[str], int] = {}
-    result_cache: dict[tuple[ArrayIndexType, ArrayIndexType], tuple[frozenset[str], int]] = {}
+    # Identify intermediates by their original operands, not just their indices:
+    # the same indices can require different contractions in different contexts.
+    result_cache: dict[tuple[int, int], tuple[frozenset[str], int]] = {}
+    inputs_bits = tuple(1 << i for i in range(len(inputs)))
 
-    def _optimal_iterate(path, remaining, inputs, flops):
+    def _optimal_iterate(path, remaining, inputs, inputs_bits, flops):
         # reached end of path (only ever get here if flops is best found so far)
         if len(remaining) == 1:
             best_flops["flops"] = flops
@@ -245,7 +247,8 @@ def optimal(
         for i, j in itertools.combinations(remaining, 2):
             if i > j:
                 i, j = j, i
-            key = (inputs[i], inputs[j])
+            bits_i, bits_j = inputs_bits[i], inputs_bits[j]
+            key = (bits_i, bits_j) if bits_i < bits_j else (bits_j, bits_i)
             try:
                 k12, flops12 = result_cache[key]
             except KeyError:
@@ -275,11 +278,12 @@ def optimal(
             _optimal_iterate(
                 path=path + ((i, j),),
                 inputs=inputs + (k12,),
+                inputs_bits=inputs_bits + (bits_i | bits_j,),
                 remaining=remaining - {i, j} | {len(inputs)},
                 flops=new_flops,
             )
 
-    _optimal_iterate(path=(), inputs=inputs_set, remaining=set(range(len(inputs))), flops=0)
+    _optimal_iterate(path=(), inputs=inputs_set, inputs_bits=inputs_bits, remaining=set(range(len(inputs))), flops=0)
 
     return ssa_to_linear(best_ssa_path["ssa_path"])
 
@@ -401,9 +405,11 @@ class BranchBound(PathOptimizer):
         output: frozenset[str] = frozenset(output_)
 
         size_cache = {k: compute_size_by_dict(k, size_dict) for k in inputs}
-        result_cache: dict[tuple[frozenset[str], frozenset[str]], tuple[frozenset[str], int]] = {}
+        # Original-operand subsets distinguish intermediates with equal indices.
+        result_cache: dict[tuple[int, int], tuple[frozenset[str], int]] = {}
+        inputs_bits = tuple(1 << i for i in range(len(inputs)))
 
-        def _branch_iterate(path, inputs, remaining, flops, size):
+        def _branch_iterate(path, inputs, inputs_bits, remaining, flops, size):
             # reached end of path (only ever get here if flops is best found so far)
             if len(remaining) == 1:
                 self.best["size"] = size
@@ -413,10 +419,12 @@ class BranchBound(PathOptimizer):
 
             def _assess_candidate(k1: frozenset[str], k2: frozenset[str], i: int, j: int) -> Any:
                 # find resulting indices and flops
+                bits_i, bits_j = inputs_bits[i], inputs_bits[j]
+                key = (bits_i, bits_j) if bits_i < bits_j else (bits_j, bits_i)
                 try:
-                    k12, flops12 = result_cache[k1, k2]
+                    k12, flops12 = result_cache[key]
                 except KeyError:
-                    k12, flops12 = result_cache[k1, k2] = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
+                    k12, flops12 = result_cache[key] = calc_k12_flops(inputs, output, remaining, i, j, size_dict)
 
                 try:
                     size12 = size_cache[k12]
@@ -484,13 +492,16 @@ class BranchBound(PathOptimizer):
                 _branch_iterate(
                     path=path + ((i, j),),
                     inputs=inputs + (k12,),
+                    inputs_bits=inputs_bits + (inputs_bits[i] | inputs_bits[j],),
                     remaining=(remaining - {i, j}) | {len(inputs)},
                     flops=new_flops,
                     size=new_size,
                 )
                 bi += 1
 
-        _branch_iterate(path=(), inputs=inputs, remaining=set(range(len(inputs))), flops=0, size=0)
+        _branch_iterate(
+            path=(), inputs=inputs, inputs_bits=inputs_bits, remaining=set(range(len(inputs))), flops=0, size=0
+        )
 
         return self.path
 
