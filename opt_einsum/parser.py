@@ -74,11 +74,11 @@ def get_symbol(i: int) -> str:
     """
     if i < 52:
         return _einsum_symbols_base[i]
-    elif i >= 55296:
+    i += 140
+    if i >= 55296:
         # Skip chr(57343) - chr(55296) as surrogates
-        return chr(i + 2048)
-    else:
-        return chr(i + 140)
+        i += 2048
+    return chr(i)
 
 
 def gen_unused_symbols(used: str, n: int) -> Iterator[str]:
