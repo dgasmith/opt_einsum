@@ -167,7 +167,11 @@ def find_output_shape(inputs: list[str], shapes: list[TensorShapeType], output: 
     >>> oe.parser.find_output_shape(["a", "a"], [(4, ), (1, )], "a")
     (4,)
     """
-    return tuple(max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
+    output_shape = []
+    for c in output:
+        dimensions = [shape[term.find(c)] for term, shape in zip(inputs, shapes) if c in term]
+        output_shape.append(next((dimension for dimension in dimensions if dimension != 1), 1))
+    return tuple(output_shape)
 
 
 _BaseTypes = (bool, int, float, complex, str, bytes)
