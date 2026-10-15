@@ -52,6 +52,8 @@ docs = [
     "mkdocs-exclude==1.*",
     "mkdocs-material==9.*",
     "pygments==2.*",
+    # mkdocstrings 0.29 does not pass the Markdown argument required by Highlight in 12.2.
+    "pymdown-extensions<12.2",
 ]
 dev = ["opt_einsum[test,lint]"]
 
