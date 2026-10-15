@@ -303,6 +303,30 @@ def test_dp_errors_when_no_contractions_found() -> None:
         oe.contract_path(eq, *shapes, shapes=True, memory_limit=mincost - 1, optimize="dp")
 
 
+@pytest.mark.parametrize(
+    "equation, shapes",
+    [
+        ("c,ba,a->b", [(0,), (2, 3), (3,)]),
+        ("bac,a,->b", [(1, 3, 0), (3,), ()]),
+    ],
+)
+@pytest.mark.parametrize("memory_limit", [None, -1, "max_input", 3])
+def test_dp_zero_length_reductions(equation, shapes, memory_limit) -> None:
+    np = pytest.importorskip("numpy")
+    operands = [np.ones(shape) for shape in shapes]
+    expected = np.einsum(equation, *operands)
+
+    path, info = oe.contract_path(equation, *shapes, shapes=True, optimize="dp", memory_limit=memory_limit)
+    if memory_limit not in (None, -1):
+        limit = max(operand.size for operand in operands) if memory_limit == "max_input" else memory_limit
+        assert info.largest_intermediate <= limit
+    actual = oe.contract(equation, *operands, optimize=path)
+    np.testing.assert_array_equal(actual, expected)
+
+    expr = oe.contract_expression(equation, *shapes, optimize="dp", memory_limit=memory_limit)
+    np.testing.assert_array_equal(expr(*operands), expected)
+
+
 @pytest.mark.parametrize("optimize", ["greedy", "branch-2", "branch-all", "optimal", "dp"])
 def test_can_optimize_outer_products(optimize: OptimizeKind) -> None:
     a, b, c = ((10, 10) for _ in range(3))
