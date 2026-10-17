@@ -693,7 +693,7 @@ def _core_contract(
                 new_view = _transpose(new_view, axes=transpose, backend=backend)
 
                 if handle_out:
-                    out[:] = new_view  # type: ignore
+                    out[...] = new_view  # type: ignore
 
         else:
             # Call einsum
