@@ -33,10 +33,11 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
     lhs, output = eq.split("->")
     inputs = lhs.split(",")
 
-    sizes = {}
+    sizes: dict[str, int] = {}
     for term, array in zip(inputs, arrays):
         for k, d in zip(term, array.shape):
-            sizes[k] = d
+            if k not in sizes or sizes[k] == 1:
+                sizes[k] = d
 
     out_size = tuple(sizes[k] for k in output)
     out = np.empty(out_size, dtype=object)
@@ -50,10 +51,15 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
         def gen_inner_sum():
             for coo_i in np.ndindex(*inner_size):
                 coord.update(dict(zip(inner, coo_i)))
-                locs = (tuple(coord[k] for k in term) for term in inputs)
+                locs = (
+                    tuple(0 if d == 1 else coord[k] for k, d in zip(term, array.shape))
+                    for term, array in zip(inputs, arrays)
+                )
                 elements = (array[loc] for array, loc in zip(arrays, locs))
                 yield functools.reduce(operator.mul, elements)
 
-        out[coo_o] = functools.reduce(operator.add, gen_inner_sum())
+        terms = gen_inner_sum()
+        # Empty reductions are zero; nonempty ones need only object addition.
+        out[coo_o] = functools.reduce(operator.add, terms, next(terms, 0))
 
     return out
