@@ -106,3 +106,18 @@ def test_scalar_out(string: str, shapes: list[tuple[int, ...]], use_blas: bool, 
     assert result is out
     assert out.shape == ()
     np.testing.assert_allclose(out, expected)
+
+
+@pytest.mark.parametrize("out", [0, 1])
+@pytest.mark.parametrize("use_blas", [False, True])
+@pytest.mark.parametrize("expression", [False, True])
+def test_scalar_out_python_int(out: int, use_blas: bool, expression: bool) -> None:
+    np = pytest.importorskip("numpy")
+    views = [np.arange(4, dtype=np.float64), np.arange(4, dtype=np.float64)]
+
+    with pytest.raises(TypeError):
+        if expression:
+            expr = contract_expression("i,i->", (4,), (4,), use_blas=use_blas)
+            expr(*views, out=out)
+        else:
+            contract("i,i->", *views, use_blas=use_blas, out=out)
