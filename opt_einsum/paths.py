@@ -443,6 +443,7 @@ class BranchBound(PathOptimizer):
                     new_flops = flops + _compute_oversize_flops(inputs, remaining, output_, size_dict)
                     if new_flops < self.best["flops"]:
                         self.best["flops"] = new_flops
+                        self.best["size"] = max(size, compute_size_by_dict(output, size_dict))
                         self.best["ssa_path"] = path + (tuple(remaining),)
                     return None
 

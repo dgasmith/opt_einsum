@@ -400,6 +400,32 @@ def test_branchbound_validation() -> None:
         oe.BranchBound(nbranch=0)
 
 
+@pytest.mark.parametrize("minimize", ["flops", "size"])
+@pytest.mark.parametrize(
+    "expression, shapes, memory_limit, expected_sizes",
+    [
+        ("ab,bc,ca->", [(2, 2)] * 3, 1, (1, 1)),
+        ("ab,bc,ca->a", [(2, 2)] * 3, 2, (2, 2)),
+        ("xy,yz,ab,bc,ca,zx->", [(2, 2)] * 2 + [(3, 3)] * 3 + [(2, 2)], 4, (4, 1)),
+        ("ab,bc,ca->", [(2, 2)] * 3, 4, (4, 4)),
+    ],
+)
+def test_branchbound_memory_limit_size(
+    expression: str,
+    shapes: list[TensorShapeType],
+    memory_limit: int,
+    expected_sizes: tuple[int, int],
+    minimize: str,
+) -> None:
+    optimizer = oe.BranchBound(nbranch=1, minimize=minimize)
+    path, info = oe.contract_path(expression, *shapes, shapes=True, optimize=optimizer, memory_limit=memory_limit)
+
+    assert path == optimizer.path
+    assert info.opt_cost == optimizer.best["flops"]
+    assert info.largest_intermediate == expected_sizes[minimize == "size"]
+    assert optimizer.best["size"] == info.largest_intermediate
+
+
 def test_parallel_random_greedy() -> None:
     np = pytest.importorskip("numpy")
 
