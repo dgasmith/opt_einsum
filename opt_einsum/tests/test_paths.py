@@ -376,7 +376,7 @@ def test_custom_branchbound() -> None:
     path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
 
     assert path == optimizer.path
-    assert path_info.largest_intermediate == optimizer.best["size"]
+    assert path_info.largest_intermediate == optimizer.best["largest_intermediate"]
     assert path_info.opt_cost == optimizer.best["flops"]
 
     # tweak settings and run again
@@ -385,7 +385,7 @@ def test_custom_branchbound() -> None:
     path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
 
     assert path == optimizer.path
-    assert path_info.largest_intermediate == optimizer.best["size"]
+    assert path_info.largest_intermediate == optimizer.best["largest_intermediate"]
     assert path_info.opt_cost == optimizer.best["flops"]
 
     # check error if we try and reuse the optimizer on a different expression
@@ -404,10 +404,10 @@ def test_branchbound_validation() -> None:
 @pytest.mark.parametrize(
     "expression, shapes, memory_limit, expected_sizes",
     [
-        ("ab,bc,ca->", [(2, 2)] * 3, 1, (1, 1)),
-        ("ab,bc,ca->a", [(2, 2)] * 3, 2, (2, 2)),
-        ("xy,yz,ab,bc,ca,zx->", [(2, 2)] * 2 + [(3, 3)] * 3 + [(2, 2)], 4, (4, 1)),
-        ("ab,bc,ca->", [(2, 2)] * 3, 4, (4, 4)),
+        ("ab,bc,ca->", [(2, 3), (3, 5), (5, 2)], 1, (1, 1)),
+        ("ab,bc,ca->a", [(2, 3), (3, 5), (5, 2)], 2, (2, 2)),
+        ("xy,yz,ab,bc,ca,zx->", [(2, 3), (3, 5), (7, 11), (11, 13), (13, 7), (5, 2)], 10, (6, 1)),
+        ("ab,bc,ca->", [(2, 3), (3, 5), (5, 2)], 15, (6, 6)),
     ],
 )
 def test_branchbound_memory_limit_size(
@@ -423,7 +423,7 @@ def test_branchbound_memory_limit_size(
     assert path == optimizer.path
     assert info.opt_cost == optimizer.best["flops"]
     assert info.largest_intermediate == expected_sizes[minimize == "size"]
-    assert optimizer.best["size"] == info.largest_intermediate
+    assert optimizer.best["largest_intermediate"] == info.largest_intermediate
 
 
 def test_parallel_random_greedy() -> None:
