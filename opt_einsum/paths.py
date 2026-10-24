@@ -364,7 +364,7 @@ class BranchBound(PathOptimizer):
         self.cost_fn: Any = _COST_FNS.get(cost_fn, cost_fn)
 
         self.better = get_better_fn(minimize)
-        self.best: dict[str, Any] = {"flops": float("inf"), "size": float("inf")}
+        self.best: dict[str, Any] = {"flops": float("inf"), "largest_intermediate": float("inf")}
         self.best_progress: dict[int, float] = defaultdict(lambda: float("inf"))
 
     @property
@@ -400,13 +400,15 @@ class BranchBound(PathOptimizer):
         inputs: tuple[frozenset[str]] = tuple(map(frozenset, inputs_))  # type: ignore
         output: frozenset[str] = frozenset(output_)
 
+        output_size = compute_size_by_dict(output, size_dict)
+
         size_cache = {k: compute_size_by_dict(k, size_dict) for k in inputs}
         result_cache: dict[tuple[frozenset[str], frozenset[str]], tuple[frozenset[str], int]] = {}
 
         def _branch_iterate(path, inputs, remaining, flops, size):
             # reached end of path (only ever get here if flops is best found so far)
             if len(remaining) == 1:
-                self.best["size"] = size
+                self.best["largest_intermediate"] = size
                 self.best["flops"] = flops
                 self.best["ssa_path"] = path
                 return
@@ -423,11 +425,22 @@ class BranchBound(PathOptimizer):
                 except KeyError:
                     size12 = size_cache[k12] = compute_size_by_dict(k12, size_dict)
 
+                # Assess the all-terms fallback before pruning on a pairwise
+                # intermediate that will not be formed.
+                if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):  # type: ignore
+                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output_, size_dict)
+                    new_size = max(size, output_size)
+                    if self.better(new_flops, new_size, self.best["flops"], self.best["largest_intermediate"]):
+                        self.best["flops"] = new_flops
+                        self.best["largest_intermediate"] = new_size
+                        self.best["ssa_path"] = path + (tuple(remaining),)
+                    return None
+
                 new_flops = flops + flops12
                 new_size = max(size, size12)
 
                 # sieve based on current best i.e. check flops and size still better
-                if not self.better(new_flops, new_size, self.best["flops"], self.best["size"]):
+                if not self.better(new_flops, new_size, self.best["flops"], self.best["largest_intermediate"]):
                     return None
 
                 # compare to how the best method was doing as this point
@@ -435,15 +448,6 @@ class BranchBound(PathOptimizer):
                     self.best_progress[len(inputs)] = new_flops
                 # sieve based on current progress relative to best
                 elif new_flops > self.cutoff_flops_factor * self.best_progress[len(inputs)]:
-                    return None
-
-                # sieve based on memory limit
-                if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):  # type: ignore
-                    # terminate path here, but check all-terms contract first
-                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output_, size_dict)
-                    if new_flops < self.best["flops"]:
-                        self.best["flops"] = new_flops
-                        self.best["ssa_path"] = path + (tuple(remaining),)
                     return None
 
                 # set cost heuristic in order to locally sort possible contractions
