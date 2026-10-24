@@ -2,7 +2,7 @@
 Tets a series of opt_einsum contraction paths to ensure the results are the same for different paths
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 import pytest
 
@@ -115,6 +115,13 @@ def test_broadcasting_contraction4() -> None:
     assert np.allclose(ein, opt)
 
 
+def test_zero_length_broadcasting_contraction() -> None:
+    operands = (np.ones(1), np.empty(0), np.ones(1))
+    expected = np.einsum("i,i,i->", *operands)
+    actual = contract("i,i,i->", *operands)
+    assert actual == expected
+
+
 def test_can_blas_on_healed_broadcast_dimensions() -> None:
     expr = contract_expression("ab,bc,bd->acd", (5, 4), (1, 5), (4, 20))
     # first contraction involves broadcasting
@@ -144,7 +151,7 @@ def test_pathinfo_for_empty_contraction() -> None:
         ["ab,->", ([[5, 5], [2.0, 1]], True)],
     ],
 )
-def test_contract_with_assumed_shapes(expression: str, operands: Tuple[Any]) -> None:
+def test_contract_with_assumed_shapes(expression: str, operands: tuple[Any]) -> None:
     """Test that we can contract with assumed shapes, and that the output is correct. This is required as we need to infer intermediate shape sizes."""
 
     benchmark = np.einsum(expression, *operands)

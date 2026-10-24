@@ -1,5 +1,3 @@
-from typing import Set
-
 import pytest
 
 from opt_einsum import backends, contract, contract_expression, sharing
@@ -58,7 +56,7 @@ def test_tensorflow(string: str) -> None:
 
 
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_tensorflow_with_constants(constants: Set[int]) -> None:
+def test_tensorflow_with_constants(constants: set[int]) -> None:
     np = pytest.importorskip("numpy")
     tf = pytest.importorskip("tensorflow")
 
@@ -136,7 +134,7 @@ def test_theano(string: str) -> None:
 
 
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_theano_with_constants(constants: Set[int]) -> None:
+def test_theano_with_constants(constants: set[int]) -> None:
     np = pytest.importorskip("numpy")
     theano = pytest.importorskip("theano")
 
@@ -210,7 +208,7 @@ def test_cupy(string: str) -> None:
 
 
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_cupy_with_constants(constants: Set[int]) -> None:
+def test_cupy_with_constants(constants: set[int]) -> None:
     np = pytest.importorskip("numpy")  # pragma: no cover
     cupy = pytest.importorskip("cupy")
 
@@ -256,7 +254,7 @@ def test_jax(string: str) -> None:
 
 
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_jax_with_constants(constants: Set[int]) -> None:
+def test_jax_with_constants(constants: set[int]) -> None:
     jax = pytest.importorskip("jax")
     key = jax.random.PRNGKey(42)
 
@@ -404,7 +402,7 @@ def test_torch(string: str) -> None:
 
 
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
-def test_torch_with_constants(constants: Set[int]) -> None:
+def test_torch_with_constants(constants: set[int]) -> None:
     torch = pytest.importorskip("torch")
 
     eq = "ij,jk,kl->li"

@@ -6,26 +6,64 @@ on:
   pull_request:
     branches:
       - main
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@v4
       with:
-        python-version: 3.x
+        ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
 
-    - name: Install
-      run: |
-        pip install -r docs/requirements.yml
-        pip install -e .
+    - uses: astral-sh/setup-uv@v5
+      with:
+        python-version: "3.12"
+        enable-cache: true
+
+    - name: Test publication rules
+      run: uv run --with ".[docs,test]" pytest -q devtools/test_publish_docs.py
 
     - name: Build Docs
-      run: mkdocs build 
+      run: make docs
 
-    # Only deploy if main, otherwise just build for testing
-    - name: Deploy
-      if: endsWith(github.ref, '/main')
-      run: mike deploy --push --update-aliases latest
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+        fetch-depth: 0
+
+    - uses: astral-sh/setup-uv@v5
+      with:
+        python-version: "3.12"
+        enable-cache: true
+
+    - name: Configure Git author
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+    - name: Publish versioned docs
+      env:
+        DOCS_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || 'dev' }}
+        DOCS_PRERELEASE: ${{ github.event_name == 'release' && github.event.release.prerelease || 'false' }}
+      run: |
+        args=(--version "$DOCS_VERSION" --push)
+        if [[ "$DOCS_PRERELEASE" == "true" ]]; then
+          args+=(--prerelease)
+        fi
+        uv run --with ".[docs]" python devtools/publish_docs.py "${args[@]}"

@@ -1,7 +1,7 @@
 Changelog
 =========
 
-## 3.4.0 / 2024-09-XX
+## 3.4.0 / 2024-09-26
 
 NumPy has been removed from `opt_einsum` as a dependency allowing for more flexible installs.
 

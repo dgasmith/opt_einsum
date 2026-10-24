@@ -7,63 +7,46 @@ on:
     branches: main
 
 jobs:
-  miniconda-setup:
-    name: Env
+  tests:
+    name: ${{ matrix.extras }}${{ matrix.python-extras && format('+{0}', matrix.python-extras) || '' }} / py${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
         include:
-         - python-version: 3.8
-           environment: "min-deps"
-         - python-version: 3.12
-           environment: "min-deps"
-         - python-version: 3.9
-           environment: "min-ver"
-         - python-version: 3.11
-           environment: "full"
-         - python-version: 3.12
-           environment: "torch-only"
+          - python-version: "3.12"
+            extras: "test,lint"
+          - python-version: "3.14"
+            extras: "test,lint"
+          - python-version: "3.12"
+            extras: "test,lint,numpy"
+          - python-version: "3.12"
+            extras: "test,lint,numpy,dask"
+          - python-version: "3.13"
+            extras: "test,lint,numpy,dask,jax,sparse"
+          - python-version: "3.13"
+            extras: "test,lint,torch"
+          # - python-version: "3.12"
+          #   extras: "test,lint"
+          #   python-extras: "tensorflow"
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - uses: conda-incubator/setup-miniconda@v3
+    - uses: astral-sh/setup-uv@v5
       with:
         python-version: ${{ matrix.python-version }}
-        mamba-version: "*"
-        channel-priority: true
-        activate-environment: test
-        environment-file: devtools/conda-envs/${{ matrix.environment }}-environment.yaml
-
-    - name: Environment Information
-      shell: bash -l {0}
-      run: |
-        conda info
-        conda list
-        conda config --show-sources
-        conda config --show
-
-    - name: Check no NumPy for torch-only environment
-      if: matrix.environment == 'torch-only'
-      run: |
-        python devtools/ci_scripts/check_no_numpy.py
+        enable-cache: true
 
     - name: Install
-      shell: bash -l {0}
-      run: |
-        python -m pip install . --no-deps
+      run: uv pip install -e ".[${{ matrix.extras }}]" ${{ matrix.python-extras }}
 
     - name: Test
-      shell: bash -l {0}
-      run: |
-        pytest -v --cov=opt_einsum opt_einsum/ --cov-report=xml
+      run: uv run --no-sync pytest -v --cov=opt_einsum/ --cov-report=xml
 
     - name: Coverage
-      shell: bash -l {0}
-      run: |
-        coverage report
+      run: uv run --no-sync coverage report
 
     - uses: codecov/codecov-action@v4
       with:
