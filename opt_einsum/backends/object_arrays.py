@@ -39,6 +39,13 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
             if k not in sizes or sizes[k] == 1:
                 sizes[k] = d
 
+    # Broadcast views up front so the inner loop can use ordinary coordinates.
+    broadcasted_arrays = []
+    for term, array in zip(inputs, arrays):
+        target_shape = tuple(sizes[k] for k in term)
+        broadcasted_arrays.append(np.broadcast_to(array, target_shape))
+    arrays = tuple(broadcasted_arrays)
+
     out_size = tuple(sizes[k] for k in output)
     out = np.empty(out_size, dtype=object)
 
@@ -51,10 +58,7 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
         def gen_inner_sum():
             for coo_i in np.ndindex(*inner_size):
                 coord.update(dict(zip(inner, coo_i)))
-                locs = (
-                    tuple(0 if d == 1 else coord[k] for k, d in zip(term, array.shape))
-                    for term, array in zip(inputs, arrays)
-                )
+                locs = (tuple(coord[k] for k in term) for term in inputs)
                 elements = (array[loc] for array, loc in zip(arrays, locs))
                 yield functools.reduce(operator.mul, elements)
 
