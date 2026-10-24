@@ -27,15 +27,13 @@ twine upload --repository-url https://test.pypi.org/legacy/ dist/
 
 ## Documentation
 
-The Docs workflow publishes main as `dev` and each GitHub release from its tag.
-Final releases update `stable`; prereleases leave it alone. The site root uses
-`stable` once available, otherwise `dev`. Existing versions and unversioned
-files stay on `gh-pages`; old releases are not rebuilt automatically.
+The Docs workflow keeps one rolling `dev` version from main and publishes each
+final release from its tag under its major/minor version, such as `3.5`. Patch
+releases update that entry. Final releases update `stable`, the site's default.
+Prerelease tags do not publish separate documentation. Until the first versioned
+final release, the root keeps serving the existing unversioned site. Previous
+versions stay on `gh-pages`; old releases are not rebuilt automatically.
 
 After publishing, check the version selector, API reference, examples, and math.
 The 3.5 documentation work is tracked in
 [#267](https://github.com/dgasmith/opt_einsum/issues/267).
-
-For a local publication check, run `make docs-publish` in a disposable clone.
-Use `DOCS_VERSION=3.5.0 DOCS_ALIAS=stable` for a final release, or omit the alias
-for a prerelease. Only `DOCS_FLAGS=--push` pushes the generated commits.

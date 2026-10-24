@@ -33,7 +33,7 @@ jobs:
       run: make docs
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' || (github.event_name == 'release' && !github.event.release.prerelease)
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -54,13 +54,16 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-    - name: Publish versioned docs
+    - name: Publish Dev
+      if: github.event_name == 'push'
+      run: uv run --with ".[docs]" mike deploy --push --title Dev dev
+
+    - name: Publish stable release
+      if: github.event_name == 'release'
       env:
-        DOCS_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || 'dev' }}
-        DOCS_PRERELEASE: ${{ github.event_name == 'release' && github.event.release.prerelease || 'false' }}
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
       run: |
-        version="${DOCS_VERSION#v}"
-        if [[ "$version" != "dev" && "$DOCS_PRERELEASE" != "true" ]]; then
-          export DOCS_ALIAS=stable
-        fi
-        make docs-publish DOCS_VERSION="$version" DOCS_FLAGS=--push
+        version="${RELEASE_TAG#v}"
+        version="${version%.*}"
+        uv run --with ".[docs]" mike deploy --update-aliases --title "v$version" "$version" stable
+        uv run --with ".[docs]" mike set-default --push stable
