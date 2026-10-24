@@ -34,6 +34,11 @@ describes how to merge code changes into this `opt_einsum`.
   integration returns checkmarks,
   and multiple core developers give "Approved" reviews.
 
+## Documentation
+
+Run `make docs` to check the documentation, or `make docs-serve` to preview it locally.
+See the [release checklist](../devtools/RELEASE.md#documentation) for publishing.
+
 ## Additional Resources
 
 * [General GitHub documentation](https://help.github.com/)

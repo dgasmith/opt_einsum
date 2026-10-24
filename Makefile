@@ -20,4 +20,8 @@ test:
 
 .PHONY: docs
 docs:
-	uv run --with ".[docs]" mkdocs build
+	uv run --with ".[docs]" mkdocs build --strict
+
+.PHONY: docs-serve
+docs-serve:
+	uv run --with ".[docs]" mkdocs serve

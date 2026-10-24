@@ -6,14 +6,25 @@ on:
   pull_request:
     branches:
       - main
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7.0.1
+      with:
+        ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
 
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@v10.3.2
       with:
         python-version: "3.12"
         enable-cache: true
@@ -21,7 +32,38 @@ jobs:
     - name: Build Docs
       run: make docs
 
-    # Only deploy if main, otherwise just build for testing
-    - name: Deploy
-      if: endsWith(github.ref, '/main')
-      run: uv run --with ".[docs]" mkdocs gh-deploy --force
+  deploy:
+    if: github.event_name == 'push' || (github.event_name == 'release' && !github.event.release.prerelease)
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v7.0.1
+      with:
+        ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+        fetch-depth: 0
+
+    - uses: astral-sh/setup-uv@v10.3.2
+      with:
+        python-version: "3.12"
+        enable-cache: true
+
+    - name: Configure Git author
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+    - name: Publish Dev
+      if: github.event_name == 'push'
+      run: uv run --with ".[docs]" mike deploy --push --title Dev dev
+
+    - name: Publish stable release
+      if: github.event_name == 'release'
+      env:
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
+      run: |
+        version="${RELEASE_TAG#v}"
+        version="${version%.*}"
+        uv run --with ".[docs]" mike deploy --update-aliases --title "v$version" "$version" latest
+        uv run --with ".[docs]" mike set-default --push latest

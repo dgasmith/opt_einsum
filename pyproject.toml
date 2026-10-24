@@ -43,17 +43,15 @@ torch = ["torch>=2.0,<3.0"]
 test = ["pytest", "pytest-cov"]
 lint = ["ruff==0.15.*", "mypy>=1.19,<2.0"]
 docs = [
-    "ansi2html==1.*",
-    "markdown==3.*",
-    "markdown-include==0.*",
-    "mkdocstrings[python]==0.29.*",
-    "mkdocs==1.*",
-    "mkdocs-awesome-pages-plugin==2.*",
-    "mkdocs-exclude==1.*",
-    "mkdocs-material==9.*",
-    "pygments==2.*",
-    # mkdocstrings 0.29 does not pass the Markdown argument required by Highlight in 12.2.
-    "pymdown-extensions<12.2",
+    "markdown>=3.11.2,<4",
+    "mike>=2.2,<3",
+    "mkdocstrings[python]>=1.0.8,<2",
+    "mkdocstrings-python>=2.0.10,<3",
+    "mkdocs>=1.6.1,<2",
+    "mkdocs-material>=9.8,<10",
+    "pygments>=2.21,<3",
+    "pymdown-extensions>=12.3,<13",
+    "ruff==0.15.*",
 ]
 dev = ["opt_einsum[test,lint]"]
 
