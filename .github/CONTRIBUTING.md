@@ -36,36 +36,9 @@ describes how to merge code changes into this `opt_einsum`.
 
 ## Documentation
 
-Install the documentation tools through the `docs` extra in `pyproject.toml`.
-Run `make docs` to build the site with warnings treated as errors, or
-`uv run --with ".[docs]" mkdocs serve` to preview it locally. The version selector
-is populated when the documentation is published with Mike.
-
-The Docs workflow builds pull requests without publishing them. Pushes to main
-publish the `dev` version; publishing a GitHub release builds the docs from that
-release's tag. Each release has its own directory, such as `3.5.0`, and final
-releases update the `stable` alias. Prereleases get their own directory without
-moving `stable`. Existing versions remain on `gh-pages`.
-
-The site root redirects to `stable` once a final release has been published.
-Before that first versioned release, it redirects to `dev` if available. The
-existing unversioned site files are retained; old releases are not automatically
-rebuilt or labeled as a release they did not come from.
-
-Publication runs `devtools/publish_docs.py`, which builds and commits locally
-before pushing. To test it without publishing, use a disposable local clone:
-
-```sh
-uv run --with ".[docs]" python devtools/publish_docs.py --version dev
-uv run --with ".[docs]" python devtools/publish_docs.py --version v3.5.0rc1 --prerelease
-uv run --with ".[docs]" python devtools/publish_docs.py --version v3.5.0
-```
-
-These commands create local `gh-pages` commits. Only `--push` publishes them.
-Use the corresponding release checkout when publishing a real version. Review
-the version selector, API reference, examples and mathematical notation before
-shipping a documentation change. The 3.5 release work is tracked in
-[#267](https://github.com/dgasmith/opt_einsum/issues/267).
+Run `make docs` to check the documentation, or
+`uv run --with ".[docs]" mkdocs serve` to preview it locally.
+See the [release checklist](../devtools/RELEASE.md#documentation) for publishing.
 
 ## Additional Resources
 

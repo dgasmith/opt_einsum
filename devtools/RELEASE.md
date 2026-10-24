@@ -24,3 +24,14 @@ twine upload --repository-url https://test.pypi.org/legacy/ dist/
  - Version
  - Zip Hash
 ```
+
+## Documentation
+
+The Docs workflow publishes main as `dev` and each GitHub release from its tag.
+Final releases update `stable`; prereleases leave it alone. The site root uses
+`stable` once available, otherwise `dev`. Existing versions and unversioned
+files stay on `gh-pages`; old releases are not rebuilt automatically.
+
+After publishing, check the version selector, API reference, examples, and math.
+The 3.5 documentation work is tracked in
+[#267](https://github.com/dgasmith/opt_einsum/issues/267).
