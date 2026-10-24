@@ -3,6 +3,7 @@ import pytest
 from opt_einsum import backends, contract, contract_expression, sharing
 from opt_einsum.contract import ArrayShaped, infer_backend, parse_backend
 from opt_einsum.testing import build_views
+from opt_einsum.typing import BackendType
 
 try:
     # needed so tensorflow doesn't allocate all gpu mem
@@ -240,7 +241,7 @@ def test_cupy_with_constants(constants: set[int]) -> None:
 @pytest.mark.parametrize("string", tests)
 def test_jax(string: str) -> None:
     np = pytest.importorskip("numpy")  # pragma: no cover
-    pytest.importorskip("jax")
+    jax = pytest.importorskip("jax")
 
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
@@ -251,6 +252,13 @@ def test_jax(string: str) -> None:
     opt = expr(*views, backend="jax")
     assert np.allclose(ein, opt)
     assert isinstance(opt, np.ndarray)
+
+    jax_views = [jax.numpy.asarray(view) for view in views]
+    backend_options: tuple[BackendType, ...] = ("auto", "jax")
+    for backend in backend_options:
+        result = contract(string, *jax_views, optimize=False, backend=backend)
+        assert isinstance(result, jax.Array)
+        assert np.allclose(ein, result)
 
 
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
@@ -400,6 +408,12 @@ def test_torch(string: str) -> None:
     assert isinstance(torch_opt, torch.Tensor)
     torch.testing.assert_close(ein, torch_opt)
 
+    backend_options: tuple[BackendType, ...] = ("auto", "torch")
+    for backend in backend_options:
+        result = contract(string, *views, optimize=False, backend=backend)
+        assert isinstance(result, torch.Tensor)
+        torch.testing.assert_close(ein, result)
+
 
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_torch_with_constants(constants: set[int]) -> None:
@@ -435,6 +449,16 @@ def test_auto_backend_custom_array_no_tensordot() -> None:
     assert infer_backend(x) == "opt_einsum"
     assert parse_backend([x], "auto") == "numpy"
     assert parse_backend([x], None) == "numpy"
+
+
+def test_unoptimized_object_backend() -> None:
+    np = pytest.importorskip("numpy")
+    values = np.array(["a", "b", "c"], dtype=object)
+    counts = np.array([2, 3, 5], dtype=object)
+
+    result = contract("i,i->", values, counts, optimize=False, backend="object")
+
+    assert result == "aabbbccccc"
 
 
 @pytest.mark.parametrize("string", tests)
