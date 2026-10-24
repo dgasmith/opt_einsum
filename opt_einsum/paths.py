@@ -425,6 +425,17 @@ class BranchBound(PathOptimizer):
                 except KeyError:
                     size12 = size_cache[k12] = compute_size_by_dict(k12, size_dict)
 
+                # Assess the all-terms fallback before pruning on a pairwise
+                # intermediate that will not be formed.
+                if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):  # type: ignore
+                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output_, size_dict)
+                    new_size = max(size, output_size)
+                    if self.better(new_flops, new_size, self.best["flops"], self.best["largest_intermediate"]):
+                        self.best["flops"] = new_flops
+                        self.best["largest_intermediate"] = new_size
+                        self.best["ssa_path"] = path + (tuple(remaining),)
+                    return None
+
                 new_flops = flops + flops12
                 new_size = max(size, size12)
 
@@ -437,16 +448,6 @@ class BranchBound(PathOptimizer):
                     self.best_progress[len(inputs)] = new_flops
                 # sieve based on current progress relative to best
                 elif new_flops > self.cutoff_flops_factor * self.best_progress[len(inputs)]:
-                    return None
-
-                # sieve based on memory limit
-                if (memory_limit not in _UNLIMITED_MEM) and (size12 > memory_limit):  # type: ignore
-                    # terminate path here, but check all-terms contract first
-                    new_flops = flops + _compute_oversize_flops(inputs, remaining, output_, size_dict)
-                    if new_flops < self.best["flops"]:
-                        self.best["flops"] = new_flops
-                        self.best["largest_intermediate"] = max(size, output_size)
-                        self.best["ssa_path"] = path + (tuple(remaining),)
                     return None
 
                 # set cost heuristic in order to locally sort possible contractions

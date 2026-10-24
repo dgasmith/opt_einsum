@@ -426,6 +426,24 @@ def test_branchbound_memory_limit_size(
     assert optimizer.best["largest_intermediate"] == info.largest_intermediate
 
 
+@pytest.mark.parametrize("minimize", ["flops", "size"])
+@pytest.mark.parametrize("nbranch", [1, 2, None])
+def test_branchbound_memory_limit_equal_peak_fallback(minimize: str, nbranch: int | None) -> None:
+    expression = "xy,yz,ab,bc,ca,zx->a"
+    shapes = [(2, 3), (3, 5), (7, 11), (11, 13), (13, 7), (5, 2)]
+    optimizer = oe.BranchBound(nbranch=nbranch, minimize=minimize)
+
+    # Contracting the xyz component first leaves a cheaper fallback with the
+    # same peak size as contracting all six operands at once.
+    _, reference = oe.contract_path(expression, *shapes, shapes=True, optimize=[(1, 5), (0, 4), (0, 1, 2, 3)])
+    for _ in range(2):
+        _, info = oe.contract_path(expression, *shapes, shapes=True, optimize=optimizer, memory_limit=10)
+        assert info.largest_intermediate == reference.largest_intermediate == 7
+        assert info.opt_cost <= reference.opt_cost
+        assert optimizer.best["largest_intermediate"] == info.largest_intermediate
+        assert optimizer.best["flops"] == info.opt_cost
+
+
 def test_parallel_random_greedy() -> None:
     np = pytest.importorskip("numpy")
 
