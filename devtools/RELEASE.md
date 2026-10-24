@@ -29,7 +29,7 @@ twine upload --repository-url https://test.pypi.org/legacy/ dist/
 
 The Docs workflow keeps one rolling `dev` version from main and publishes each
 final release from its tag under its major/minor version, such as `3.5`. Patch
-releases update that entry. Final releases update `stable`, the site's default.
+releases update that entry. Final releases update `latest`, the site's default.
 Prerelease tags do not publish separate documentation. Until the first versioned
 final release, the root keeps serving the existing unversioned site. Previous
 versions stay on `gh-pages`; old releases are not rebuilt automatically.

@@ -65,5 +65,5 @@ jobs:
       run: |
         version="${RELEASE_TAG#v}"
         version="${version%.*}"
-        uv run --with ".[docs]" mike deploy --update-aliases --title "v$version" "$version" stable
-        uv run --with ".[docs]" mike set-default --push stable
+        uv run --with ".[docs]" mike deploy --update-aliases --title "v$version" "$version" latest
+        uv run --with ".[docs]" mike set-default --push latest
