@@ -20,11 +20,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7.0.1
       with:
         ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
 
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@v10.3.2
       with:
         python-version: "3.12"
         enable-cache: true
@@ -42,12 +42,12 @@ jobs:
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7.0.1
       with:
         ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
         fetch-depth: 0
 
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@v10.3.2
       with:
         python-version: "3.12"
         enable-cache: true
