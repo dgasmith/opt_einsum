@@ -36,8 +36,7 @@ describes how to merge code changes into this `opt_einsum`.
 
 ## Documentation
 
-Run `make docs` to check the documentation, or
-`uv run --with ".[docs]" mkdocs serve` to preview it locally.
+Run `make docs` to check the documentation, or `make docs-serve` to preview it locally.
 See the [release checklist](../devtools/RELEASE.md#documentation) for publishing.
 
 ## Additional Resources

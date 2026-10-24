@@ -35,3 +35,7 @@ files stay on `gh-pages`; old releases are not rebuilt automatically.
 After publishing, check the version selector, API reference, examples, and math.
 The 3.5 documentation work is tracked in
 [#267](https://github.com/dgasmith/opt_einsum/issues/267).
+
+For a local publication check, run `make docs-publish` in a disposable clone.
+Use `DOCS_VERSION=3.5.0 DOCS_ALIAS=stable` for a final release, or omit the alias
+for a prerelease. Only `DOCS_FLAGS=--push` pushes the generated commits.

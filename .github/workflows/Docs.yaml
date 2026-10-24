@@ -29,9 +29,6 @@ jobs:
         python-version: "3.12"
         enable-cache: true
 
-    - name: Test publication rules
-      run: uv run --with ".[docs,test]" pytest -q devtools/test_publish_docs.py
-
     - name: Build Docs
       run: make docs
 
@@ -62,8 +59,8 @@ jobs:
         DOCS_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || 'dev' }}
         DOCS_PRERELEASE: ${{ github.event_name == 'release' && github.event.release.prerelease || 'false' }}
       run: |
-        args=(--version "$DOCS_VERSION" --push)
-        if [[ "$DOCS_PRERELEASE" == "true" ]]; then
-          args+=(--prerelease)
+        version="${DOCS_VERSION#v}"
+        if [[ "$version" != "dev" && "$DOCS_PRERELEASE" != "true" ]]; then
+          export DOCS_ALIAS=stable
         fi
-        uv run --with ".[docs]" python devtools/publish_docs.py "${args[@]}"
+        make docs-publish DOCS_VERSION="$version" DOCS_FLAGS=--push

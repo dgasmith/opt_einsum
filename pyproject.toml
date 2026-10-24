@@ -49,7 +49,6 @@ docs = [
     "mkdocstrings-python>=2.0.10,<3",
     "mkdocs>=1.6.1,<2",
     "mkdocs-material>=9.8,<10",
-    "packaging>=25",
     "pygments>=2.21,<3",
     "pymdown-extensions>=12.3,<13",
     "ruff==0.15.*",
