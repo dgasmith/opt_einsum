@@ -72,13 +72,13 @@ def get_symbol(i: int) -> str:
     #> '京'
     ```
     """
-    if i < 52:
+    if i < len(_einsum_symbols_base):
         return _einsum_symbols_base[i]
-    i += 140
-    if i >= 55296:
-        # Skip chr(57343) - chr(55296) as surrogates
-        i += 2048
-    return chr(i)
+    codepoint = i + 140
+    if codepoint >= 0xD800:
+        # Skip the reserved surrogate range U+D800–U+DFFF.
+        codepoint += 0x800
+    return chr(codepoint)
 
 
 def gen_unused_symbols(used: str, n: int) -> Iterator[str]:
