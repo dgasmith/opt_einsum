@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from opt_einsum import blas, contract
+from opt_einsum import blas, contract, contract_expression
 
 blas_tests = [
     # DOT
@@ -79,3 +79,45 @@ def test_blas_out() -> None:
 
     contract("ij,jk,kl->il", a, b, c, out=d)
     np.testing.assert_allclose(d, np.dot(a, b).dot(c))
+
+
+@pytest.mark.parametrize(
+    "string,shapes",
+    [
+        ("i,i->", [(4,), (4,)]),
+        ("ij,ij->", [(3, 4), (3, 4)]),
+        ("ij,jk,ik->", [(2, 3), (3, 4), (2, 4)]),
+    ],
+)
+@pytest.mark.parametrize("use_blas", [False, True])
+@pytest.mark.parametrize("expression", [False, True])
+def test_scalar_out(string: str, shapes: list[tuple[int, ...]], use_blas: bool, expression: bool) -> None:
+    np = pytest.importorskip("numpy")
+    views = [np.arange(np.prod(shape), dtype=np.float64).reshape(shape) for shape in shapes]
+    expected = np.einsum(string, *views)
+    out = np.full((), np.nan)
+
+    if expression:
+        expr = contract_expression(string, *shapes, use_blas=use_blas)
+        result = expr(*views, out=out)
+    else:
+        result = contract(string, *views, use_blas=use_blas, out=out)
+
+    assert result is out
+    assert out.shape == ()
+    np.testing.assert_allclose(out, expected)
+
+
+@pytest.mark.parametrize("out", [0, 1])
+@pytest.mark.parametrize("use_blas", [False, True])
+@pytest.mark.parametrize("expression", [False, True])
+def test_scalar_out_python_int(out: int, use_blas: bool, expression: bool) -> None:
+    np = pytest.importorskip("numpy")
+    views = [np.arange(4, dtype=np.float64), np.arange(4, dtype=np.float64)]
+
+    with pytest.raises(TypeError):
+        if expression:
+            expr = contract_expression("i,i->", (4,), (4,), use_blas=use_blas)
+            expr(*views, out=out)
+        else:
+            contract("i,i->", *views, use_blas=use_blas, out=out)
