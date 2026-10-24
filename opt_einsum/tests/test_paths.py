@@ -5,7 +5,7 @@ the various path helper functions.
 
 import itertools
 from concurrent.futures import ProcessPoolExecutor
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -103,7 +103,7 @@ def test_size_by_dict() -> None:
 
 
 def test_flop_cost() -> None:
-    size_dict = {v: 10 for v in "abcdef"}
+    size_dict = dict.fromkeys("abcdef", 10)
 
     # Loop over an array
     assert 10 == oe.helpers.flop_count("a", False, 1, size_dict)
@@ -203,7 +203,7 @@ def test_optimal_edge_cases() -> None:
 
 def test_greedy_edge_cases() -> None:
     expression = "abc,cfd,dbe,efa"
-    dim_dict = {k: 20 for k in expression.replace(",", "")}
+    dim_dict = dict.fromkeys(expression.replace(",", ""), 20)
     tensors = build_shapes(expression, dimension_dict=dim_dict)
 
     path, _ = oe.contract_path(expression, *tensors, optimize="greedy", memory_limit="max_input", shapes=True)
@@ -303,6 +303,30 @@ def test_dp_errors_when_no_contractions_found() -> None:
         oe.contract_path(eq, *shapes, shapes=True, memory_limit=mincost - 1, optimize="dp")
 
 
+@pytest.mark.parametrize(
+    "equation, shapes",
+    [
+        ("c,ba,a->b", [(0,), (2, 3), (3,)]),
+        ("bac,a,->b", [(1, 3, 0), (3,), ()]),
+    ],
+)
+@pytest.mark.parametrize("memory_limit", [None, -1, "max_input", 3])
+def test_dp_zero_length_reductions(equation, shapes, memory_limit) -> None:
+    np = pytest.importorskip("numpy")
+    operands = [np.ones(shape) for shape in shapes]
+    expected = np.einsum(equation, *operands)
+
+    path, info = oe.contract_path(equation, *shapes, shapes=True, optimize="dp", memory_limit=memory_limit)
+    if memory_limit not in (None, -1):
+        limit = max(operand.size for operand in operands) if memory_limit == "max_input" else memory_limit
+        assert info.largest_intermediate <= limit
+    actual = oe.contract(equation, *operands, optimize=path)
+    np.testing.assert_array_equal(actual, expected)
+
+    expr = oe.contract_expression(equation, *shapes, optimize="dp", memory_limit=memory_limit)
+    np.testing.assert_array_equal(expr(*operands), expected)
+
+
 @pytest.mark.parametrize("optimize", ["greedy", "branch-2", "branch-all", "optimal", "dp"])
 def test_can_optimize_outer_products(optimize: OptimizeKind) -> None:
     a, b, c = ((10, 10) for _ in range(3))
@@ -376,7 +400,7 @@ def test_custom_branchbound() -> None:
     path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
 
     assert path == optimizer.path
-    assert path_info.largest_intermediate == optimizer.best["size"]
+    assert path_info.largest_intermediate == optimizer.best["largest_intermediate"]
     assert path_info.opt_cost == optimizer.best["flops"]
 
     # tweak settings and run again
@@ -385,7 +409,7 @@ def test_custom_branchbound() -> None:
     path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
 
     assert path == optimizer.path
-    assert path_info.largest_intermediate == optimizer.best["size"]
+    assert path_info.largest_intermediate == optimizer.best["largest_intermediate"]
     assert path_info.opt_cost == optimizer.best["flops"]
 
     # check error if we try and reuse the optimizer on a different expression
@@ -398,6 +422,50 @@ def test_custom_branchbound() -> None:
 def test_branchbound_validation() -> None:
     with pytest.raises(ValueError):
         oe.BranchBound(nbranch=0)
+
+
+@pytest.mark.parametrize("minimize", ["flops", "size"])
+@pytest.mark.parametrize(
+    "expression, shapes, memory_limit, expected_sizes",
+    [
+        ("ab,bc,ca->", [(2, 3), (3, 5), (5, 2)], 1, (1, 1)),
+        ("ab,bc,ca->a", [(2, 3), (3, 5), (5, 2)], 2, (2, 2)),
+        ("xy,yz,ab,bc,ca,zx->", [(2, 3), (3, 5), (7, 11), (11, 13), (13, 7), (5, 2)], 10, (6, 1)),
+        ("ab,bc,ca->", [(2, 3), (3, 5), (5, 2)], 15, (6, 6)),
+    ],
+)
+def test_branchbound_memory_limit_size(
+    expression: str,
+    shapes: list[TensorShapeType],
+    memory_limit: int,
+    expected_sizes: tuple[int, int],
+    minimize: str,
+) -> None:
+    optimizer = oe.BranchBound(nbranch=1, minimize=minimize)
+    path, info = oe.contract_path(expression, *shapes, shapes=True, optimize=optimizer, memory_limit=memory_limit)
+
+    assert path == optimizer.path
+    assert info.opt_cost == optimizer.best["flops"]
+    assert info.largest_intermediate == expected_sizes[minimize == "size"]
+    assert optimizer.best["largest_intermediate"] == info.largest_intermediate
+
+
+@pytest.mark.parametrize("minimize", ["flops", "size"])
+@pytest.mark.parametrize("nbranch", [1, 2, None])
+def test_branchbound_memory_limit_equal_peak_fallback(minimize: str, nbranch: int | None) -> None:
+    expression = "xy,yz,ab,bc,ca,zx->a"
+    shapes = [(2, 3), (3, 5), (7, 11), (11, 13), (13, 7), (5, 2)]
+    optimizer = oe.BranchBound(nbranch=nbranch, minimize=minimize)
+
+    # Contracting the xyz component first leaves a cheaper fallback with the
+    # same peak size as contracting all six operands at once.
+    _, reference = oe.contract_path(expression, *shapes, shapes=True, optimize=[(1, 5), (0, 4), (0, 1, 2, 3)])
+    for _ in range(2):
+        _, info = oe.contract_path(expression, *shapes, shapes=True, optimize=optimizer, memory_limit=10)
+        assert info.largest_intermediate == reference.largest_intermediate == 7
+        assert info.opt_cost <= reference.opt_cost
+        assert optimizer.best["largest_intermediate"] == info.largest_intermediate
+        assert optimizer.best["flops"] == info.opt_cost
 
 
 def test_parallel_random_greedy() -> None:
@@ -450,10 +518,10 @@ def test_custom_path_optimizer() -> None:
     class NaiveOptimizer(oe.paths.PathOptimizer):
         def __call__(
             self,
-            inputs: List[ArrayIndexType],
+            inputs: list[ArrayIndexType],
             output: ArrayIndexType,
-            size_dict: Dict[str, int],
-            memory_limit: Optional[int] = None,
+            size_dict: dict[str, int],
+            memory_limit: int | None = None,
         ) -> PathType:
             self.was_used = True
             return [(0, 1)] * (len(inputs) - 1)
@@ -475,11 +543,11 @@ def test_custom_random_optimizer() -> None:
     class NaiveRandomOptimizer(oe.path_random.RandomOptimizer):
         @staticmethod
         def random_path(
-            r: int, n: int, inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int]
+            r: int, n: int, inputs: list[ArrayIndexType], output: ArrayIndexType, size_dict: dict[str, int]
         ) -> Any:
             """Picks a completely random contraction order."""
             np.random.seed(r)
-            ssa_path: List[TensorShapeType] = []
+            ssa_path: list[TensorShapeType] = []
             remaining = set(range(n))
             while len(remaining) > 1:
                 i, j = np.random.choice(list(remaining), size=2, replace=False)
@@ -512,7 +580,7 @@ def test_custom_random_optimizer() -> None:
 
 def test_optimizer_registration() -> None:
     def custom_optimizer(
-        inputs: List[ArrayIndexType], output: ArrayIndexType, size_dict: Dict[str, int], memory_limit: Optional[int]
+        inputs: list[ArrayIndexType], output: ArrayIndexType, size_dict: dict[str, int], memory_limit: int | None
     ) -> PathType:
         return [(0, 1)] * (len(inputs) - 1)
 

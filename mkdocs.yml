@@ -1,4 +1,5 @@
 site_name: Optimized Einsum
+site_url: https://dgasmith.github.io/opt_einsum/
 repo_url: https://github.com/dgasmith/opt_einsum
 repo_name: dgasmith/opt_einsum
 theme:
@@ -30,7 +31,8 @@ theme:
 
 plugins:
   - search
-  - awesome-pages
+  - mike:
+      alias_type: redirect
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -58,24 +60,23 @@ plugins:
             summary: true
             unwrap_annotated: true
 
+extra:
+  version:
+    provider: mike
+    alias: true
+
 extra_javascript:
   - javascript/config.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 extra_css:
   - css/custom.css
 
 markdown_extensions:
-  - markdown.extensions.codehilite:
-      guess_lang: false
-  - markdown_include.include:
-      base_path: docs
-  - pymdownx.arithmatex:
-      generic: true
   - admonition
-  - codehilite
-  - extra
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
   - pymdownx.extra
   - pymdownx.arithmatex:
       generic: true

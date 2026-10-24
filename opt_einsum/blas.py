@@ -1,6 +1,6 @@
 """Determines if a contraction can use BLAS or not."""
 
-from typing import List, Sequence, Tuple, Union
+from collections.abc import Sequence
 
 from opt_einsum.typing import ArrayIndexType
 
@@ -8,11 +8,11 @@ __all__ = ["can_blas"]
 
 
 def can_blas(
-    inputs: List[str],
+    inputs: list[str],
     result: str,
     idx_removed: ArrayIndexType,
-    shapes: Union[Sequence[Tuple[int]], None] = None,
-) -> Union[str, bool]:
+    shapes: Sequence[tuple[int]] | None = None,
+) -> str | bool:
     """Checks if we can use a BLAS call.
 
     Parameters

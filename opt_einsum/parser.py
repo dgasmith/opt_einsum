@@ -1,7 +1,8 @@
 """A functionally equivalent parser of the numpy.einsum input parser."""
 
 import itertools
-from typing import Any, Dict, Iterator, List, Sequence, Tuple
+from collections.abc import Iterator, Sequence
+from typing import Any
 
 from opt_einsum.typing import ArrayType, TensorShapeType
 
@@ -71,13 +72,13 @@ def get_symbol(i: int) -> str:
     #> '京'
     ```
     """
-    if i < 52:
+    if i < len(_einsum_symbols_base):
         return _einsum_symbols_base[i]
-    elif i >= 55296:
-        # Skip chr(57343) - chr(55296) as surrogates
-        return chr(i + 2048)
-    else:
-        return chr(i + 140)
+    codepoint = i + 140
+    if codepoint >= 0xD800:
+        # Skip the reserved surrogate range U+D800–U+DFFF.
+        codepoint += 0x800
+    return chr(codepoint)
 
 
 def gen_unused_symbols(used: str, n: int) -> Iterator[str]:
@@ -125,7 +126,7 @@ def alpha_canonicalize(equation: str) -> str:
     >>> oe.parser.alpha_canonicalize("Ĥěļļö")
     'abccd'
     """
-    rename: Dict[str, str] = {}
+    rename: dict[str, str] = {}
     for name in equation:
         if name in ".,->":
             continue
@@ -153,7 +154,7 @@ def find_output_str(subscripts: str) -> str:
     return "".join(s for s in sorted(set(tmp_subscripts)) if tmp_subscripts.count(s) == 1)
 
 
-def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: str) -> TensorShapeType:
+def find_output_shape(inputs: list[str], shapes: list[TensorShapeType], output: str) -> TensorShapeType:
     """Find the output shape for given inputs, shapes and output string, taking
     into account broadcasting.
 
@@ -166,7 +167,11 @@ def find_output_shape(inputs: List[str], shapes: List[TensorShapeType], output: 
     >>> oe.parser.find_output_shape(["a", "a"], [(4, ), (1, )], "a")
     (4,)
     """
-    return tuple(max(shape[loc] for shape, loc in zip(shapes, [x.find(c) for x in inputs]) if loc >= 0) for c in output)
+    output_shape = []
+    for c in output:
+        dimensions = [shape[term.find(c)] for term, shape in zip(inputs, shapes) if c in term]
+        output_shape.append(next((dimension for dimension in dimensions if dimension != 1), 1))
+    return tuple(output_shape)
 
 
 _BaseTypes = (bool, int, float, complex, str, bytes)
@@ -229,7 +234,7 @@ def possibly_convert_to_numpy(x: Any) -> Any:
         return x
 
 
-def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
+def convert_subscripts(old_sub: list[Any], symbol_map: dict[Any, Any]) -> str:
     """Convert user custom subscripts list to subscript string according to `symbol_map`.
 
     Examples:
@@ -249,7 +254,7 @@ def convert_subscripts(old_sub: List[Any], symbol_map: Dict[Any, Any]) -> str:
     return new_sub
 
 
-def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, ...]]:
+def convert_interleaved_input(operands: Sequence[Any]) -> tuple[str, tuple[Any, ...]]:
     """Convert 'interleaved' input to standard einsum input."""
     tmp_operands = list(operands)
     operand_list = []
@@ -274,8 +279,7 @@ def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, 
 
     except TypeError:  # unhashable or uncomparable object
         raise TypeError(
-            "For this input type lists must contain either Ellipsis "
-            "or hashable and comparable object (e.g. int, str)."
+            "For this input type lists must contain either Ellipsis or hashable and comparable object (e.g. int, str)."
         )
 
     subscripts = ",".join(convert_subscripts(sub, symbol_map) for sub in subscript_list)
@@ -286,7 +290,7 @@ def convert_interleaved_input(operands: Sequence[Any]) -> Tuple[str, Tuple[Any, 
     return subscripts, tuple(operand_list)
 
 
-def parse_einsum_input(operands: Any, shapes: bool = False) -> Tuple[str, str, List[ArrayType]]:
+def parse_einsum_input(operands: Any, shapes: bool = False) -> tuple[str, str, list[ArrayType]]:
     """A reproduction of einsum c side einsum parsing in python.
 
     Parameters:

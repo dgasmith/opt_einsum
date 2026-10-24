@@ -1,7 +1,7 @@
 """Testing routines for opt_einsum."""
 
 import random
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import Any, Literal, overload
 
 import pytest
 
@@ -12,14 +12,14 @@ _no_collision_chars = "".join(chr(i) for i in range(7000, 7007))
 _valid_chars = "abcdefghijklmnopqABC" + _no_collision_chars
 _sizes = [2, 3, 4, 5, 4, 3, 2, 6, 5, 4, 3, 2, 5, 7, 4, 3, 2, 3, 4, 9, 10, 2, 4, 5, 3, 2, 6]
 _default_dim_dict = dict(zip(_valid_chars, _sizes))
-assert len(_valid_chars) == len(
-    _sizes
-), f"Valid characters and sizes must be the same length: {len(_valid_chars)} != {len(_sizes)}"
+assert len(_valid_chars) == len(_sizes), (
+    f"Valid characters and sizes must be the same length: {len(_valid_chars)} != {len(_sizes)}"
+)
 
 
 def build_shapes(
-    string: str, dimension_dict: Optional[Dict[str, int]] = None, replace_ellipsis: bool = False
-) -> Tuple[TensorShapeType, ...]:
+    string: str, dimension_dict: dict[str, int] | None = None, replace_ellipsis: bool = False
+) -> tuple[TensorShapeType, ...]:
     """Builds random tensor shapes for testing.
 
     Parameters:
@@ -59,10 +59,10 @@ def build_shapes(
 
 def build_views(
     string: str,
-    dimension_dict: Optional[Dict[str, int]] = None,
-    array_function: Optional[Any] = None,
+    dimension_dict: dict[str, int] | None = None,
+    array_function: Any | None = None,
     replace_ellipsis: bool = False,
-) -> Tuple[ArrayType, ...]:
+) -> tuple[ArrayType, ...]:
     """Builds random numpy arrays for testing.
 
     Parameters:
@@ -102,11 +102,11 @@ def rand_equation(
     n_out: int = ...,
     d_min: int = ...,
     d_max: int = ...,
-    seed: Optional[int] = ...,
+    seed: int | None = ...,
     global_dim: bool = ...,
     *,
     return_size_dict: Literal[True],
-) -> Tuple[str, PathType, Dict[str, int]]: ...
+) -> tuple[str, PathType, dict[str, int]]: ...
 
 
 @overload
@@ -116,10 +116,10 @@ def rand_equation(
     n_out: int = ...,
     d_min: int = ...,
     d_max: int = ...,
-    seed: Optional[int] = ...,
+    seed: int | None = ...,
     global_dim: bool = ...,
     return_size_dict: Literal[False] = ...,
-) -> Tuple[str, PathType]: ...
+) -> tuple[str, PathType]: ...
 
 
 def rand_equation(
@@ -128,10 +128,10 @@ def rand_equation(
     n_out: int = 0,
     d_min: int = 2,
     d_max: int = 9,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     global_dim: bool = False,
     return_size_dict: bool = False,
-) -> Union[Tuple[str, PathType, Dict[str, int]], Tuple[str, PathType]]:
+) -> tuple[str, PathType, dict[str, int]] | tuple[str, PathType]:
     """Generate a random contraction and shapes.
 
     Parameters:
@@ -229,7 +229,7 @@ def rand_equation(
         return ret
 
 
-def build_arrays_from_tuples(path: PathType) -> List[Any]:
+def build_arrays_from_tuples(path: PathType) -> list[Any]:
     """Build random numpy arrays from a path.
 
     Parameters:

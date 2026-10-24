@@ -5,10 +5,11 @@ import heapq
 import math
 import time
 from collections import deque
+from collections.abc import Generator, Iterable
 from decimal import Decimal
 from random import choices as random_choices
 from random import seed as random_seed
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Any
 
 from opt_einsum import helpers, paths
 from opt_einsum.typing import ArrayIndexType, ArrayType, PathType
@@ -65,9 +66,9 @@ class RandomOptimizer(paths.PathOptimizer):
     def __init__(
         self,
         max_repeats: int = 32,
-        max_time: Optional[float] = None,
+        max_time: float | None = None,
         minimize: str = "flops",
-        parallel: Union[bool, Decimal, int] = False,
+        parallel: bool | Decimal | int = False,
         pre_dispatch: int = 128,
     ):
         if minimize not in ("flops", "size"):
@@ -77,13 +78,13 @@ class RandomOptimizer(paths.PathOptimizer):
         self.max_time = max_time
         self.minimize = minimize
         self.better = paths.get_better_fn(minimize)
-        self._parallel: Union[bool, Decimal, int] = False
+        self._parallel: bool | Decimal | int = False
         self.parallel = parallel
         self.pre_dispatch = pre_dispatch
 
-        self.costs: List[int] = []
-        self.sizes: List[int] = []
-        self.best: Dict[str, Any] = {"flops": float("inf"), "size": float("inf")}
+        self.costs: list[int] = []
+        self.sizes: list[int] = []
+        self.best: dict[str, Any] = {"flops": float("inf"), "size": float("inf")}
 
         self._repeats_start = 0
         self._executor: Any
@@ -95,11 +96,11 @@ class RandomOptimizer(paths.PathOptimizer):
         return paths.ssa_to_linear(self.best["ssa_path"])
 
     @property
-    def parallel(self) -> Union[bool, Decimal, int]:
+    def parallel(self) -> bool | Decimal | int:
         return self._parallel
 
     @parallel.setter
-    def parallel(self, parallel: Union[bool, Decimal, int]) -> None:
+    def parallel(self, parallel: bool | Decimal | int) -> None:
         # shutdown any previous executor if we are managing it
         if getattr(self, "_managing_executor", False):
             self._executor.shutdown()
@@ -150,18 +151,18 @@ class RandomOptimizer(paths.PathOptimizer):
 
     def setup(
         self,
-        inputs: List[ArrayIndexType],
+        inputs: list[ArrayIndexType],
         output: ArrayIndexType,
-        size_dict: Dict[str, int],
-    ) -> Tuple[Any, Any]:
+        size_dict: dict[str, int],
+    ) -> tuple[Any, Any]:
         raise NotImplementedError
 
     def __call__(
         self,
-        inputs: List[ArrayIndexType],
+        inputs: list[ArrayIndexType],
         output: ArrayIndexType,
-        size_dict: Dict[str, int],
-        memory_limit: Optional[int] = None,
+        size_dict: dict[str, int],
+        memory_limit: int | None = None,
     ) -> PathType:
         self._check_args_against_first_call(inputs, output, size_dict)
 
@@ -279,10 +280,10 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
 
 def ssa_path_compute_cost(
     ssa_path: PathType,
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
-) -> Tuple[int, int]:
+    size_dict: dict[str, int],
+) -> tuple[int, int]:
     """Compute the flops and max size of an ssa path."""
     inputs = list(map(frozenset, inputs))
     output = frozenset(output)
@@ -304,12 +305,12 @@ def ssa_path_compute_cost(
 
 def _trial_greedy_ssa_path_and_cost(
     r: int,
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    size_dict: Dict[str, int],
+    size_dict: dict[str, int],
     choose_fn: Any,
     cost_fn: Any,
-) -> Tuple[PathType, int, int]:
+) -> tuple[PathType, int, int]:
     """A single, repeatable, greedy trial run. **Returns:** ``ssa_path`` and cost."""
     if r == 0:
         # always start with the standard greedy approach
@@ -374,20 +375,20 @@ class RandomGreedy(RandomOptimizer):
 
     def setup(
         self,
-        inputs: List[ArrayIndexType],
+        inputs: list[ArrayIndexType],
         output: ArrayIndexType,
-        size_dict: Dict[str, int],
-    ) -> Tuple[Any, Any]:
+        size_dict: dict[str, int],
+    ) -> tuple[Any, Any]:
         fn = _trial_greedy_ssa_path_and_cost
         args = (inputs, output, size_dict, self.choose_fn, self.cost_fn)
         return fn, args
 
 
 def random_greedy(
-    inputs: List[ArrayIndexType],
+    inputs: list[ArrayIndexType],
     output: ArrayIndexType,
-    idx_dict: Dict[str, int],
-    memory_limit: Optional[int] = None,
+    idx_dict: dict[str, int],
+    memory_limit: int | None = None,
     **optimizer_kwargs: Any,
 ) -> ArrayType:
     """A simple wrapper around the `RandomGreedy` optimizer."""
