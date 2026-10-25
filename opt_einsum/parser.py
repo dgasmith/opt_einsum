@@ -191,6 +191,8 @@ def get_shape(x: Any) -> TensorShapeType:
         shape = []
         while isinstance(x, Sequence) and not isinstance(x, _BaseTypes):
             shape.append(len(x))
+            if shape[-1] == 0:
+                break
             x = x[0]
         return tuple(shape)
     else:
