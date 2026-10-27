@@ -34,8 +34,15 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
     inputs = lhs.split(",")
 
     sizes: dict[str, int] = {}
-    for term, array in zip(inputs, arrays):
+    for operand, (term, array) in enumerate(zip(inputs, arrays)):
+        operand_sizes: dict[str, int] = {}
         for k, d in zip(term, array.shape):
+            if k in operand_sizes and operand_sizes[k] != d:
+                raise ValueError(
+                    f"dimensions in operand {operand} for collapsing index '{k}' "
+                    f"don't match ({operand_sizes[k]} != {d})"
+                )
+            operand_sizes[k] = d
             if k not in sizes or sizes[k] == 1:
                 sizes[k] = d
 

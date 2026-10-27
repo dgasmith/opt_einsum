@@ -518,6 +518,18 @@ def test_object_arrays_broadcasting_and_empty_reductions(equation, shapes, use_b
     np.testing.assert_array_equal(actual, expected)
 
 
+@pytest.mark.parametrize("shape", [(1, 2), (2, 1), (0, 1), (1, 0), (2, 3), (3, 2)])
+@pytest.mark.parametrize("optimize", [False, True])
+def test_object_arrays_reject_mismatched_diagonal(shape, optimize) -> None:
+    np = pytest.importorskip("numpy")
+    operand = np.empty(shape, dtype=object)
+
+    with pytest.raises(ValueError):
+        np.einsum("ii->", operand)
+    with pytest.raises(ValueError):
+        contract("ii->", operand, backend="object", optimize=optimize)
+
+
 @pytest.mark.parametrize("size", [1, 2])
 def test_object_arrays_without_integer_addition(size: int) -> None:
     np = pytest.importorskip("numpy")
