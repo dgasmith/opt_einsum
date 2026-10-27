@@ -482,3 +482,68 @@ def test_object_arrays_backend(string: str) -> None:
     obj_opt = expr(*obj_views, backend="object")
     assert obj_opt.dtype == object
     assert np.allclose(ein, obj_opt.astype(float))
+
+
+@pytest.mark.parametrize(
+    "equation, shapes",
+    [
+        ("i,i->i", [(1,), (3,)]),
+        ("i,i->i", [(3,), (1,)]),
+        ("i,i->", [(1,), (3,)]),
+        ("i,i->", [(3,), (1,)]),
+        ("aab,bc->ac", [(2, 2, 1), (3, 2)]),
+        ("...ii,...i->...", [(2, 3, 3), (1, 3)]),
+        ("i,i,i->i", [(0,), (1,), (1,)]),
+        ("i,i,i->", [(1,), (0,), (1,)]),
+        ("i->", [(0,)]),
+        ("ii->", [(0, 0)]),
+        ("ij->i", [(2, 0)]),
+        ("ij,jk->ik", [(2, 0), (1, 3)]),
+    ],
+)
+@pytest.mark.parametrize("use_blas", [False, True])
+def test_object_arrays_broadcasting_and_empty_reductions(equation, shapes, use_blas) -> None:
+    np = pytest.importorskip("numpy")
+    operands = [np.arange(np.prod(shape)).reshape(shape) + 1 for shape in shapes]
+    expected = np.einsum(equation, *operands)
+    objects = [operand.astype(object) for operand in operands]
+
+    actual = contract(equation, *objects, backend="object", use_blas=use_blas)
+    assert actual.dtype == object
+    np.testing.assert_array_equal(actual, expected)
+
+    expr = contract_expression(equation, *shapes, use_blas=use_blas)
+    actual = expr(*objects, backend="object")
+    assert actual.dtype == object
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("shape", [(1, 2), (2, 1), (0, 1), (1, 0), (2, 3), (3, 2)])
+@pytest.mark.parametrize("optimize", [False, True])
+def test_object_arrays_reject_mismatched_diagonal(shape, optimize) -> None:
+    np = pytest.importorskip("numpy")
+    operand = np.empty(shape, dtype=object)
+
+    with pytest.raises(ValueError):
+        np.einsum("ii->", operand)
+    with pytest.raises(ValueError):
+        contract("ii->", operand, backend="object", optimize=optimize)
+
+
+@pytest.mark.parametrize("size", [1, 2])
+def test_object_arrays_without_integer_addition(size: int) -> None:
+    np = pytest.importorskip("numpy")
+
+    class Number:
+        def __init__(self, value):
+            self.value = value
+
+        def __mul__(self, other):
+            return Number(self.value * other.value)
+
+        def __add__(self, other):
+            return Number(self.value + other.value)
+
+    values = np.array([Number(i + 1) for i in range(size)], dtype=object)
+    result = contract("i->", values, backend="object")
+    assert result.item().value == sum(range(1, size + 1))

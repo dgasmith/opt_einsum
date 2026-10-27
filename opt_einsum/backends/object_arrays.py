@@ -33,10 +33,25 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
     lhs, output = eq.split("->")
     inputs = lhs.split(",")
 
-    sizes = {}
-    for term, array in zip(inputs, arrays):
+    sizes: dict[str, int] = {}
+    for operand, (term, array) in enumerate(zip(inputs, arrays)):
+        operand_sizes: dict[str, int] = {}
         for k, d in zip(term, array.shape):
-            sizes[k] = d
+            if k in operand_sizes and operand_sizes[k] != d:
+                raise ValueError(
+                    f"dimensions in operand {operand} for collapsing index '{k}' "
+                    f"don't match ({operand_sizes[k]} != {d})"
+                )
+            operand_sizes[k] = d
+            if k not in sizes or sizes[k] == 1:
+                sizes[k] = d
+
+    # Broadcast views up front so the inner loop can use ordinary coordinates.
+    broadcasted_arrays = []
+    for term, array in zip(inputs, arrays):
+        target_shape = tuple(sizes[k] for k in term)
+        broadcasted_arrays.append(np.broadcast_to(array, target_shape))
+    arrays = tuple(broadcasted_arrays)
 
     out_size = tuple(sizes[k] for k in output)
     out = np.empty(out_size, dtype=object)
@@ -54,6 +69,8 @@ def object_einsum(eq: str, *arrays: ArrayType) -> ArrayType:
                 elements = (array[loc] for array, loc in zip(arrays, locs))
                 yield functools.reduce(operator.mul, elements)
 
-        out[coo_o] = functools.reduce(operator.add, gen_inner_sum())
+        terms = gen_inner_sum()
+        # Empty reductions are zero; nonempty ones need only object addition.
+        out[coo_o] = functools.reduce(operator.add, terms, next(terms, 0))
 
     return out
