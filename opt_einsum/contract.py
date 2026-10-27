@@ -582,7 +582,9 @@ def contract(
 
     # If no optimization, run pure einsum
     if optimize is False:
-        return _einsum(*operands_list, out=out, **kwargs)
+        input_subscripts, output_subscript, arrays = parser.parse_einsum_input(operands_list)
+        _backend = parse_backend(arrays, backend)
+        return _einsum(f"{input_subscripts}->{output_subscript}", *arrays, backend=_backend, out=out, **kwargs)
 
     # Grab non-einsum kwargs
     gen_expression = kwargs.pop("_gen_expression", False)
@@ -693,7 +695,7 @@ def _core_contract(
                 new_view = _transpose(new_view, axes=transpose, backend=backend)
 
                 if handle_out:
-                    out[:] = new_view  # type: ignore
+                    out[...] = new_view  # type: ignore
 
         else:
             # Call einsum
