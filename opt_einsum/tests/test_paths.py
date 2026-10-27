@@ -4,6 +4,7 @@ the various path helper functions.
 """
 
 import itertools
+import math
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any
 
@@ -600,3 +601,97 @@ def test_optimizer_registration() -> None:
 def test_path_with_assumed_shapes() -> None:
     path, _ = oe.contract_path("ab,bc,cd", [[5, 3]], [[2], [4]], [[3, 2]])
     assert path == [(0, 1), (0, 1)]
+
+
+@pytest.mark.parametrize("optimize", ["optimal", "branch-all", "branch-2", "branch-1"])
+def test_repeated_intermediate_indices(optimize: OptimizeKind) -> None:
+    # After multiplying by bk, the same bgk/bkd indices denote a new operand.
+    # Reusing their initial pair contraction would incorrectly retain k.
+    expression = "bgk,bkd,bk->bgd"
+    shapes = [(64, 8, 4096), (64, 4096, 128), (64, 4096)]
+    path, info = oe.contract_path(expression, *shapes, shapes=True, optimize=optimize)
+    assert path == [(0, 2), (0, 1)]
+    assert info.opt_cost == 538968064
+    assert info.largest_intermediate == 2097152
+
+
+def test_branch_repeated_intermediate_cost() -> None:
+    optimizer = oe.BranchBound(cutoff_flops_factor=10**100)
+    _, info = oe.contract_path("ab,bc,b->ac", (2, 3), (3, 5), (3,), shapes=True, optimize=optimizer)
+    assert optimizer.best["flops"] == info.opt_cost == 66
+    assert optimizer.best["size"] == info.largest_intermediate == 10
+
+
+def test_pair_cost_with_single_term_reduction() -> None:
+    inputs = (frozenset("ij"), frozenset("j"), frozenset("jk"))
+    result, cost = oe.paths.calc_k12_flops(
+        inputs,  # type: ignore[arg-type]
+        frozenset(),
+        frozenset(range(3)),
+        0,
+        1,
+        {"i": 2, "j": 3, "k": 5},
+    )
+    assert result == frozenset("j")
+    assert cost == 12
+
+
+@pytest.mark.parametrize("expression", ["a,a,a->", "a,a,b,ab->b"])
+def test_branch_duplicate_operand_cost(expression: str) -> None:
+    optimizer = oe.BranchBound()
+    shapes = build_shapes(expression, dimension_dict={"a": 2, "b": 3})
+    _, info = oe.contract_path(expression, *shapes, shapes=True, optimize=optimizer)
+    expected = 6 if expression == "a,a,a->" else 17
+    assert optimizer.best["flops"] == info.opt_cost == expected
+
+
+def _exhaustive_flop_cost(inputs, output, sizes, memory_limit):
+    # Independent oracle: enumerate every pairwise path without caching or
+    # pruning, including the all-terms fallback allowed by a memory limit.
+    if len(inputs) == 1:
+        return 0
+
+    best = float("inf")
+    for i, j in itertools.combinations(range(len(inputs)), 2):
+        remaining = tuple(term for k, term in enumerate(inputs) if k not in (i, j))
+        contracted = inputs[i] | inputs[j]
+        keep = output.union(*remaining)
+        result = contracted & keep
+        result_size = math.prod(sizes[index] for index in result)
+        if memory_limit is not None and result_size > memory_limit:
+            all_indices = frozenset().union(*inputs)
+            factor = len(inputs) - 1 + bool(all_indices - output)
+            cost = factor * math.prod(sizes[index] for index in all_indices)
+        else:
+            factor = 1 + bool(contracted - result)
+            cost = factor * math.prod(sizes[index] for index in contracted)
+            cost += _exhaustive_flop_cost(remaining + (result,), output, sizes, memory_limit)
+        best = min(best, cost)
+    return best
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "xa,xb,x->x",
+        "xab,xab,xc,x->x",
+        "xab,xac,xad,xa,x->x",
+        "xab,xab,xac,xbc,xd,x->x",
+    ],
+)
+@pytest.mark.parametrize("memory_limit", [None, 1, 16, 64])
+@pytest.mark.parametrize("algorithm", ["optimal", "branch"])
+def test_recursive_paths_against_exhaustive_cost(expression, memory_limit, algorithm):
+    terms, output = expression.split("->")
+    inputs = tuple(map(frozenset, terms.split(",")))
+    output = frozenset(output)
+    sizes = {index: 2 + i for i, index in enumerate("abcdx")}
+    expected = _exhaustive_flop_cost(inputs, output, sizes, memory_limit)
+    shapes = build_shapes(expression, dimension_dict=sizes)
+    # All operands share the output index x, so outer-product suppression does
+    # not restrict BranchBound's search. Disable its heuristic FLOP cutoff too.
+    optimizer = oe.BranchBound(cutoff_flops_factor=10**100) if algorithm == "branch" else algorithm
+    _, info = oe.contract_path(expression, *shapes, shapes=True, optimize=optimizer, memory_limit=memory_limit)
+    assert info.opt_cost == expected
+    if algorithm == "branch":
+        assert optimizer.best["flops"] == expected
