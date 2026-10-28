@@ -8,45 +8,34 @@ on:
 
 jobs:
   tests:
-    name: ${{ matrix.extras }}${{ matrix.python-extras && format('+{0}', matrix.python-extras) || '' }} / py${{ matrix.python-version }}
+    name: py${{ matrix.python-version }} / ${{ matrix.environment }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - python-version: "3.12"
-            extras: "test,lint"
-          - python-version: "3.14"
-            extras: "test,lint"
-          - python-version: "3.12"
-            extras: "test,lint,numpy"
-          - python-version: "3.12"
-            extras: "test,lint,numpy,dask"
+            environment: core
           - python-version: "3.13"
-            extras: "test,lint,numpy,dask,jax,sparse"
+            environment: backends
           - python-version: "3.13"
-            extras: "test,lint,torch"
-          # - python-version: "3.12"
-          #   extras: "test,lint"
-          #   python-extras: "tensorflow"
+            environment: torch
+          - python-version: "3.15"
+            environment: core
+          - python-version: "3.15"
+            environment: numpy
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7.0.1
 
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@v10.3.2
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
 
-    - name: Install
-      run: uv pip install -e ".[${{ matrix.extras }}]" ${{ matrix.python-extras }}
-
-    - name: Test
-      run: uv run --no-sync pytest -v --cov=opt_einsum/ --cov-report=xml
-
-    - name: Coverage
-      run: uv run --no-sync coverage report
+    - name: Run tests
+      run: make PYTHON=${{ matrix.python-version }} test-${{ matrix.environment }}
 
     - uses: codecov/codecov-action@v4
       with:
