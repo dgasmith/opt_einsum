@@ -49,3 +49,9 @@ change:
 
 Inspect the final diff and run `git diff --check`. Report what you checked,
 failures and any behavior left unverified.
+
+## Before publishing
+
+State whether a human reviewed the diff; reviewing it together counts.
+If nobody reviewed it, include `Human review: not reviewed`.
+If you cannot confirm review, include `Human review: not confirmed`.
