@@ -1,5 +1,7 @@
 """Required functions for optimized contractions of numpy arrays using tensorflow."""
 
+import warnings
+
 from opt_einsum.helpers import has_array_interface
 from opt_einsum.sharing import to_backend_cache_wrap
 
@@ -13,6 +15,14 @@ def _get_tensorflow_and_device():
 
     if _CACHED_TF_DEVICE is None:
         import tensorflow as tf  # type: ignore
+
+        if tf.__version__.startswith("1."):
+            warnings.warn(
+                "The TensorFlow 1 conversion backend is deprecated and will be removed in the first opt_einsum feature "
+                "release after May 1, 2027. Please upgrade to TensorFlow 2 or pass native tensors directly.",
+                FutureWarning,
+                stacklevel=2,
+            )
 
         try:
             eager = tf.executing_eagerly()

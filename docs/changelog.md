@@ -1,6 +1,16 @@
 Changelog
 =========
 
+## 3.5.0 / Unreleased
+
+**Deprecations**
+
+- The Theano and TensorFlow 1 adapters for converting NumPy arrays and compiling
+  expressions, plus the fallback used when PyTorch lacks `tensordot`, now emit a
+  `FutureWarning`. These paths remain in 3.5 and will be removed in the first
+  feature release after May 1, 2027. Direct contractions on native Theano and
+  TensorFlow tensors and TensorFlow 2 conversion are unaffected.
+
 ## 3.4.0 / 2024-09-26
 
 NumPy has been removed from `opt_einsum` as a dependency allowing for more flexible installs.

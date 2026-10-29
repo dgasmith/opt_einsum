@@ -26,6 +26,15 @@ The following is a brief overview of libraries which have been tested with
 - [jax](https://github.com/google/jax): compiled GPU tensor expressions
   including `autograd`-like functionality
 
+!!! warning "Deprecated compatibility paths"
+    Starting in 3.5, the Theano and TensorFlow 1 adapters for converting NumPy
+    arrays and compiling expressions emit a `FutureWarning`, as does the fallback
+    used when PyTorch lacks `tensordot`. These paths remain in 3.5 and will be
+    removed in the first feature release after May 1, 2027. Direct contractions on
+    native Theano and TensorFlow tensors and TensorFlow 2 conversion are
+    unaffected. Use native Theano tensors, upgrade to TensorFlow 2 for conversion,
+    or upgrade PyTorch.
+
 !!! note
     For a contraction to be possible without using a backend einsum, it must
     satisfy the following rule: in the full expression (*including* output
@@ -199,8 +208,8 @@ for optimal performance.
 
 ### Theano
 
-If `theano` is installed, using it as backend is as simple as specifying
-`backend='theano'`:
+The following example uses the deprecated Theano conversion adapter, selected
+with `backend='theano'`:
 
 ```python
 shapes = (3, 200), (200, 300), (300, 4)
@@ -225,8 +234,9 @@ relevant `theano` type.
 
 ### Tensorflow
 
-To run the expression with **tensorflow**, you need to register a default
-session:
+The following examples use the deprecated **TensorFlow 1** conversion adapter.
+TensorFlow 2 conversion and direct contractions on native tensors are unaffected.
+To run the expression in graph mode, register a default session:
 
 ```python
 import tensorflow as tf
