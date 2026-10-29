@@ -1,5 +1,7 @@
 """Required functions for optimized contractions of numpy arrays using pytorch."""
 
+import warnings
+
 from opt_einsum.helpers import has_array_interface
 from opt_einsum.parser import convert_to_valid_einsum_chars
 from opt_einsum.sharing import to_backend_cache_wrap
@@ -54,6 +56,13 @@ def tensordot(x, y, axes=2):
 
     if _TORCH_HAS_TENSORDOT:
         return torch.tensordot(x, y, dims=axes)
+
+    warnings.warn(
+        "The PyTorch tensordot fallback is deprecated and will be removed in the first opt_einsum feature release "
+        "after May 1, 2027. Please upgrade PyTorch.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     xnd = x.ndimension()
     ynd = y.ndimension()
