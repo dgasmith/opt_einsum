@@ -1,5 +1,7 @@
 """Required functions for optimized contractions of numpy arrays using theano."""
 
+import warnings
+
 from opt_einsum.helpers import has_array_interface
 from opt_einsum.sharing import to_backend_cache_wrap
 
@@ -10,6 +12,13 @@ __all__ = ["to_theano", "build_expression", "evaluate_constants"]
 def to_theano(array, constant=False):
     """Convert a numpy array to ``theano.tensor.TensorType`` instance."""
     import theano  # type: ignore
+
+    warnings.warn(
+        "The Theano conversion backend is deprecated and will be removed in the first opt_einsum feature release "
+        "after May 1, 2027. Pass native Theano tensors directly or use another conversion backend.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     if has_array_interface(array):
         if constant:
