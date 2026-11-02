@@ -32,7 +32,7 @@ test-torch:
 	@$(TEST_RUN) --extra torch pytest $(PYTEST_ARGS)
 
 test-backends:
-	@$(TEST_RUN) --extra numpy --extra torch --extra dask --extra jax --extra sparse pytest $(PYTEST_ARGS)
+	@$(TEST_RUN) --extra numpy --extra torch --extra dask --extra jax --extra sparse --extra tensorflow pytest $(PYTEST_ARGS)
 
 # Run sequentially because the suites write the same coverage files.
 test-full:

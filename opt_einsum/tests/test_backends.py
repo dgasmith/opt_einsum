@@ -22,7 +22,11 @@ except ImportError:
 tests = [
     "ab,bc->ca",
     "abc,bcd,dea",
-    "abc,def->fedcba",
+    pytest.param(
+        "abc,def->fedcba",
+        # Small Dask chunks deliberately exercise the expanded outer-product grid.
+        marks=pytest.mark.filterwarnings("ignore:Increasing number of chunks by factor of:Warning"),
+    ),
     "abc,bcd,df->fa",
     # test 'prefer einsum' ops
     "ijk,ikj",
