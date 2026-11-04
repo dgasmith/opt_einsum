@@ -290,7 +290,7 @@ def test_jax_jit_gradient() -> None:
     shapes = (2, 3), (3, 4), (4, 2)
     views = [jax.random.uniform(key, s) for s in shapes]
     expr = contract_expression(eq, *shapes)
-    x0 = expr(*views)
+    x0 = expr(*views).item()
 
     jit_expr = jax.jit(expr)
     x1 = jit_expr(*views).item()
