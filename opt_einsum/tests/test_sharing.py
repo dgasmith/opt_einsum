@@ -69,6 +69,41 @@ def test_sharing_value(eq: str, backend: BackendType) -> None:
     assert (actual == expected).all()
 
 
+@pytest.mark.parametrize("optimize", [False, True])
+def test_sharing_einsum_dtype(optimize: bool) -> None:
+    values = np.array([100, 100], dtype=np.int8)
+    with shared_intermediates() as cache:
+        ordinary = contract("i->", values, optimize=optimize)
+        widened = contract("i->", values, optimize=optimize, dtype=np.int64)
+        assert widened == 200
+        assert widened.dtype == np.dtype(np.int64)
+        assert contract("i->", values, optimize=optimize) is ordinary
+        assert count_cached_ops(cache)["einsum"] == 1
+
+
+@pytest.mark.parametrize("optimize", [False, True])
+def test_sharing_einsum_out(optimize: bool) -> None:
+    values = np.array([1.0, 2.0, 3.0])
+    with shared_intermediates():
+        assert contract("i->", values, optimize=optimize) == 6
+        for sentinel in [-777.0, -888.0]:
+            out = np.full((), sentinel)
+            result = contract("i->", values, optimize=optimize, out=out)
+            assert result is out
+            assert out == 6
+
+
+@pytest.mark.parametrize("optimize", [False, True])
+def test_sharing_einsum_casting(optimize: bool) -> None:
+    values = np.array([1.5, 2.5])
+    with shared_intermediates():
+        assert contract("i->", values, optimize=optimize) == 4
+        with pytest.raises(TypeError):
+            contract("i->", values, optimize=optimize, dtype=np.int64)
+        result = contract("i->", values, optimize=optimize, dtype=np.int64, casting="unsafe")
+        assert result == 3
+
+
 @pytest.mark.parametrize("backend", backends)
 def test_complete_sharing(backend: BackendType) -> None:
     eq = "ab,bc,cd->"
