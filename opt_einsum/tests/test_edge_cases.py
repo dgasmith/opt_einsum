@@ -123,7 +123,9 @@ def test_zero_length_broadcasting_contraction() -> None:
 
 
 def test_can_blas_on_healed_broadcast_dimensions() -> None:
-    expr = contract_expression("ab,bc,bd->acd", (5, 4), (1, 5), (4, 20))
+    # Keep this path explicit: broadcast-aware planning can instead contract
+    # ab with bd first, avoiding the broadcast intermediate altogether.
+    expr = contract_expression("ab,bc,bd->acd", (5, 4), (1, 5), (4, 20), optimize=[(0, 1), (0, 1)])
     # first contraction involves broadcasting
     assert expr.contraction_list[0][2] == "bc,ab->bca"
     assert expr.contraction_list[0][-1] is False

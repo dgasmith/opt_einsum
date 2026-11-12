@@ -228,6 +228,11 @@ def contract_path(
           contracted first, the result of this contraction is then appended to the end of
           the contraction list.
 
+          Singleton occurrences of a broadcast label are omitted from the
+          optimization graph. They are reduced when their operand is contracted,
+          avoiding intermediates expanded to the full broadcast size. Labels
+          whose dimensions are all singleton are retained, including in outputs.
+
     Examples:
           We can begin with a chain dot example. In this case, it is optimal to
           contract the b and c tensors represented by the first element of the path (1,
@@ -287,6 +292,7 @@ def contract_path(
 
     # Hidden option, only einsum should call this
     einsum_call_arg = kwargs.pop("einsum_call", False)
+    broadcast_axes = kwargs.pop("_broadcast_axes", None)
     if len(kwargs):
         raise TypeError(f"Did not understand the following kwargs: {kwargs.keys()}")
 
@@ -308,6 +314,7 @@ def contract_path(
     size_dict: dict[str, int] = {}
     for tnum, term in enumerate(input_list):
         sh = input_shapes[tnum]
+        local_sizes: dict[str, int] = {}
 
         if len(sh) != len(term):
             raise ValueError(
@@ -316,6 +323,9 @@ def contract_path(
             )
         for cnum, char in enumerate(term):
             dim = int(sh[cnum])
+            if char in local_sizes and local_sizes[char] != dim:
+                raise ValueError(f"Repeated label '{char}' for operand {tnum} has unequal dimensions.")
+            local_sizes[char] = dim
 
             if char in size_dict:
                 # For broadcasting cases we always want the largest dim size
@@ -340,6 +350,25 @@ def contract_path(
     # indices_in_input = input_subscripts.replace(',', '')
     inner_product = (sum(len(x) for x in input_sets) - len(indices)) > 0
     naive_cost = helpers.flop_count(indices, inner_product, num_ops, size_dict)
+
+    # A singleton occurrence does not connect tensors along a broadcast axis.
+    # Plan using only its non-singleton occurrences, but keep the original
+    # subscripts for execution: einsum can reduce the singleton when its operand
+    # is first used. Globally singleton axes stay in the graph, preserving output
+    # dimensions without a separate reshape or a backend-specific operation.
+    omitted_axes = [
+        (tnum, axis)
+        for tnum, (term, shape) in enumerate(zip(input_list, input_shapes))
+        for axis, (char, dim) in enumerate(zip(term, shape))
+        if dim == 1 and size_dict[char] != 1
+    ]
+    if omitted_axes:
+        input_sets = [
+            frozenset(char for char, dim in zip(term, shape) if dim != 1 or size_dict[char] == 1)
+            for term, shape in zip(input_list, input_shapes)
+        ]
+        if broadcast_axes is not None:
+            broadcast_axes.extend(omitted_axes)
 
     # Compute the path
     if optimize is False:
@@ -370,14 +399,24 @@ def contract_path(
         contract_tuple = helpers.find_contraction(contract_inds, input_sets, output_set)
         out_inds, input_sets, idx_removed, idx_contract = contract_tuple
 
-        # Compute cost, scale, and size
+        # Evaluate the same index graph supplied to the path optimizer. Omitted
+        # singleton axes have unit extent here and need no reduction arithmetic.
         cost = helpers.flop_count(idx_contract, bool(idx_removed), len(contract_inds), size_dict)
-        cost_list.append(cost)
-        scale_list.append(len(idx_contract))
-        size_list.append(helpers.compute_size_by_dict(out_inds, size_dict))
 
         tmp_inputs = [input_list.pop(x) for x in contract_inds]
         tmp_shapes = [input_shapes.pop(x) for x in contract_inds]
+
+        if omitted_axes:
+            # Execution still sees singleton axes omitted from the planning
+            # graph. Retain them for BLAS eligibility and executable metadata,
+            # separately from the projected cost calculated above.
+            idx_contract = frozenset("".join(tmp_inputs))
+            idx_removed = idx_contract - out_inds
+
+        # Record the projected cost and executable contraction's scale and size.
+        cost_list.append(cost)
+        scale_list.append(len(idx_contract))
+        size_list.append(helpers.compute_size_by_dict(out_inds, size_dict))
 
         if use_blas:
             do_blas = blas.can_blas(tmp_inputs, "".join(out_inds), idx_removed, tmp_shapes)
@@ -595,13 +634,26 @@ def contract(
 
     # Build the contraction list and operand
     contraction_list: ContractionListType
+    broadcast_axes: list[tuple[int, int]] = []
     operands, contraction_list = contract_path(  # type: ignore
-        *operands_list, optimize=optimize, memory_limit=memory_limit, einsum_call=True, use_blas=use_blas
+        *operands_list,
+        optimize=optimize,
+        memory_limit=memory_limit,
+        einsum_call=True,
+        use_blas=use_blas,
+        _broadcast_axes=broadcast_axes if gen_expression else None,
     )
 
     # check if performing contraction or just building expression
     if gen_expression:
-        return ContractExpression(full_str, contraction_list, constants_dict, **kwargs)
+        return ContractExpression(
+            full_str,
+            contraction_list,
+            constants_dict,
+            _broadcast_axes=tuple(broadcast_axes),
+            _use_blas=use_blas,
+            **kwargs,
+        )
 
     return _core_contract(operands, contraction_list, backend=backend, out=out, **kwargs)
 
@@ -750,9 +802,15 @@ class ContractExpression:
         contraction: str,
         contraction_list: ContractionListType,
         constants_dict: dict[int, ArrayType],
+        *,
+        _broadcast_axes: tuple[tuple[int, int], ...] = (),
+        _use_blas: bool = True,
         **kwargs: Any,
     ):
         self.contraction = format_const_einsum_str(contraction, constants_dict.keys())
+        self._original_contraction = contraction
+        self._broadcast_axes = _broadcast_axes
+        self._use_blas = _use_blas
         self.contraction_list = contraction_list
         self.kwargs = kwargs
 
@@ -881,6 +939,29 @@ class ContractExpression:
                 f"This `ContractExpression` takes exactly {self.num_args} array arguments but received {len(arrays)}."
             )
 
+        if self._broadcast_axes and not evaluate_constants:
+            # Expressions accept different dimension sizes at evaluation time.
+            # If an axis omitted during planning is no longer singleton, rebuild
+            # the contractions for the actual shapes using the existing path.
+            # Keep this separate from cached constant intermediates, whose
+            # subscript structure may depend on the original broadcast pattern.
+            original_ops = list(arrays)
+            for i, value in sorted(self._constants_dict.items()):
+                original_ops.insert(i, value)
+            if any(parser.get_shape(original_ops[i])[axis] != 1 for i, axis in self._broadcast_axes):
+                shapes = [
+                    op if i in self._constants_dict else parser.get_shape(op) for i, op in enumerate(original_ops)
+                ]
+                expression = contract_expression(
+                    self._original_contraction,
+                    *shapes,
+                    constants=self._constants_dict,
+                    optimize=[step[0] for step in self._full_contraction_list],
+                    use_blas=self._use_blas,
+                    **self.kwargs,
+                )
+                return expression(*arrays, out=out, backend=backend)
+
         if self._constants_dict and not evaluate_constants:
             # fill in the missing non-constant terms with newly supplied arrays
             ops_var, ops_const = iter(arrays), self._get_evaluated_constants(backend)
@@ -991,6 +1072,8 @@ def contract_expression(
         The generated expression will work with any arrays which have
         the same rank (number of dimensions) as the original shapes, however, if
         the actual sizes are different, the expression may no longer be optimal.
+        If a singleton axis omitted during optimization becomes non-singleton,
+        contractions are rebuilt for the supplied shapes using the existing path.
         Constant operations will be computed upon the first call with a particular
         backend, then subsequently reused.
 
