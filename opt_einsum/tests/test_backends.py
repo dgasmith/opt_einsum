@@ -294,7 +294,7 @@ def test_jax_jit_gradient() -> None:
 
     jit_expr = jax.jit(expr)
     x1 = jit_expr(*views).item()
-    assert x1 == pytest.approx(x0, rel=1e-5)
+    assert x1 == pytest.approx(x0.item(), rel=1e-5)
 
     # jax only takes gradient w.r.t first argument
     grad_expr = jax.jit(jax.grad(lambda views: expr(*views)))

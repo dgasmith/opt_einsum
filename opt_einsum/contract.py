@@ -950,8 +950,7 @@ class ContractExpression:
                 original_ops.insert(i, value)
             if any(parser.get_shape(original_ops[i])[axis] != 1 for i, axis in self._broadcast_axes):
                 shapes = [
-                    op if i in self._constants_dict else parser.get_shape(op)
-                    for i, op in enumerate(original_ops)
+                    op if i in self._constants_dict else parser.get_shape(op) for i, op in enumerate(original_ops)
                 ]
                 expression = contract_expression(
                     self._original_contraction,

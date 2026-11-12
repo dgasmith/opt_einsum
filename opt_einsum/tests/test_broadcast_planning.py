@@ -1,5 +1,5 @@
 """Regressions for the reported #220 workload and its discussion."""
-import numpy as np
+
 import pytest
 
 from opt_einsum import contract, contract_expression, contract_path
@@ -18,6 +18,7 @@ def test_broadcast_planning_issue220(optimize):
 
 @pytest.mark.parametrize("constant", [False, True])
 def test_broadcast_expression_changed_shape_issue220(constant):
+    np = pytest.importorskip("numpy")
     # ContractExpression promises same-rank inputs may change dimension sizes.
     # Reuse the report's equation at a smaller batch size, then replace the
     # broadcast batch by a real batch after the first (constant-caching) call.
@@ -37,6 +38,7 @@ def test_broadcast_expression_changed_shape_issue220(constant):
 
 
 def test_broadcast_planning_preserves_singleton_output_issue220():
+    np = pytest.importorskip("numpy")
     # nedlrichards' reported output-shape concern: all occurrences may be 1.
     rng = np.random.default_rng(42)
     arrays = [rng.random(shape) for shape in [(32, 32, 32), (1, 32), (1, 32)]]
@@ -46,23 +48,28 @@ def test_broadcast_planning_preserves_singleton_output_issue220():
 
 
 def test_broadcast_planning_rejects_invalid_diagonal_issue220():
+    np = pytest.importorskip("numpy")
     # The exact invalid repeated-label example supplied in the issue discussion
     # must not become valid when a singleton occurrence is omitted from planning.
     with pytest.raises(ValueError, match="Repeated label"):
         contract("ii,i->i", np.ones((1, 2)), np.ones(2))
 
 
-@pytest.mark.parametrize("equation, expected_cost", [
-    ("ab,c,a->abc", 30),
-    ("ab,c,a->bc", 22),
-])
+@pytest.mark.parametrize(
+    "equation, expected_cost",
+    [
+        ("ab,c,a->abc", 30),
+        ("ab,c,a->bc", 22),
+    ],
+)
 def test_broadcast_projected_cost_matches_optimizer(equation, expected_cost):
+    np = pytest.importorskip("numpy")
     # An omitted singleton axis does not introduce reduction arithmetic when
     # it is absent from the projected contraction's index union.
     arrays = [
-        np.arange(1., 4.).reshape(1, 3),
-        np.arange(1., 3.),
-        np.arange(1., 5.),
+        np.arange(1.0, 4.0).reshape(1, 3),
+        np.arange(1.0, 3.0),
+        np.arange(1.0, 5.0),
     ]
     _, info = contract_path(equation, *arrays, optimize="optimal")
     assert info.opt_cost == expected_cost
