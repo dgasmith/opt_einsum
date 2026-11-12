@@ -399,25 +399,21 @@ def contract_path(
         contract_tuple = helpers.find_contraction(contract_inds, input_sets, output_set)
         out_inds, input_sets, idx_removed, idx_contract = contract_tuple
 
+        # Evaluate the same index graph supplied to the path optimizer. Omitted
+        # singleton axes have unit extent here and need no reduction arithmetic.
+        cost = helpers.flop_count(idx_contract, bool(idx_removed), len(contract_inds), size_dict)
+
         tmp_inputs = [input_list.pop(x) for x in contract_inds]
         tmp_shapes = [input_shapes.pop(x) for x in contract_inds]
 
         if omitted_axes:
-            # Execution still sees singleton axes that were omitted from the
-            # planning graph. Include them in BLAS eligibility and use actual
-            # local dimensions for the contraction's cost.
+            # Execution still sees singleton axes omitted from the planning
+            # graph. Retain them for BLAS eligibility and executable metadata,
+            # separately from the projected cost calculated above.
             idx_contract = frozenset("".join(tmp_inputs))
             idx_removed = idx_contract - out_inds
-            local_size_dict = {}
-            for term, shape in zip(tmp_inputs, tmp_shapes):
-                for char, dim in zip(term, shape):
-                    if local_size_dict.get(char, 1) == 1:
-                        local_size_dict[char] = dim
-        else:
-            local_size_dict = size_dict
 
-        # Compute cost, scale, and size
-        cost = helpers.flop_count(idx_contract, bool(idx_removed), len(contract_inds), local_size_dict)
+        # Record the projected cost and executable contraction's scale and size.
         cost_list.append(cost)
         scale_list.append(len(idx_contract))
         size_list.append(helpers.compute_size_by_dict(out_inds, size_dict))

@@ -50,3 +50,23 @@ def test_broadcast_planning_rejects_invalid_diagonal_issue220():
     # must not become valid when a singleton occurrence is omitted from planning.
     with pytest.raises(ValueError, match="Repeated label"):
         contract("ii,i->i", np.ones((1, 2)), np.ones(2))
+
+
+@pytest.mark.parametrize("equation, expected_cost", [
+    ("ab,c,a->abc", 30),
+    ("ab,c,a->bc", 22),
+])
+def test_broadcast_projected_cost_matches_optimizer(equation, expected_cost):
+    # An omitted singleton axis does not introduce reduction arithmetic when
+    # it is absent from the projected contraction's index union.
+    arrays = [
+        np.arange(1., 4.).reshape(1, 3),
+        np.arange(1., 3.),
+        np.arange(1., 5.),
+    ]
+    _, info = contract_path(equation, *arrays, optimize="optimal")
+    assert info.opt_cost == expected_cost
+    np.testing.assert_array_equal(
+        contract(equation, *arrays, optimize="optimal"),
+        np.einsum(equation, *arrays),
+    )
