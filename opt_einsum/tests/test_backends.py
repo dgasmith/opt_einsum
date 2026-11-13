@@ -3,7 +3,7 @@ import pytest
 from opt_einsum import backends, contract, contract_expression, sharing
 from opt_einsum.contract import ArrayShaped, infer_backend, parse_backend
 from opt_einsum.testing import build_views
-from opt_einsum.typing import BackendType
+from opt_einsum.typing import BackendType, OptimizeKind
 
 try:
     # needed so tensorflow doesn't allocate all gpu mem
@@ -482,3 +482,41 @@ def test_object_arrays_backend(string: str) -> None:
     obj_opt = expr(*obj_views, backend="object")
     assert obj_opt.dtype == object
     assert np.allclose(ein, obj_opt.astype(float))
+
+
+@pytest.mark.parametrize("optimize,use_expression", [(False, False), ("greedy", False), ("greedy", True)])
+@pytest.mark.parametrize("equation", ["i->", "ij->ji", "ij,ij->ij"])
+def test_torch_output_buffer(equation: str, optimize: OptimizeKind, use_expression: bool) -> None:
+    torch = pytest.importorskip("torch")
+    if equation == "i->":
+        operands = [torch.arange(1, 7, dtype=torch.float64)]
+    else:
+        operands = [torch.arange(1, 7, dtype=torch.float64).reshape(2, 3)]
+        if "," in equation:
+            operands.append(torch.full((2, 3), 2.0, dtype=torch.float64))
+    expected = torch.einsum(equation, *operands)
+    out = torch.full_like(expected, -999.0)
+    if use_expression:
+        expr = contract_expression(equation, *(x.shape for x in operands))
+        result = expr(*operands, out=out, backend="torch")
+    else:
+        result = contract(equation, *operands, out=out, optimize=optimize, backend="torch")
+    assert result is out
+    torch.testing.assert_close(out, expected)
+
+
+@pytest.mark.parametrize("use_expression", [False, True])
+def test_torch_noncontiguous_output_gradient(use_expression: bool) -> None:
+    torch = pytest.importorskip("torch")
+    x = torch.arange(1, 7, dtype=torch.float64).reshape(2, 3).requires_grad_()
+    y = torch.full_like(x, 2.0)
+    out = torch.empty(3, 2, dtype=torch.float64).T
+    if use_expression:
+        expr = contract_expression("ij,ij->ij", x.shape, y.shape)
+        result = expr(x, y, out=out, backend="torch")
+    else:
+        result = contract("ij,ij->ij", x, y, out=out, backend="torch")
+    assert result is out
+    torch.testing.assert_close(out, x * y)
+    result.sum().backward()
+    torch.testing.assert_close(x.grad, y)
