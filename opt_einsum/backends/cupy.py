@@ -5,6 +5,10 @@ from opt_einsum.sharing import to_backend_cache_wrap
 
 __all__ = ["to_cupy", "build_expression", "evaluate_constants"]
 
+# CuPy tests require a GPU, which our CI runners don't provide.
+# The functions below are excluded from coverage, so the reported
+# percentage does not measure CuPy execution.
+
 
 @to_backend_cache_wrap
 def to_cupy(array):  # pragma: no cover
