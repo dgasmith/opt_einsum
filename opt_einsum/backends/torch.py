@@ -45,7 +45,12 @@ def einsum(equation, *operands, **kwargs):
     equation = convert_to_valid_einsum_chars(equation)
 
     torch, _ = _get_torch_and_device()
-    return torch.einsum(equation, operands)
+    result = torch.einsum(equation, operands)
+    out = kwargs.get("out")
+    if out is not None:
+        out[...] = result
+        return out
+    return result
 
 
 def tensordot(x, y, axes=2):
