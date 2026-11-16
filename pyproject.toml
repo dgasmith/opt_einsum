@@ -38,6 +38,7 @@ dask = ["dask"]
 jax = ["jax"]
 numpy = ["numpy>=1.23"]
 sparse = ["sparse"]
+tensorflow = ["tensorflow>=2,<3"]
 torch = ["torch>=2.0,<3.0"]
 
 test = ["pytest", "pytest-cov"]

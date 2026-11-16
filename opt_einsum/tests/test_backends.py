@@ -22,7 +22,11 @@ except ImportError:
 tests = [
     "ab,bc->ca",
     "abc,bcd,dea",
-    "abc,def->fedcba",
+    pytest.param(
+        "abc,def->fedcba",
+        # Small Dask chunks deliberately exercise the expanded outer-product grid.
+        marks=pytest.mark.filterwarnings("ignore:Increasing number of chunks by factor of:Warning"),
+    ),
     "abc,bcd,df->fa",
     # test 'prefer einsum' ops
     "ijk,ikj",
@@ -290,7 +294,7 @@ def test_jax_jit_gradient() -> None:
     shapes = (2, 3), (3, 4), (4, 2)
     views = [jax.random.uniform(key, s) for s in shapes]
     expr = contract_expression(eq, *shapes)
-    x0 = expr(*views)
+    x0 = expr(*views).item()
 
     jit_expr = jax.jit(expr)
     x1 = jit_expr(*views).item()
