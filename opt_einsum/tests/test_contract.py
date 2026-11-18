@@ -112,6 +112,73 @@ def test_contract_plain_types(optimize: OptimizeKind) -> None:
     assert result.shape == (2, 2)
 
 
+@pytest.mark.parametrize("options", [{}, {"optimize": False}], ids=["default", "unoptimized"])
+@pytest.mark.parametrize(
+    "equation, operand, shape",
+    [
+        pytest.param("i->i", [], (0,), id="empty-list"),
+        pytest.param("i->i", (), (0,), id="empty-tuple"),
+        pytest.param("ij->ji", [[], []], (0, 2), id="transpose"),
+        pytest.param("ij->i", [[], []], (2,), id="reduce"),
+        pytest.param("ij->ij", ((), ()), (2, 0), id="nested-tuple"),
+        pytest.param("...i->...", [[], []], (2,), id="ellipsis"),
+    ],
+)
+def test_contract_empty_sequences(equation: str, operand: Any, shape: tuple[int, ...], options: dict[str, Any]) -> None:
+    expected = np.einsum(equation, operand)
+    assert expected.shape == shape
+    np.testing.assert_array_equal(expected, np.zeros(shape))
+    actual = contract(equation, operand, **options)
+    assert actual.shape == shape
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("options", [{}, {"optimize": False}], ids=["default", "unoptimized"])
+@pytest.mark.parametrize(
+    "operand, inputs, output, shape",
+    [
+        pytest.param([], [0], [0], (0,), id="identity"),
+        pytest.param([[], []], [0, 1], [0], (2,), id="reduce"),
+    ],
+)
+def test_contract_empty_interleaved(
+    operand: Any, inputs: list[int], output: list[int], shape: tuple[int, ...], options: dict[str, Any]
+) -> None:
+    expected = np.einsum(operand, inputs, output)
+    assert expected.shape == shape
+    np.testing.assert_array_equal(expected, np.zeros(shape))
+    actual = contract(operand, inputs, output, **options)
+    assert actual.shape == shape
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("options", [{}, {"optimize": False}], ids=["default", "unoptimized"])
+@pytest.mark.parametrize(
+    "equation, operand, shape",
+    [
+        pytest.param("i->i", np.empty((0,)), (0,), id="empty-ndarray"),
+        pytest.param("i->i", [1.0, 2.0], (2,), id="nonempty-list"),
+        pytest.param("i->i", (1.0, 2.0), (2,), id="nonempty-tuple"),
+        pytest.param("->", 3.0, (), id="scalar"),
+    ],
+)
+def test_contract_sequence_controls(
+    equation: str, operand: Any, shape: tuple[int, ...], options: dict[str, Any]
+) -> None:
+    actual = contract(equation, operand, **options)
+    assert actual.shape == shape
+    np.testing.assert_array_equal(actual, np.einsum(equation, operand))
+
+
+@pytest.mark.parametrize("options", [{}, {"optimize": False}], ids=["default", "unoptimized"])
+def test_contract_ragged_sequence_rejected(options: dict[str, Any]) -> None:
+    operand = [[1], [2, 3]]
+    with pytest.raises(ValueError):
+        np.einsum("ij->i", operand)
+    with pytest.raises(ValueError):
+        contract("ij->i", operand, **options)
+
+
 @pytest.mark.parametrize("string", tests)
 @pytest.mark.parametrize("optimize", _PATH_OPTIONS)
 def test_compare(optimize: OptimizeKind, string: str) -> None:
@@ -217,6 +284,26 @@ def test_contract_expression_interleaved_input() -> None:
     assert np.allclose(out, expected)
 
 
+def test_contract_expression_empty_constant_reuse() -> None:
+    constant: list[list[float]] = [[], []]
+    expression = contract_expression("ij,j->i", constant, (0,), constants=[0])
+    for operand in (np.empty((0,)), np.zeros((0,))):
+        expected = np.einsum("ij,j->i", constant, operand)
+        actual = expression(operand)
+        assert actual.shape == (2,)
+        np.testing.assert_array_equal(expected, [0.0, 0.0])
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_contract_expression_empty_shape_control() -> None:
+    expression = contract_expression("ij->i", (2, 0))
+    operand: list[list[float]] = [[], []]
+    actual = expression(operand)
+    assert actual.shape == (2,)
+    np.testing.assert_array_equal(actual, [0.0, 0.0])
+    np.testing.assert_array_equal(actual, np.einsum("ij->i", operand))
+
+
 @pytest.mark.parametrize(
     "string,constants",
     [
@@ -277,3 +364,26 @@ def test_contract_path_supply_shapes() -> None:
     eq = "ab,bc,cd"
     shps = [(2, 3), (3, 4), (4, 5)]
     contract_path(eq, *shps, shapes=True)
+
+
+@pytest.mark.parametrize(
+    "equation, operand, shape, output",
+    [
+        pytest.param("i->i", [], (0,), "i", id="identity"),
+        pytest.param("ij->i", [[], []], (2, 0), "i", id="reduce"),
+    ],
+)
+def test_contract_path_empty_sequences(equation: str, operand: Any, shape: tuple[int, ...], output: str) -> None:
+    reference_path, reference_info = contract_path(equation, shape, shapes=True)
+    path, info = contract_path(equation, operand)
+    assert path == reference_path == [(0,)]
+    assert info.shapes == reference_info.shapes == [shape]
+    assert info.output_subscript == reference_info.output_subscript == output
+
+
+@pytest.mark.parametrize("equation, shape", [("i->i", (0,)), ("ij->i", (2, 0))], ids=["identity", "reduce"])
+def test_contract_path_empty_shape_control(equation: str, shape: tuple[int, ...]) -> None:
+    path, info = contract_path(equation, shape, shapes=True)
+    assert path == [(0,)]
+    assert info.shapes == [shape]
+    assert info.output_subscript == "i"
