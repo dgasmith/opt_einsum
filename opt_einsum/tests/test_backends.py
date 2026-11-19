@@ -112,7 +112,7 @@ def test_tensorflow_with_sharing(string: str) -> None:
         tfl2 = expr(*views, backend="tensorflow")
         assert len(cache) == cache_sz
 
-    assert all(isinstance(t, tf.Tensor) for t in cache.values())
+    assert all(isinstance(t, tf.Tensor) for key, t in cache.items() if key[0] != "tensor")
 
     assert np.allclose(ein, tfl1)
     assert np.allclose(ein, tfl2)
@@ -185,7 +185,7 @@ def test_theano_with_sharing(string: str) -> None:
         thn2 = expr(*views, backend="theano")
         assert len(cache) == cache_sz
 
-    assert all(isinstance(t, theano.tensor.TensorVariable) for t in cache.values())
+    assert all(isinstance(t, theano.tensor.TensorVariable) for key, t in cache.items() if key[0] != "tensor")
 
     assert np.allclose(ein, thn1)
     assert np.allclose(ein, thn2)

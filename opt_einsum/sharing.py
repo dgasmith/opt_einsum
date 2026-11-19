@@ -200,6 +200,7 @@ def to_backend_cache_wrap(to_backend: Any = None, constants: Any = False) -> Any
                 return to_backend(array, constant=constant)
 
             # hash by id
+            _save_tensors(array)
             key = to_backend.__name__, id(array), constant
             return _memoize(key, to_backend, array, constant=constant)
 
@@ -211,6 +212,7 @@ def to_backend_cache_wrap(to_backend: Any = None, constants: Any = False) -> Any
                 return to_backend(array)
 
             # hash by id
+            _save_tensors(array)
             key = to_backend.__name__, id(array)
             return _memoize(key, to_backend, array)
 

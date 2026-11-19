@@ -9,7 +9,7 @@ from opt_einsum import contract, contract_expression, contract_path, get_symbol,
 from opt_einsum.backends import to_cupy, to_torch
 from opt_einsum.contract import _einsum
 from opt_einsum.parser import parse_einsum_input
-from opt_einsum.sharing import count_cached_ops, currently_sharing, get_sharing_cache
+from opt_einsum.sharing import count_cached_ops, currently_sharing, get_sharing_cache, to_backend_cache_wrap
 from opt_einsum.testing import build_views
 from opt_einsum.typing import BackendType
 
@@ -388,3 +388,17 @@ def test_multithreaded_sharing() -> None:
     assert not currently_sharing()
     assert [f.get() for f in fs] == [expected] * 16
     pool.close()
+
+
+@pytest.mark.parametrize("constants", [False, True])
+def test_to_backend_cache_id_reuse(constants: bool) -> None:
+    # like cupy.asarray, the converted result holds no reference to the input
+    def to_list(array: Any, constant: bool = False) -> Any:
+        return array.tolist()
+
+    to_backend = to_backend_cache_wrap(to_list, constants=constants)
+
+    with shared_intermediates():
+        for i in range(100):
+            x = np.full(3, float(i))
+            assert to_backend(x) == x.tolist()
