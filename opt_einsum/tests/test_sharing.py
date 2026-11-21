@@ -30,9 +30,14 @@ except ImportError:
     cupy_if_found = pytest.param("cupy", marks=[pytest.mark.skip(reason="CuPy not installed.")])  # type: ignore
 
 try:
-    import torch  # type: ignore # noqa
+    import torch  # type: ignore
 
     torch_if_found = "torch"
+    if not hasattr(torch, "tensordot"):
+        torch_if_found = pytest.param(  # type: ignore
+            "torch",
+            marks=pytest.mark.filterwarnings("ignore:The PyTorch tensordot fallback is deprecated:FutureWarning"),
+        )
 except ImportError:
     torch_if_found = pytest.param("torch", marks=[pytest.mark.skip(reason="PyTorch not installed.")])  # type: ignore
 
