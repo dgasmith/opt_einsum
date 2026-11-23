@@ -110,8 +110,12 @@ def convert_to_valid_einsum_chars(einsum_str: str) -> str:
     >>> oe.parser.convert_to_valid_einsum_chars("Ĥěļļö")
     'cbdda'
     """
-    symbols = sorted(set(einsum_str) - set(",->"))
-    replacer = {x: get_symbol(i) for i, x in enumerate(symbols)}
+    symbols = sorted(set(einsum_str) - set(",->."))
+    mapped_symbols = [get_symbol(i) for i in range(len(symbols))]
+    if "->" not in einsum_str:
+        # Implicit output indices are sorted by the backend; preserve their original order.
+        mapped_symbols.sort()
+    replacer = dict(zip(symbols, mapped_symbols))
     return "".join(replacer.get(x, x) for x in einsum_str)
 
 
