@@ -315,11 +315,14 @@ def cost_memory_removed(size12: int, size1: int, size2: int, k12: int, k1: int, 
     return size12 - size1 - size2
 
 
-def cost_memory_removed_jitter(size12: int, size1: int, size2: int, k12: int, k1: int, k2: int) -> float:
+def cost_memory_removed_jitter(
+    size12: int, size1: int, size2: int, k12: int, k1: int, k2: int, rng: Any = random
+) -> float:
     """Like memory-removed, but with a slight amount of noise that breaks ties
-    and thus jumbles the contractions a bit.
+    and thus jumbles the contractions a bit. ``rng`` is the generator to draw
+    the noise from and defaults to the ``random`` module.
     """
-    return random.gauss(1.0, 0.01) * (size12 - size1 - size2)
+    return rng.gauss(1.0, 0.01) * (size12 - size1 - size2)
 
 
 _COST_FNS = {
