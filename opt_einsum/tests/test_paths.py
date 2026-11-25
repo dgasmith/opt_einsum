@@ -578,23 +578,26 @@ def test_custom_random_optimizer() -> None:
     assert len(optimizer.costs) == 16
 
 
-def test_optimizer_registration() -> None:
+def test_optimizer_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(oe.paths, "_PATH_OPTIONS", oe.paths._PATH_OPTIONS.copy())
+
     def custom_optimizer(
         inputs: list[ArrayIndexType], output: ArrayIndexType, size_dict: dict[str, int], memory_limit: int | None
     ) -> PathType:
         return [(0, 1)] * (len(inputs) - 1)
 
-    with pytest.raises(KeyError):
-        oe.paths.register_path_fn("optimal", custom_optimizer)
+    for name in ("optimal", "Optimal"):
+        with pytest.raises(KeyError):
+            oe.paths.register_path_fn(name, custom_optimizer)
+    assert oe.paths.get_path_fn("optimal") is oe.paths.optimal
 
-    oe.paths.register_path_fn("custom", custom_optimizer)
+    oe.paths.register_path_fn("Custom", custom_optimizer)
     assert "custom" in oe.paths._PATH_OPTIONS
 
     eq = "ab,bc,cd"
     shapes = [(2, 3), (3, 4), (4, 5)]
     path, _ = oe.contract_path(eq, *shapes, shapes=True, optimize="custom")  # type: ignore
     assert path == [(0, 1), (0, 1)]
-    del oe.paths._PATH_OPTIONS["custom"]
 
 
 def test_path_with_assumed_shapes() -> None:
