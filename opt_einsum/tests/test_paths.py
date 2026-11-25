@@ -476,7 +476,7 @@ def test_parallel_random_greedy() -> None:
     eq, shapes = rand_equation(10, 4, seed=42)
     views = list(map(np.ones, shapes))
 
-    optimizer = oe.RandomGreedy(max_repeats=10, parallel=pool)
+    optimizer = oe.RandomGreedy(max_repeats=10, parallel=pool, pre_dispatch=2)
     path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
 
     assert len(optimizer.costs) == 10
