@@ -337,9 +337,12 @@ There are a few things to note here:
 
 - The returned array is a `numpy.ndarray` but since it has `dtype=object`
   it can really hold *any* python objects
-- We had to explicitly use `backend='object'`, since `numpy.einsum`
-  would have otherwise been dispatched to, which can't handle `dtype=object`
-  (though `numpy.tensordot` in fact can)
+- NumPy's `einsum` supports `dtype=object` starting with NumPy 1.25, but its
+  reductions can require objects to support addition with the Python integer
+  zero. Use `backend='object'` for objects that only support addition and
+  multiplication with each other. Nonempty reductions start with the first
+  product; empty reductions return the Python integer zero.
+- Broadcasting uses NumPy views without copying the input elements.
 - Although an optimized pairwise contraction order is used, the looping in each
   single contraction is **performed in python so performance will be
   drastically lower than for numeric dtypes!**
