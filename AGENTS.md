@@ -41,16 +41,26 @@ check which relevant tests actually ran and report skips.
 Use uv through the existing Make targets, choosing checks appropriate to the
 change:
 
-- `make format-check`: lint and formatting
+- `make format-check`: lint and formatting (`make format` to apply fixes)
 - `make mypy`: type checking
-- `make test`: tests
+- `make test` / `make test-core`: core tests without optional backends
+- `make test-numpy`, `make test-torch`, `make test-backends`: backend suites
+- `make test-full`: all test suites sequentially
 - `make docs`: strict documentation build
 - `make docs-serve`: local preview
 
 Inspect the final diff and run `git diff --check`. Report what you checked,
-failures and any behavior left unverified.
+failures and any behavior left unverified. Before describing a failure as
+pre-existing, reproduce it on the unchanged base in the same environment or
+link an upstream report of the same failure. Otherwise, say its cause is
+unconfirmed.
 
 ## Before publishing
+
+The human contributor directing the agent authorizes public submissions and
+remains responsible for answering review questions and following through on
+agreed revisions. Permission to submit does not imply that a human reviewed
+the diff. Report human review separately from automated or agent review.
 
 State whether a human reviewed the diff; reviewing it together counts.
 If nobody reviewed it, include `Human review: not reviewed`.
