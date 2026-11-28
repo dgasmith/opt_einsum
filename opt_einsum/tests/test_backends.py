@@ -1,4 +1,6 @@
+import sys
 import warnings
+from types import SimpleNamespace
 
 import pytest
 
@@ -531,3 +533,38 @@ def test_object_arrays_backend(string: str) -> None:
     obj_opt = expr(*obj_views, backend="object")
     assert obj_opt.dtype == object
     assert np.allclose(ein, obj_opt.astype(float))
+
+
+def test_theano_deprecation_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(sys.modules, "theano", SimpleNamespace())
+    sentinel = object()
+    with pytest.warns(FutureWarning, match="Theano conversion backend.*May 1, 2027"):
+        assert backends.to_theano(sentinel) is sentinel
+
+
+def test_tensorflow_1_deprecation_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    from opt_einsum.backends import tensorflow as tf_backend
+
+    fake_tf = SimpleNamespace(
+        __version__="1.15.5",
+        executing_eagerly=lambda: False,
+        test=SimpleNamespace(gpu_device_name=lambda: ""),
+    )
+    monkeypatch.setitem(sys.modules, "tensorflow", fake_tf)
+    monkeypatch.setattr(tf_backend, "_CACHED_TF_DEVICE", None)
+    with pytest.warns(FutureWarning, match="TensorFlow 1 conversion backend.*May 1, 2027"):
+        tf, device, eager = tf_backend._get_tensorflow_and_device()
+    assert (tf, device, eager) == (fake_tf, "cpu", False)
+
+
+def test_torch_tensordot_fallback_deprecation_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    from opt_einsum.backends import torch as torch_backend
+
+    torch = pytest.importorskip("torch")
+    torch_backend._get_torch_and_device()
+    monkeypatch.setattr(torch_backend, "_TORCH_HAS_TENSORDOT", False)
+    a = torch.arange(6.0).reshape(2, 3)
+    b = torch.arange(12.0).reshape(3, 4)
+    with pytest.warns(FutureWarning, match="PyTorch tensordot fallback.*May 1, 2027"):
+        result = torch_backend.tensordot(a, b, axes=1)
+    torch.testing.assert_close(result, torch.tensordot(a, b, dims=1))
