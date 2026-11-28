@@ -631,6 +631,12 @@ def parse_backend(arrays: Sequence[ArrayType], backend: str | None) -> str:
     return backend
 
 
+def _check_output_rank(out: ArrayType, expected_rank: int) -> None:
+    """Reject an output buffer with a different number of dimensions."""
+    if hasattr(out, "shape") and len(out.shape) != expected_rank:
+        raise ValueError(f"Output has {len(out.shape)} dimensions, but contraction result has {expected_rank}.")
+
+
 def _core_contract(
     operands_: Sequence[ArrayType],
     contraction_list: ContractionListType,
@@ -695,6 +701,7 @@ def _core_contract(
                 new_view = _transpose(new_view, axes=transpose, backend=backend)
 
                 if handle_out:
+                    _check_output_rank(out, len(results_index))
                     out[...] = new_view  # type: ignore
 
         else:
@@ -847,6 +854,8 @@ class ContractExpression:
         result = self._get_backend_expression(arrays, backend)(*arrays)
 
         if out is not None:
+            output_subscripts = self._full_contraction_list[-1][2].split("->")[1]
+            _check_output_rank(out, len(output_subscripts))
             out[()] = result
             return out
 
