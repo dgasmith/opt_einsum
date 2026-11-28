@@ -62,6 +62,9 @@ def shared_intermediates(
     1. this context exits, and
     2. the yielded cache is garbage collected (if it was captured).
 
+    Einsum calls with additional keyword options or an output buffer are
+    executed without caching to preserve their execution semantics.
+
     **Parameters:**
 
     - **cache** - *(dict)* If specified, a user-stored dict in which intermediate results will be stored. This can be used to interleave sharing contexts.
@@ -166,6 +169,10 @@ def einsum_cache_wrap(einsum: Any) -> Any:
 
         # hash modulo commutativity by computing a canonical ordering and names
         backend = kwargs.pop("backend", "numpy")
+        # A tensor-only key cannot represent execution options or output writes.
+        # Ordinary contract calls pass out=None, which still permits sharing.
+        if any(name != "out" or value is not None for name, value in kwargs.items()):
+            return einsum(*args, backend=backend, **kwargs)
         equation = args[0]
         inputs, output, operands = parse_einsum_input(args)
         inputs = inputs.split(",")
