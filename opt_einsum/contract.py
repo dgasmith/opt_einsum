@@ -642,6 +642,19 @@ def _core_contract(
     """Inner loop used to perform an actual contraction given the output
     from a ``contract_path(..., einsum_call=True)`` call.
     """
+    return _core_contract_impl(operands_, contraction_list, contraction_list, backend, evaluate_constants, out, kwargs)
+
+
+def _core_contract_impl(
+    operands_: Sequence[ArrayType],
+    contraction_list: ContractionListType,
+    original_contractions: ContractionListType,
+    backend: str | None,
+    evaluate_constants: bool,
+    out: ArrayType | None,
+    kwargs: dict[str, Any],
+) -> ArrayType:
+    """Execute contractions, retaining the original path for cached constants."""
     # Special handling if out is specified
     specified_out = out is not None
 
@@ -650,6 +663,17 @@ def _core_contract(
 
     # try and do as much as possible without einsum if not available
     no_einsum = not backends.has_einsum(backend)
+
+    # tensordot has no einsum execution options such as dtype or casting.
+    # If we must fall back to einsum, do not use the shared einsum cache for
+    # this contraction: its keys do not include execution options.
+    options_need_einsum = bool(kwargs) and backend == "numpy" and not no_einsum
+    bypass_option_cache = (
+        options_need_einsum
+        and sharing.currently_sharing()
+        and any(isinstance(flag, str) and "EINSUM" not in flag for *_, flag in original_contractions)
+    )
+    einsum_fn = _einsum.__wrapped__ if bypass_option_cache else _einsum
 
     # Start contraction loop
     for num, contraction in enumerate(contraction_list):
@@ -666,7 +690,7 @@ def _core_contract(
         handle_out = specified_out and ((num + 1) == len(contraction_list))
 
         # Call tensordot (check if should prefer einsum, but only if available)
-        if blas_flag and ("EINSUM" not in blas_flag or no_einsum):  # type: ignore
+        if blas_flag and ("EINSUM" not in blas_flag or no_einsum) and not options_need_einsum:  # type: ignore
             # Checks have already been handled
             input_str, results_index = einsum_str.split("->")
             input_left, input_right = input_str.split(",")
@@ -702,7 +726,7 @@ def _core_contract(
             out_kwarg: None | ArrayType = None
             if handle_out:
                 out_kwarg = out
-            new_view = _einsum(einsum_str, *tmp_operands, backend=backend, out=out_kwarg, **kwargs)
+            new_view = einsum_fn(einsum_str, *tmp_operands, backend=backend, out=out_kwarg, **kwargs)
 
         # Append new items and dereference what we can
         operands.append(new_view)
@@ -816,13 +840,28 @@ class ContractExpression:
         """The normal, core contraction."""
         contraction_list = self._full_contraction_list if evaluate_constants else self.contraction_list
 
-        return _core_contract(
+        # Preserve the original argument-binding errors before passing the
+        # backend options separately to the implementation.
+        if self.kwargs and any(
+            key in self.kwargs for key in ("operands_", "contraction_list", "backend", "evaluate_constants", "out")
+        ):
+            return _core_contract(
+                list(arrays),
+                contraction_list,
+                out=out,
+                backend=backend,
+                evaluate_constants=evaluate_constants,
+                **self.kwargs,
+            )
+
+        return _core_contract_impl(
             list(arrays),
             contraction_list,
-            out=out,
-            backend=backend,
-            evaluate_constants=evaluate_constants,
-            **self.kwargs,
+            self._full_contraction_list,
+            backend,
+            evaluate_constants,
+            out,
+            self.kwargs,
         )
 
     def _contract_with_conversion(
