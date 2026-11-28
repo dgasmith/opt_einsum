@@ -87,8 +87,11 @@ packages = ["opt_einsum"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
+    'error',
     'ignore::DeprecationWarning:tensorflow',
     'ignore::DeprecationWarning:tensorboard',
+    'ignore:CUDA initialization:UserWarning:torch\.cuda',
+    'ignore:os\.fork\(\) was called\. os\.fork\(\) is incompatible with multithreaded code, and JAX is multithreaded:RuntimeWarning',
 ]
 
 [tool.ruff]

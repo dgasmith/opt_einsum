@@ -1,3 +1,7 @@
+import sys
+import warnings
+from types import SimpleNamespace
+
 import pytest
 
 from opt_einsum import backends, contract, contract_expression, sharing
@@ -36,10 +40,30 @@ tests = [
 ]
 
 
+def test_tensorflow_function() -> None:
+    np = pytest.importorskip("numpy")
+    tf = pytest.importorskip("tensorflow", minversion="2.0")
+    a = np.arange(6, dtype=float).reshape(2, 3)
+    b = np.arange(12, dtype=float).reshape(3, 4)
+
+    @tf.function(autograph=False)
+    def tensorflow_contract(a, b):
+        return contract("ab,bc->ac", a, b)
+
+    result = tensorflow_contract(tf.constant(a), tf.constant(b))
+
+    assert isinstance(result, tf.Tensor)
+    np.testing.assert_allclose(result.numpy(), np.einsum("ab,bc->ac", a, b))
+
+
 @pytest.mark.parametrize("string", tests)
 def test_tensorflow(string: str) -> None:
     np = pytest.importorskip("numpy")
-    pytest.importorskip("tensorflow")
+    tf = pytest.importorskip("tensorflow")
+    if tf.__version__.startswith("1."):
+        warnings.filterwarnings(
+            "ignore", message="The TensorFlow 1 conversion backend is deprecated", category=FutureWarning
+        )
 
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
@@ -64,6 +88,10 @@ def test_tensorflow(string: str) -> None:
 def test_tensorflow_with_constants(constants: set[int]) -> None:
     np = pytest.importorskip("numpy")
     tf = pytest.importorskip("tensorflow")
+    if tf.__version__.startswith("1."):
+        warnings.filterwarnings(
+            "ignore", message="The TensorFlow 1 conversion backend is deprecated", category=FutureWarning
+        )
 
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
@@ -95,6 +123,10 @@ def test_tensorflow_with_constants(constants: set[int]) -> None:
 def test_tensorflow_with_sharing(string: str) -> None:
     np = pytest.importorskip("numpy")
     tf = pytest.importorskip("tensorflow")
+    if tf.__version__.startswith("1."):
+        warnings.filterwarnings(
+            "ignore", message="The TensorFlow 1 conversion backend is deprecated", category=FutureWarning
+        )
 
     views = build_views(string)
     ein = contract(string, *views, optimize=False, use_blas=False)
@@ -129,11 +161,13 @@ def test_theano(string: str) -> None:
 
     expr = contract_expression(string, *shps, optimize=True)
 
-    opt = expr(*views, backend="theano")
+    with pytest.warns(FutureWarning, match="Theano conversion backend.*May 1, 2027"):
+        opt = expr(*views, backend="theano")
     assert np.allclose(ein, opt)
 
     # test non-conversion mode
-    theano_views = [backends.to_theano(view) for view in views]
+    with pytest.warns(FutureWarning, match="Theano conversion backend.*May 1, 2027"):
+        theano_views = [backends.to_theano(view) for view in views]
     theano_opt = expr(*theano_views)
     assert isinstance(theano_opt, theano.tensor.TensorVariable)
 
@@ -153,7 +187,8 @@ def test_theano_with_constants(constants: set[int]) -> None:
     expr = contract_expression(eq, *ops, constants=constants)
 
     # check theano
-    res_got = expr(var, backend="theano")
+    with pytest.warns(FutureWarning, match="Theano conversion backend.*May 1, 2027"):
+        res_got = expr(var, backend="theano")
     assert all(array is None or infer_backend(array) == "theano" for array in expr._evaluated_constants["theano"])
     assert np.allclose(res_exp, res_got)
 
@@ -162,7 +197,8 @@ def test_theano_with_constants(constants: set[int]) -> None:
     assert np.allclose(res_exp, res_got2)
 
     # check theano call returns theano still
-    res_got3 = expr(backends.to_theano(var))
+    with pytest.warns(FutureWarning, match="Theano conversion backend.*May 1, 2027"):
+        res_got3 = expr(backends.to_theano(var))
     assert isinstance(res_got3, theano.tensor.TensorVariable)
 
 
@@ -177,7 +213,10 @@ def test_theano_with_sharing(string: str) -> None:
     shps = [v.shape for v in views]
     expr = contract_expression(string, *shps, optimize=True)
 
-    with sharing.shared_intermediates() as cache:
+    with (
+        sharing.shared_intermediates() as cache,
+        pytest.warns(FutureWarning, match="Theano conversion backend.*May 1, 2027"),
+    ):
         thn1 = expr(*views, backend="theano")
         assert sharing.get_sharing_cache() is cache
         cache_sz = len(cache)
@@ -396,6 +435,10 @@ def test_sparse(string: str) -> None:
 @pytest.mark.parametrize("string", tests)
 def test_torch(string: str) -> None:
     torch = pytest.importorskip("torch")
+    if not hasattr(torch, "tensordot"):
+        warnings.filterwarnings(
+            "ignore", message="The PyTorch tensordot fallback is deprecated", category=FutureWarning
+        )
 
     views = build_views(string, array_function=torch.rand)
     ein = torch.einsum(string, *views)
@@ -422,6 +465,10 @@ def test_torch(string: str) -> None:
 @pytest.mark.parametrize("constants", [{0, 1}, {0, 2}, {1, 2}])
 def test_torch_with_constants(constants: set[int]) -> None:
     torch = pytest.importorskip("torch")
+    if not hasattr(torch, "tensordot"):
+        warnings.filterwarnings(
+            "ignore", message="The PyTorch tensordot fallback is deprecated", category=FutureWarning
+        )
 
     eq = "ij,jk,kl->li"
     shapes = (2, 3), (3, 4), (4, 5)
@@ -486,3 +533,38 @@ def test_object_arrays_backend(string: str) -> None:
     obj_opt = expr(*obj_views, backend="object")
     assert obj_opt.dtype == object
     assert np.allclose(ein, obj_opt.astype(float))
+
+
+def test_theano_deprecation_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(sys.modules, "theano", SimpleNamespace())
+    sentinel = object()
+    with pytest.warns(FutureWarning, match="Theano conversion backend.*May 1, 2027"):
+        assert backends.to_theano(sentinel) is sentinel
+
+
+def test_tensorflow_1_deprecation_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    from opt_einsum.backends import tensorflow as tf_backend
+
+    fake_tf = SimpleNamespace(
+        __version__="1.15.5",
+        executing_eagerly=lambda: False,
+        test=SimpleNamespace(gpu_device_name=lambda: ""),
+    )
+    monkeypatch.setitem(sys.modules, "tensorflow", fake_tf)
+    monkeypatch.setattr(tf_backend, "_CACHED_TF_DEVICE", None)
+    with pytest.warns(FutureWarning, match="TensorFlow 1 conversion backend.*May 1, 2027"):
+        tf, device, eager = tf_backend._get_tensorflow_and_device()
+    assert (tf, device, eager) == (fake_tf, "cpu", False)
+
+
+def test_torch_tensordot_fallback_deprecation_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    from opt_einsum.backends import torch as torch_backend
+
+    torch = pytest.importorskip("torch")
+    torch_backend._get_torch_and_device()
+    monkeypatch.setattr(torch_backend, "_TORCH_HAS_TENSORDOT", False)
+    a = torch.arange(6.0).reshape(2, 3)
+    b = torch.arange(12.0).reshape(3, 4)
+    with pytest.warns(FutureWarning, match="PyTorch tensordot fallback.*May 1, 2027"):
+        result = torch_backend.tensordot(a, b, axes=1)
+    torch.testing.assert_close(result, torch.tensordot(a, b, dims=1))
