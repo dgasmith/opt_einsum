@@ -136,10 +136,9 @@ class RandomOptimizer(paths.PathOptimizer):
         # the idea here is to submit at least ``pre_dispatch`` jobs *before* we
         # yield any results, then do both in tandem, before draining the queue
         for r in repeats:
-            if len(self._futures) < self.pre_dispatch:
-                self._futures.append(self._executor.submit(trial_fn, r, *args))
-                continue
-            yield self._futures.popleft().result()
+            if len(self._futures) >= self.pre_dispatch:
+                yield self._futures.popleft().result()
+            self._futures.append(self._executor.submit(trial_fn, r, *args))
 
         while self._futures:
             yield self._futures.popleft().result()
