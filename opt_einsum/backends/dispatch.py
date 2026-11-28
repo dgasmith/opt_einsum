@@ -61,7 +61,15 @@ _cached_funcs: dict[tuple[str, str], Any] = {
 try:
     import numpy as np  # type: ignore
 
-    _cached_funcs[("tensordot", "numpy")] = np.tensordot
+    def _numpy_tensordot(a: Any, b: Any, axes: Any = 2) -> Any:
+        result = np.tensordot(a, b, axes=axes)
+        # A reshaped empty result can have nonzero strides. Passing it on to
+        # einsum can make an empty reduction loop over the nonempty axes.
+        if type(result) is np.ndarray and result.size == 0 and any(result.strides):
+            return result.copy(order="K")
+        return result
+
+    _cached_funcs[("tensordot", "numpy")] = _numpy_tensordot
     _cached_funcs[("transpose", "numpy")] = np.transpose
     _cached_funcs[("einsum", "numpy")] = np.einsum
     # also pre-populate with the arbitrary object backend

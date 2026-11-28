@@ -65,6 +65,26 @@ def test_can_blas(inp: Any, benchmark: bool) -> None:
     assert result == benchmark
 
 
+def test_numpy_empty_tensordot_intermediate() -> None:
+    np = pytest.importorskip("numpy")
+    a = np.empty((8, 8, 0))
+    b = np.empty((0, 0))
+
+    # This intermediate feeds a transposed dot product in issue #198.
+    intermediate = contract("abc,cd->dab", a, b)
+    assert intermediate.shape == (0, 8, 8)
+    assert not any(intermediate.strides)
+
+    expr = contract_expression("abc,cd,de,eba->", a.shape, b.shape, b.shape, intermediate.shape, optimize="optimal")
+    assert expr(a, b, b, np.empty(intermediate.shape)) == 0
+
+    # The same compiled expression can be called on nonempty arrays.
+    a = np.ones((8, 8, 2))
+    b = np.ones((2, 2))
+    d = np.ones((2, 8, 8))
+    assert expr(a, b, b, d) == np.einsum("abc,cd,de,eba->", a, b, b, d)
+
+
 def test_blas_out() -> None:
     np = pytest.importorskip("numpy")
 
