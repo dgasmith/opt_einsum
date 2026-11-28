@@ -942,6 +942,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#350-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5.0 / Unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#340-2024-09-26" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1130,6 +1141,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#350-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5.0 / Unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#340-2024-09-26" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1304,6 +1326,15 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="350-unreleased">3.5.0 / Unreleased</h2>
+<p><strong>Deprecations</strong></p>
+<ul>
+<li>The Theano and TensorFlow 1 adapters for converting NumPy arrays and compiling
+  expressions, plus the fallback used when PyTorch lacks <code>tensordot</code>, now emit a
+  <code>FutureWarning</code>. These paths remain in 3.5 and will be removed in the first
+  feature release after May 1, 2027. Direct contractions on native Theano and
+  TensorFlow tensors and TensorFlow 2 conversion are unaffected.</li>
+</ul>
 <h2 id="340-2024-09-26">3.4.0 / 2024-09-26</h2>
 <p>NumPy has been removed from <code>opt_einsum</code> as a dependency allowing for more flexible installs.</p>
 <p><strong>New Features</strong></p>

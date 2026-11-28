@@ -1092,6 +1092,16 @@ The following is a brief overview of libraries which have been tested with
 <li><a href="https://github.com/google/jax">jax</a>: compiled GPU tensor expressions
   including <code>autograd</code>-like functionality</li>
 </ul>
+<div class="admonition warning">
+<p class="admonition-title">Deprecated compatibility paths</p>
+<p>Starting in 3.5, the Theano and TensorFlow 1 adapters for converting NumPy
+arrays and compiling expressions emit a <code>FutureWarning</code>, as does the fallback
+used when PyTorch lacks <code>tensordot</code>. These paths remain in 3.5 and will be
+removed in the first feature release after May 1, 2027. Direct contractions on
+native Theano and TensorFlow tensors and TensorFlow 2 conversion are
+unaffected. Use native Theano tensors, upgrade to TensorFlow 2 for conversion,
+or upgrade PyTorch.</p>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>For a contraction to be possible without using a backend einsum, it must
@@ -1235,8 +1245,8 @@ Additionally, if arrays are marked as <code>constant</code>
 (see <a href="../reusing_paths/#specifying-constants"><code>constants-section</code></a>), then these arrays will be kept on the device
 for optimal performance.</p>
 <h3 id="theano">Theano</h3>
-<p>If <code>theano</code> is installed, using it as backend is as simple as specifying
-<code>backend='theano'</code>:</p>
+<p>The following example uses the deprecated Theano conversion adapter, selected
+with <code>backend='theano'</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">shapes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">),</span> <span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
 <span class="n">expr</span> <span class="o">=</span> <span class="n">oe</span><span class="o">.</span><span class="n">contract_expression</span><span class="p">(</span><span class="s2">"ab,bc,cd"</span><span class="p">,</span> <span class="o">*</span><span class="n">shapes</span><span class="p">)</span>
 <span class="n">expr</span>
@@ -1255,8 +1265,9 @@ for optimal performance.</p>
 <code>opt_einsum</code> (with <code>backend='theano'</code>), and it will return the
 relevant <code>theano</code> type.</p>
 <h3 id="tensorflow">Tensorflow</h3>
-<p>To run the expression with <strong>tensorflow</strong>, you need to register a default
-session:</p>
+<p>The following examples use the deprecated <strong>TensorFlow 1</strong> conversion adapter.
+TensorFlow 2 conversion and direct contractions on native tensors are unaffected.
+To run the expression in graph mode, register a default session:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
 <span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
 
