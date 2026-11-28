@@ -85,10 +85,73 @@ def test_parse_with_ellisis() -> None:
         [5, ()],
         [5.0, ()],
         [5.0 + 0j, ()],
+        pytest.param([], (0,), id="empty-list"),
+        pytest.param((), (0,), id="empty-tuple"),
+        pytest.param([[], []], (2, 0), id="nested-list"),
+        pytest.param(((), ()), (2, 0), id="nested-tuple"),
+        pytest.param([(), []], (2, 0), id="mixed-empty"),
+        pytest.param([[[], []], [[], []]], (2, 2, 0), id="rank-three"),
+        pytest.param("", (), id="empty-string"),
+        pytest.param(b"", (), id="empty-bytes"),
     ],
 )
 def test_get_shapes(array: Any, shape: tuple[int]) -> None:
     assert get_shape(array) == shape
+
+
+def test_get_shape_attribute_precedence() -> None:
+    class ShapedList(list[Any]):
+        shape = [3, 0]
+
+    assert get_shape(ShapedList()) is ShapedList.shape
+
+
+@pytest.mark.parametrize("array", [None, {}, set()], ids=["none", "dict", "set"])
+def test_get_shape_unsupported_objects(array: Any) -> None:
+    with pytest.raises(ValueError, match="Cannot determine the shape of"):
+        get_shape(array)
+
+
+@pytest.mark.parametrize("array", [[[1], [2, 3]], [[1], []]], ids=["unequal", "empty-sibling"])
+def test_get_shape_ragged_first_branch(array: Any) -> None:
+    assert get_shape(array) == (2, 1)
+
+
+@pytest.mark.parametrize("nested", [False, True], ids=["outer", "nested"])
+def test_get_shape_length_error(nested: bool) -> None:
+    class LengthErrorList(list[Any]):
+        def __len__(self) -> int:
+            raise RuntimeError("length unavailable")
+
+    array = LengthErrorList([1])
+    with pytest.raises(RuntimeError, match="length unavailable"):
+        get_shape([array] if nested else array)
+
+
+@pytest.mark.parametrize("nested", [False, True], ids=["outer", "nested"])
+def test_get_shape_index_error(nested: bool) -> None:
+    class IndexErrorList(list[Any]):
+        def __getitem__(self, index: Any) -> Any:
+            raise IndexError("first element unavailable")
+
+    array = IndexErrorList([1])
+    with pytest.raises(IndexError, match="first element unavailable"):
+        get_shape([array] if nested else array)
+
+
+@pytest.mark.parametrize(
+    "array, shape",
+    [
+        pytest.param([], (0,), id="empty"),
+        pytest.param([1, 2], (2,), id="nonempty"),
+    ],
+)
+def test_get_shape_without_truthiness(array: Any, shape: tuple[int, ...]) -> None:
+    class NoTruthList(list[Any]):
+        def __bool__(self) -> bool:
+            raise AssertionError("sequence truth value unavailable")
+
+    assert get_shape(NoTruthList(array)) == shape
 
 
 def test_find_output_shape_with_zero_length_broadcast() -> None:
