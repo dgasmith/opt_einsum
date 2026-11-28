@@ -3,12 +3,11 @@
 import functools
 import heapq
 import math
+import random
 import time
 from collections import deque
 from collections.abc import Generator, Iterable
 from decimal import Decimal
-from random import choices as random_choices
-from random import seed as random_seed
 from typing import Any
 
 from opt_einsum import helpers, paths
@@ -209,7 +208,7 @@ class RandomOptimizer(paths.PathOptimizer):
             self._executor.shutdown()
 
 
-def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=True):
+def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=True, rng=random):
     """A contraction 'chooser' that weights possible contractions using a
     Boltzmann distribution. Explicitly, given costs `c_i` (with `c_0` the
     smallest), the relative weights, `w_i`, are computed as:
@@ -232,6 +231,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
             the best cost. This is generally beneficial as the magnitude of costs
             can vary significantly throughout a contraction.
         nbranch: How many potential paths to calculate probability for and choose from at each step.
+        rng: The random number generator used to pick the contraction, defaults to the ``random`` module.
 
     Returns:
         cost
@@ -268,7 +268,7 @@ def thermal_chooser(queue, remaining, nbranch=8, temperature=1, rel_temperature=
         energies = [math.exp(-(c - cmin) / temperature) for c in costs]
 
     # randomly choose a contraction based on energies
-    (chosen,) = random_choices(range(n), weights=energies)
+    (chosen,) = rng.choices(range(n), weights=energies)
     cost, k1, k2, k12 = choices.pop(chosen)
 
     # put the other choice back in the heap
@@ -316,7 +316,13 @@ def _trial_greedy_ssa_path_and_cost(
         # always start with the standard greedy approach
         choose_fn = None
 
-    random_seed(r)
+    # seed a private generator so repeats stay reproducible without touching
+    # the process-wide ``random`` state
+    rng = random.Random(r)
+    if choose_fn is not None:
+        choose_fn = functools.partial(choose_fn, rng=rng)
+    if cost_fn in ("memory-removed-jitter", paths.cost_memory_removed_jitter):
+        cost_fn = functools.partial(paths.cost_memory_removed_jitter, rng=rng)
 
     ssa_path = paths.ssa_greedy_optimize(inputs, output, size_dict, choose_fn, cost_fn)
     cost, size = ssa_path_compute_cost(ssa_path, inputs, output, size_dict)

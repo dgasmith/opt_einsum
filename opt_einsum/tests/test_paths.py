@@ -4,6 +4,7 @@ the various path helper functions.
 """
 
 import itertools
+import random
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any
 
@@ -388,6 +389,21 @@ def test_custom_random_greedy() -> None:
     views = list(map(np.ones, shapes))
     with pytest.raises(ValueError):
         path, path_info = oe.contract_path(eq, *views, optimize=optimizer)
+
+
+def test_random_greedy_does_not_reseed_global_rng() -> None:
+    eq = "ab,bc,cd,de,ef,fg,gh,hi,ij,ja->"
+    shapes = build_shapes(eq)
+
+    random.seed(0)
+    expected = [random.random() for _ in range(4)]
+
+    random.seed(0)
+    path, _ = oe.contract_path(eq, *shapes, shapes=True, optimize="random-greedy")
+    assert [random.random() for _ in range(4)] == expected
+
+    # each trial is still seeded by its repeat number, so the search is reproducible
+    assert oe.contract_path(eq, *shapes, shapes=True, optimize="random-greedy")[0] == path
 
 
 def test_custom_branchbound() -> None:
