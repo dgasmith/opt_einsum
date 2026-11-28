@@ -90,6 +90,8 @@ filterwarnings = [
     'error',
     'ignore::DeprecationWarning:tensorflow',
     'ignore::DeprecationWarning:tensorboard',
+    'ignore:CUDA initialization:UserWarning:torch\.cuda',
+    'ignore:os\.fork\(\) was called:RuntimeWarning:jax',
 ]
 
 [tool.ruff]
