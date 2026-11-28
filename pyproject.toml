@@ -87,7 +87,7 @@ packages = ["opt_einsum"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    'error:.*deprecated.*opt_einsum:FutureWarning',
+    'error',
     'ignore::DeprecationWarning:tensorflow',
     'ignore::DeprecationWarning:tensorboard',
 ]
